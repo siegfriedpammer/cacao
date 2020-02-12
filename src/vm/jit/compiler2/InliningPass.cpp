@@ -306,7 +306,6 @@ private:
 		}
 
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
-			LOG("x"<<nl);
 			Instruction* I = *it;
 			LOG("Adding to call site " << *I << nl);
 
@@ -327,7 +326,7 @@ private:
 
 			caller_method->add_Instruction(I);
 			I->replace_dep(caller_bb, call_site_bb);
-			I->set_BeginInst(call_site_bb);
+			I->set_BeginInst_unsafe(call_site_bb);
 
 			correct_scheduling_edges(I);
 
@@ -376,7 +375,7 @@ class ComplexInliningOperation : InliningOperationBase {
 		void add_to_post_call_site_bb(Instruction* I){
 			LOG("Adding " << I << " to post call site bb " << post_call_site_bb << nl);
 
-			I->set_BeginInst(post_call_site_bb);
+			I->set_BeginInst_unsafe(post_call_site_bb);
 			
 			if(old_call_site_bb->get_EndInst() == I){
 				LOG("Setting end inst of post call site bb " << I << nl);
@@ -417,7 +416,7 @@ class ComplexInliningOperation : InliningOperationBase {
 			// add end inst of call site bb
 			auto end_inst = old_call_site_bb->get_EndInst();
 			LOG("new end inst for post call site bb " << end_inst << nl);
-			end_inst->set_BeginInst(post_call_site_bb);
+			end_inst->set_BeginInst_unsafe(post_call_site_bb);
 			post_call_site_bb->set_EndInst(end_inst);
 
 			add_dependent(call_site);
@@ -535,7 +534,7 @@ class GuardedCodeFactory : public CodeFactory {
 			new_bb->append_dep(I);
 			auto source_state = I->get_SourceStateInst();
 			source_state->replace_dep(I->get_BeginInst(), new_bb);
-			I->set_BeginInst(new_bb);
+			I->set_BeginInst_unsafe(new_bb);
 			
 			auto return_inst = new RETURNInst(new_bb, I);
 			target_method->add_Instruction(return_inst);

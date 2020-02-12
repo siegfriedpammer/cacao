@@ -47,8 +47,6 @@ class Method;
  * InliningPass
  */
 class InliningPass : public Pass, public memory::ManagerMixin<InliningPass> {
-private:
-    void inline_instruction(INVOKEInst* I);
 #ifdef ENABLE_LOGGING
 	void print_final_results();
 #endif
