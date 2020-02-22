@@ -624,17 +624,19 @@ bool InliningPass::run(JITData& JD)
 	while(heuristic.has_next()){
 		auto I = heuristic.next();
 		inline_instruction(I, &heuristic);
+		auto op_code = I->get_opcode();
+		// don't delete guarded instructions
+		if(op_code == Instruction::INVOKESTATICInstID || op_code == Instruction::INVOKESPECIALInstID){
+			to_remove.push_back(I);
+		}
 		STATISTICS(inlined_method_invocations++);
-		to_remove.push_back(I);
 	}
 
 	LOG("Removing all invoke instructions" << nl);
 	for(auto it = to_remove.begin(); it != to_remove.end(); it++){
 		auto call_site = *it;
 		auto op_code = call_site->get_opcode();
-		if(op_code == Instruction::INVOKESTATICInstID || op_code == Instruction::INVOKESPECIALInstID){
-			remove_call_site(call_site);
-		}
+		remove_call_site(call_site);
 	}
 
 	LOG("End of inlining pass." << nl);
