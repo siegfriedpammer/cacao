@@ -76,6 +76,7 @@ SourceStateInst *SourceStateAttachmentPass::process_block(BeginInst *begin,
 	//       the optimizing compiler run
 	// assert(latest_source_state);
 	if (!latest_source_state) {
+		LOG("SourceStateAttachementPass: no latest source state found for " << begin << "!");
 		throw std::runtime_error("SourceStateAttachementPass: no latest source state found!");
 	}
 
