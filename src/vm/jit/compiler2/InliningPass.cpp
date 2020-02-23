@@ -61,35 +61,6 @@ namespace compiler2 {
 	that the SourceStateInstructions are not handled correctly. For example the source state instruction for the
 	inlined call will be deleted completely, which causes information loss.
 */
-
-void remove_instruction(Instruction* inst){
-	LOG("removing " << inst << " with (r)dependencies" << nl);
-
-	LOG("Removing deps " << inst << nl);
-	auto it = inst->dep_begin();
-	while (it != inst->dep_end()){
-		auto I = *it;
-		LOG("dep " << I << nl);
-		inst->remove_dep(I);
-		it = inst->dep_begin();
-	}
-
-	LOG("Removing reverse deps " << inst << nl);
-	it = inst->rdep_begin();
-	while (it != inst->rdep_end()){
-		auto I = *it;
-		LOG("rdep " << I << nl);
-		I->remove_dep(inst);
-		it = inst->rdep_begin();
-	}
-
-	if(inst->get_opcode() == Instruction::BeginInstID){
-		inst->get_Method()->remove_bb(inst->to_BeginInst());	
-	} else {
-		inst->get_Method()->remove_Instruction(inst);
-	}
-}
-
 class Heuristic {
 	private: 
 		bool is_currently_monomorphic(INVOKEInst* I){
@@ -223,19 +194,6 @@ class InliningOperationBase {
 		InliningOperationBase (INVOKEInst* site, Method* callee, Heuristic* heuristic) : call_site(site), callee_method(callee), heuristic(heuristic){
 			caller_method = call_site->get_Method();
 		}
-		
-		static bool is_source_state_or_begin_inst (Instruction* I){
-			auto op_code = I->get_opcode();
-			return op_code != Instruction::SourceStateInstID && op_code != Instruction::BeginInstID;
-		}
-
-		static bool is_state_change_for_other_instruction (Instruction* I){
-			return std::any_of(I->rdep_begin(), I->rdep_end(), InliningOperationBase::is_source_state_or_begin_inst);
-		}
-
-		static Instruction* get_depending_instruction (Instruction* I){
-			return *std::find_if(I->rdep_begin(), I->rdep_end(), InliningOperationBase::is_source_state_or_begin_inst);
-		}
 
 		void replace_method_parameters(){
 			List<Instruction*> to_remove;
@@ -250,7 +208,7 @@ class InliningOperationBase {
 				}
 			}
 			for (auto it = to_remove.begin(); it != to_remove.end(); it++) {
-				remove_instruction(*it);
+				HIRManipulations::remove_instruction(*it);
 			}
 		}
 
@@ -317,7 +275,7 @@ private:
 		}
 
 		for (auto it = to_remove.begin(); it != to_remove.end(); it++) {
-			remove_instruction(*it);
+			HIRManipulations::remove_instruction(*it);
 		}
 	}
 
@@ -485,7 +443,7 @@ void remove_call_site(INVOKEInst* call_site){
 		source_state->to_SourceStateInst()->replace_dep(call_site, call_site->get_BeginInst());
 	}
 	
-	remove_instruction(call_site);
+	HIRManipulations::remove_instruction(call_site);
 }
 
 CodeFactory* get_code_factory(INVOKEInst *I){

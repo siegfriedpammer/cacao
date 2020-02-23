@@ -43,9 +43,10 @@ class HIRManipulations {
          * that these operations are valid and the semantics of the program will be maintained. If you want to 
          * move floating instructions use cacao.jit.compiler2.Instruction::set_BeginInst. 
          **/
-        static void move_instruction_to_bb (Instruction* I, BeginInst* target_bb, Instruction* schedule_after);
-        static void move_instruction_to_method (Instruction* I, Method* target_method);
+        static void move_instruction_to_bb (Instruction* to_move, BeginInst* target_bb, Instruction* schedule_after);
+        static void move_instruction_to_method (Instruction* to_move, Method* target_method);
         static void connect_with_jump (BeginInst* source, BeginInst* target);
+        static void remove_instruction(Instruction* to_remove);
 };
 
 } // end namespace compiler2

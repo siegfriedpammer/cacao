@@ -161,30 +161,31 @@ void correct_scheduling_edges(Instruction* I, Instruction* schedule_after)
 	}
 }
 
-void HIRManipulations::move_instruction_to_bb(Instruction* I,
+void HIRManipulations::move_instruction_to_bb(Instruction* to_move,
                                               BeginInst* target_bb,
                                               Instruction* schedule_after)
 {
-	I->replace_dep(I->get_BeginInst(), target_bb);
+	to_move->replace_dep(to_move->get_BeginInst(), target_bb);
 
-	if (I->is_floating()) {
-		LOG("Moving floating instruction " << I << " into " << target_bb << nl);
-		I->set_BeginInst(target_bb);
+	if (to_move->is_floating()) {
+		LOG("Moving floating instruction " << to_move << " into " << target_bb << nl);
+		to_move->set_BeginInst(target_bb);
 		return;
 	}
 
-	I->set_BeginInst_unsafe(target_bb);
-	correct_scheduling_edges(I, schedule_after);
+	LOG("Moving non-floating instruction " << to_move << " into " << target_bb << nl);
+	to_move->set_BeginInst_unsafe(target_bb);
+	correct_scheduling_edges(to_move, schedule_after);
 }
 
-void HIRManipulations::move_instruction_to_method(Instruction* I, Method* target_method)
+void HIRManipulations::move_instruction_to_method(Instruction* to_move, Method* target_method)
 {
-	if (I->get_opcode() == Instruction::BeginInstID) {
-		target_method->add_bb(I->to_BeginInst());
+	if (to_move->get_opcode() == Instruction::BeginInstID) {
+		target_method->add_bb(to_move->to_BeginInst());
 		return;
 	}
 
-	target_method->add_Instruction(I);
+	target_method->add_Instruction(to_move);
 }
 
 void HIRManipulations::connect_with_jump(BeginInst* source, BeginInst* target)
@@ -199,6 +200,34 @@ void HIRManipulations::connect_with_jump(BeginInst* source, BeginInst* target)
 	auto end_inst = new GOTOInst(source, target);
 	source->set_EndInst(end_inst);
 	source->get_Method()->add_Instruction(end_inst);
+}
+
+void HIRManipulations::remove_instruction(Instruction* to_remove){
+	LOG("removing " << to_remove << " with (r)dependencies" << nl);
+
+	LOG("Removing deps " << to_remove << nl);
+	auto it = to_remove->dep_begin();
+	while (it != to_remove->dep_end()){
+		auto I = *it;
+		LOG("dep " << I << nl);
+		to_remove->remove_dep(I);
+		it = to_remove->dep_begin();
+	}
+
+	LOG("Removing reverse deps " << to_remove << nl);
+	it = to_remove->rdep_begin();
+	while (it != to_remove->rdep_end()){
+		auto I = *it;
+		LOG("rdep " << I << nl);
+		I->remove_dep(to_remove);
+		it = to_remove->rdep_begin();
+	}
+
+	if(to_remove->get_opcode() == Instruction::BeginInstID){
+		to_remove->get_Method()->remove_bb(to_remove->to_BeginInst());	
+	} else {
+		to_remove->get_Method()->remove_Instruction(to_remove);
+	}
 }
 
 } // end namespace compiler2
