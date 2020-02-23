@@ -27,6 +27,7 @@
 #include <iostream>
 
 #include "vm/jit/compiler2/InliningPass.hpp"
+#include "vm/jit/compiler2/HIRManipulations.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
@@ -368,67 +369,6 @@ class ComplexInliningOperation : InliningOperationBase {
 			return call_site->get_type() != Type::VoidTypeID;
 		}
 
-		bool belongs_to_post_call_site_bb(Instruction* I) {
-			return I->get_BeginInst() == old_call_site_bb && I->to_EndInst() == NULL;
-		}
-		
-		void add_to_post_call_site_bb(Instruction* I){
-			LOG("Adding " << I << " to post call site bb " << post_call_site_bb << nl);
-
-			I->set_BeginInst_unsafe(post_call_site_bb);
-			
-			if(old_call_site_bb->get_EndInst() == I){
-				LOG("Setting end inst of post call site bb " << I << nl);
-				post_call_site_bb->set_EndInst(I->to_EndInst());
-			}
-
-			LOG("Replacing " << old_call_site_bb << " dep for " << post_call_site_bb << " in " << I << nl);
-			I->replace_dep(old_call_site_bb, post_call_site_bb);
-		}
-
-		void add_dependent(Instruction* I){
-			if(!belongs_to_post_call_site_bb(I)) return;
-
-			auto add_rec = [&](Instruction* inst){
-				if(belongs_to_post_call_site_bb(inst)) {
-					add_to_post_call_site_bb(inst);
-					add_dependent(inst); 
-				}
-			};
-			auto add_rec_op = [&](Value* v){
-				Instruction* inst = v->to_Instruction();
-				if(inst && belongs_to_post_call_site_bb(inst)){
-					add_to_post_call_site_bb(inst);
-					add_dependent(inst); 
-				}
-			};
-
-			std::for_each(I->rdep_begin(), I->rdep_end(), add_rec);
-			std::for_each(I->user_begin(), I->user_end(), add_rec_op);
-		}
-
-		void create_post_call_site_bb()
-		{
-			post_call_site_bb = new BeginInst();
-			LOG("create_post_call_site_bb " << post_call_site_bb << nl);
-			caller_method->add_bb(post_call_site_bb);
-
-			// add end inst of call site bb
-			auto end_inst = old_call_site_bb->get_EndInst();
-			LOG("new end inst for post call site bb " << end_inst << nl);
-			end_inst->set_BeginInst_unsafe(post_call_site_bb);
-			post_call_site_bb->set_EndInst(end_inst);
-
-			add_dependent(call_site);
-
-			if(is_state_change_for_other_instruction(call_site)){
-				auto last_state_change = call_site->get_last_state_change(); 
-				auto dependent_inst = get_depending_instruction (call_site);
-				LOG("Replacing last state change for " << dependent_inst << " to " << last_state_change << "." << nl);
-				dependent_inst->replace_state_change_dep(last_state_change);
-			}
-		}
-
 		Instruction* transform_instruction(Instruction* I)
 		{
 			LOG("Transforming " << I << nl);
@@ -502,7 +442,7 @@ class ComplexInliningOperation : InliningOperationBase {
 		{
 			LOG("Inserting new basic blocks into original method" << nl);
 			pre_call_site_bb = old_call_site_bb;
-			create_post_call_site_bb();
+			post_call_site_bb = HIRManipulations::split_basic_block(pre_call_site_bb, call_site);
 			add_call_site_bbs();
 			replace_method_parameters();
 			wire_up_call_site_with_post_call_site_bb();
