@@ -32,18 +32,21 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
-    
-static bool is_source_state_or_begin_inst (Instruction* I){
-    auto op_code = I->get_opcode();
-    return op_code != Instruction::SourceStateInstID && op_code != Instruction::BeginInstID;
+
+static bool is_source_state_or_begin_inst(Instruction* I)
+{
+	auto op_code = I->get_opcode();
+	return op_code != Instruction::SourceStateInstID && op_code != Instruction::BeginInstID;
 }
 
-bool HIRManipulations::is_state_change_for_other_instruction (Instruction* I){
-    return std::any_of(I->rdep_begin(), I->rdep_end(), is_source_state_or_begin_inst);
+bool HIRManipulations::is_state_change_for_other_instruction(Instruction* I)
+{
+	return std::any_of(I->rdep_begin(), I->rdep_end(), is_source_state_or_begin_inst);
 }
 
-Instruction* HIRManipulations::get_depending_instruction (Instruction* I){
-    return *std::find_if(I->rdep_begin(), I->rdep_end(), is_source_state_or_begin_inst);
+Instruction* HIRManipulations::get_depending_instruction(Instruction* I)
+{
+	return *std::find_if(I->rdep_begin(), I->rdep_end(), is_source_state_or_begin_inst);
 }
 
 class SplitBasicBlockOperation {
@@ -58,7 +61,7 @@ private:
 
 	void add_to_second_bb(Instruction* I)
 	{
-		LOG("Adding " << I << " to second bb " << second_bb << nl); 
+		LOG("Adding " << I << " to second bb " << second_bb << nl);
 
 		I->set_BeginInst_unsafe(second_bb);
 
@@ -129,49 +132,73 @@ BeginInst* HIRManipulations::split_basic_block(BeginInst* bb, Instruction* split
 	return SplitBasicBlockOperation(bb).execute(split_at);
 }
 
-void correct_scheduling_edges(Instruction* I, Instruction* schedule_after){
-	if(!I->has_side_effects()) return;
+void correct_scheduling_edges(Instruction* I, Instruction* schedule_after)
+{
+	if (!I->has_side_effects())
+		return;
 
 	// TODO inlining: this is not fully correct.
-	
+
 	auto state_change = I->get_last_state_change();
-	// If the last state change points to the basic block, then there is no state changing instruction
-	// before this instruction in this bb. Therefore the new state change has to be the last state changing
-	// instruction before the initial call site (or the new bb).
+	// If the last state change points to the basic block, then there is no state changing
+	// instruction before this instruction in this bb. Therefore the new state change has to be the
+	// last state changing instruction before the initial call site (or the new bb).
 	if (state_change->to_BeginInst()) {
 		LOG("Setting last state change for " << I << " to " << schedule_after << nl);
 		I->replace_state_change_dep(schedule_after);
 	}
 
-	// If the call site is the last state change for an instruction, this instruction now needs to depend
-	// on the last state changing instruction of the inlined region, or the state change before the invocation.
-	if(HIRManipulations::is_state_change_for_other_instruction(schedule_after) && !HIRManipulations::is_state_change_for_other_instruction(I)){
-		auto first_dependency_after_inlined_region = HIRManipulations::get_depending_instruction (schedule_after);
-		LOG("Setting last state change for " << first_dependency_after_inlined_region << " to " << I << nl);
+	// If the call site is the last state change for an instruction, this instruction now needs to
+	// depend on the last state changing instruction of the inlined region, or the state change
+	// before the invocation.
+	if (HIRManipulations::is_state_change_for_other_instruction(schedule_after) &&
+	    !HIRManipulations::is_state_change_for_other_instruction(I)) {
+		auto first_dependency_after_inlined_region =
+		    HIRManipulations::get_depending_instruction(schedule_after);
+		LOG("Setting last state change for " << first_dependency_after_inlined_region << " to " << I
+		                                     << nl);
 		first_dependency_after_inlined_region->replace_state_change_dep(I);
 	}
 }
 
-void HIRManipulations::move_instruction_to_bb (Instruction* I, BeginInst* target_bb, Instruction* schedule_after){
+void HIRManipulations::move_instruction_to_bb(Instruction* I,
+                                              BeginInst* target_bb,
+                                              Instruction* schedule_after)
+{
 	I->replace_dep(I->get_BeginInst(), target_bb);
-	
-	if(I->is_floating()){
+
+	if (I->is_floating()) {
 		LOG("Moving floating instruction " << I << " into " << target_bb << nl);
 		I->set_BeginInst(target_bb);
 		return;
 	}
-	
+
 	I->set_BeginInst_unsafe(target_bb);
 	correct_scheduling_edges(I, schedule_after);
 }
 
-void HIRManipulations::move_instruction_to_method (Instruction* I, Method* target_method){
-	if(I->get_opcode() == Instruction::BeginInstID) {
+void HIRManipulations::move_instruction_to_method(Instruction* I, Method* target_method)
+{
+	if (I->get_opcode() == Instruction::BeginInstID) {
 		target_method->add_bb(I->to_BeginInst());
 		return;
 	}
 
 	target_method->add_Instruction(I);
+}
+
+void HIRManipulations::connect_with_jump(BeginInst* source, BeginInst* target)
+{
+	assert(source);
+	assert(target);
+	if (source->get_Method() != target->get_Method()) {
+		throw std::runtime_error("HIRManipulations: source and target must be in same method!");
+	}
+
+	LOG("Rewriting next bb of " << source << " to " << target << nl);
+	auto end_inst = new GOTOInst(source, target);
+	source->set_EndInst(end_inst);
+	source->get_Method()->add_Instruction(end_inst);
 }
 
 } // end namespace compiler2

@@ -45,6 +45,7 @@ class HIRManipulations {
          **/
         static void move_instruction_to_bb (Instruction* I, BeginInst* target_bb, Instruction* schedule_after);
         static void move_instruction_to_method (Instruction* I, Method* target_method);
+        static void connect_with_jump (BeginInst* source, BeginInst* target);
 };
 
 } // end namespace compiler2

@@ -399,14 +399,6 @@ class ComplexInliningOperation : InliningOperationBase {
 			}
 		}
 
-		void wire_up_call_site_with_post_call_site_bb(){
-			auto call_site_bb_init = callee_method->get_init_bb();
-			LOG("Rewriting next bb of pre call site bb to " << call_site_bb_init << nl);
-			auto end_inst = new GOTOInst(pre_call_site_bb, call_site_bb_init);
-			pre_call_site_bb->set_EndInst(end_inst);
-			caller_method->add_Instruction(end_inst);
-		}
-
 	public:
 		ComplexInliningOperation(INVOKEInst* site, Method* callee, Heuristic* heuristic) : InliningOperationBase(site, callee, heuristic)
 		{
@@ -420,7 +412,7 @@ class ComplexInliningOperation : InliningOperationBase {
 			post_call_site_bb = HIRManipulations::split_basic_block(pre_call_site_bb, call_site);
 			add_call_site_bbs();
 			replace_method_parameters();
-			wire_up_call_site_with_post_call_site_bb();
+			HIRManipulations::connect_with_jump(pre_call_site_bb, callee_method->get_init_bb());
 		}
 };
 
