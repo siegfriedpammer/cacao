@@ -268,28 +268,6 @@ private:
 		return call_site->to_INVOKESTATICInst() == NULL;
 	}
 
-	void correct_scheduling_edges(Instruction* I){
-		if(!I->has_side_effects()) return;
-
-		auto state_change = I->get_last_state_change();
-		// If the last state change points to the basic block, then there is no state changing instruction
-		// before this instruction in this bb. Therefore the new state change has to be the last state changing
-		// instruction before the initial call site (or the new bb).
-		if (state_change->to_BeginInst()) {
-			Instruction* first_dependency_before_inlined_region = *std::next(call_site->dep_begin(), 1);
-			LOG("Setting last state change for " << I << " to " << first_dependency_before_inlined_region << nl);
-			I->replace_state_change_dep(first_dependency_before_inlined_region);
-		}
-
-		// If the call site is the last state change for an instruction, this instruction now needs to depend
-		// on the last state changing instruction of the inlined region, or the state change before the invocation.
-		if(is_state_change_for_other_instruction(call_site) && !is_state_change_for_other_instruction(I)){
-			auto first_dependency_after_inlined_region = get_depending_instruction (call_site);
-			LOG("Setting last state change for " << first_dependency_after_inlined_region << " to " << I << nl);
-			first_dependency_after_inlined_region->replace_state_change_dep(I);
-		}
-	}
-
 	void add_call_site_bbs()
 	{
 		LOG("add_call_site_bbs" << nl);
@@ -325,11 +303,11 @@ private:
 				continue;
 			}
 
-			caller_method->add_Instruction(I);
-			I->replace_dep(caller_bb, call_site_bb);
-			I->set_BeginInst_unsafe(call_site_bb);
-
-			correct_scheduling_edges(I);
+			HIRManipulations::move_instruction_to_method(I, caller_method);
+			// do not move instructions without basic block into a basic block
+			if(I->get_BeginInst()){
+				HIRManipulations::move_instruction_to_bb(I, call_site_bb, call_site);
+			}
 
 			if(null_check_inst != NULL){
 				I->append_dep(null_check_inst);

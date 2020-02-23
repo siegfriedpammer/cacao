@@ -129,12 +129,40 @@ BeginInst* HIRManipulations::split_basic_block(BeginInst* bb, Instruction* split
 	return SplitBasicBlockOperation(bb).execute(split_at);
 }
 
-void HIRManipulations::move_instruction_to_bb (Instruction* I, BeginInst* target_bb){
+void correct_scheduling_edges(Instruction* I, Instruction* schedule_after){
+	if(!I->has_side_effects()) return;
+
+	// TODO inlining: this is not fully correct.
+	
+	auto state_change = I->get_last_state_change();
+	// If the last state change points to the basic block, then there is no state changing instruction
+	// before this instruction in this bb. Therefore the new state change has to be the last state changing
+	// instruction before the initial call site (or the new bb).
+	if (state_change->to_BeginInst()) {
+		LOG("Setting last state change for " << I << " to " << schedule_after << nl);
+		I->replace_state_change_dep(schedule_after);
+	}
+
+	// If the call site is the last state change for an instruction, this instruction now needs to depend
+	// on the last state changing instruction of the inlined region, or the state change before the invocation.
+	if(HIRManipulations::is_state_change_for_other_instruction(schedule_after) && !HIRManipulations::is_state_change_for_other_instruction(I)){
+		auto first_dependency_after_inlined_region = HIRManipulations::get_depending_instruction (schedule_after);
+		LOG("Setting last state change for " << first_dependency_after_inlined_region << " to " << I << nl);
+		first_dependency_after_inlined_region->replace_state_change_dep(I);
+	}
+}
+
+void HIRManipulations::move_instruction_to_bb (Instruction* I, BeginInst* target_bb, Instruction* schedule_after){
+	I->replace_dep(I->get_BeginInst(), target_bb);
+	
 	if(I->is_floating()){
 		LOG("Moving floating instruction " << I << " into " << target_bb << nl);
 		I->set_BeginInst(target_bb);
 		return;
 	}
+	
+	I->set_BeginInst_unsafe(target_bb);
+	correct_scheduling_edges(I, schedule_after);
 }
 
 void HIRManipulations::move_instruction_to_method (Instruction* I, Method* target_method){

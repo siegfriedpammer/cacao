@@ -38,7 +38,12 @@ class HIRManipulations {
         static BeginInst* split_basic_block(BeginInst* bb, Instruction* split_at);
         static bool is_state_change_for_other_instruction (Instruction* I);
         static Instruction* get_depending_instruction (Instruction* I);
-        static void move_instruction_to_bb (Instruction* I, BeginInst* target_bb);
+        /**
+         * CAVEAT: This method will also move non floating instructions. Only use this method if you are certain
+         * that these operations are valid and the semantics of the program will be maintained. If you want to 
+         * move floating instructions use cacao.jit.compiler2.Instruction::set_BeginInst. 
+         **/
+        static void move_instruction_to_bb (Instruction* I, BeginInst* target_bb, Instruction* schedule_after);
         static void move_instruction_to_method (Instruction* I, Method* target_method);
 };
 
