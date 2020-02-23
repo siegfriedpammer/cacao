@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/HIRManipulations.cpp - HIRManipulations
+/* src/vm/jit/compiler2/HIRManipulations.hpp - HIRManipulations
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -35,18 +35,50 @@ namespace compiler2 {
 
 class HIRManipulations {
 public:
+    /**
+     * Splits a basic block at a given instruction. All depending instructions will be moved into the new basic block.
+     * Additionally the end instruction of the given basic block will be moved to the new basic block, even if no 
+     * dependency exists. The given basic block will not have an EndInst after this method. The instruction itself
+     * will still be in the old basic block.
+     * @returns the new basic block
+     **/
 	static BeginInst* split_basic_block(BeginInst* bb, Instruction* split_at);
+    /**
+     * Indicates whether this instruction has another instruction depending on it, as last state changing instruction.
+     * This method should only return false, if the given instruction is the last state-changing instruction in the
+     * execution path.
+     * @returns true if there is another instruction using this instruction as last state change.
+     **/
 	static bool is_state_change_for_other_instruction(Instruction* I);
+    // TODO inlining: is there only one, except phis?
+    /**
+     * Gets the instruction which depends on the given instruction as last state change. See is_state_change_for_other_instruction
+     * for further details.
+     * @returns Instruction depending on the given instruction
+     **/
 	static Instruction* get_depending_instruction(Instruction* I);
 	/**
 	 * CAVEAT: This method will also move non floating instructions. Only use this method if you are
-	 *certain that these operations are valid and the semantics of the program will be maintained.
-	 *If you want to move floating instructions use cacao.jit.compiler2.Instruction::set_BeginInst.
+	 * certain that these operations are valid and the semantics of the program will be maintained.
+	 * If you want to move floating instructions use cacao.jit.compiler2.Instruction::set_BeginInst.
+     * The schedule_after instruction will be the anchor point for scheduling edges. The "first" instruction
+     * of the source bb will directly depend on the schedule_after instructions. The "last" instructions
+     * of the source bb will be depended upon by the instruction which initially depended upon the schedule_after
+     * instruction.
 	 **/
-	static void
-	move_instruction_to_bb(Instruction* to_move, BeginInst* target_bb, Instruction* schedule_after);
+	static void	move_instruction_to_bb(Instruction* to_move, BeginInst* target_bb, Instruction* schedule_after);
+    /**
+     * Moves a given instruction into another method.
+     **/
 	static void move_instruction_to_method(Instruction* to_move, Method* target_method);
+    /**
+     * Connects two basic blocks with an GOTOInst.
+     **/
 	static void connect_with_jump(BeginInst* source, BeginInst* target);
+    /**
+     * Removes an instruction including all dependency relationships. Additionally the instruction
+     * will be delted from the containing method.
+     */
 	static void remove_instruction(Instruction* to_remove);
 };
 
