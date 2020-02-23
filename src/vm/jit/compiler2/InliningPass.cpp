@@ -314,7 +314,7 @@ class ComplexInliningOperation : InliningOperationBase {
 					auto end_instruction = new GOTOInst(begin_inst, post_call_site_bb);
 					begin_inst->set_EndInst(end_instruction);
 					LOG("Rewriting return instruction " << I << " to " << end_instruction << nl);
-					// TODO inlining: delete I
+					delete I;
 					return end_instruction;
 				}
 				default:
@@ -500,7 +500,6 @@ bool InliningPass::run(JITData& JD)
 	LOG("Removing all invoke instructions" << nl);
 	for(auto it = to_remove.begin(); it != to_remove.end(); it++){
 		auto call_site = *it;
-		auto op_code = call_site->get_opcode();
 		remove_call_site(call_site);
 	}
 
