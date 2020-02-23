@@ -129,6 +129,23 @@ BeginInst* HIRManipulations::split_basic_block(BeginInst* bb, Instruction* split
 	return SplitBasicBlockOperation(bb).execute(split_at);
 }
 
+void HIRManipulations::move_instruction_to_bb (Instruction* I, BeginInst* target_bb){
+	if(I->is_floating()){
+		LOG("Moving floating instruction " << I << " into " << target_bb << nl);
+		I->set_BeginInst(target_bb);
+		return;
+	}
+}
+
+void HIRManipulations::move_instruction_to_method (Instruction* I, Method* target_method){
+	if(I->get_opcode() == Instruction::BeginInstID) {
+		target_method->add_bb(I->to_BeginInst());
+		return;
+	}
+
+	target_method->add_Instruction(I);
+}
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao

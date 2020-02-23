@@ -378,6 +378,7 @@ class ComplexInliningOperation : InliningOperationBase {
 					auto end_instruction = new GOTOInst(begin_inst, post_call_site_bb);
 					begin_inst->set_EndInst(end_instruction);
 					LOG("Rewriting return instruction " << I << " to " << end_instruction << nl);
+					// TODO inlining: delete I
 					return end_instruction;
 				}
 				default:
@@ -398,18 +399,14 @@ class ComplexInliningOperation : InliningOperationBase {
 				Instruction* I = *it;
 				LOG("Adding to call site " << I << nl);
 
-				if(I->get_opcode() == Instruction::BeginInstID) {
-					caller_method->add_bb(I->to_BeginInst());
-					continue;
-				}
-
 				if(I->get_opcode() == Instruction::RETURNInstID){
 					auto returnInst = I->to_RETURNInst();
 					if(needs_phi())
 						phi->append_op(*(returnInst->op_begin()));
 				}
+
 				auto new_inst = transform_instruction(I);
-				caller_method->add_Instruction(new_inst);
+				HIRManipulations::move_instruction_to_method(new_inst, caller_method);
 				on_inlined_inst(new_inst);
 			}
 			

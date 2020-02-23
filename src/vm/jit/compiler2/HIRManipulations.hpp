@@ -38,6 +38,8 @@ class HIRManipulations {
         static BeginInst* split_basic_block(BeginInst* bb, Instruction* split_at);
         static bool is_state_change_for_other_instruction (Instruction* I);
         static Instruction* get_depending_instruction (Instruction* I);
+        static void move_instruction_to_bb (Instruction* I, BeginInst* target_bb);
+        static void move_instruction_to_method (Instruction* I, Method* target_method);
 };
 
 } // end namespace compiler2
