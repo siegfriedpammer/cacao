@@ -26,27 +26,28 @@
 
 #define DEBUG_NAME "compiler2/HIRManipulations"
 
-#include "vm/jit/compiler2/Instructions.hpp"
 #include "toolbox/logging.hpp"
+#include "vm/jit/compiler2/Instructions.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
 class HIRManipulations {
-    public:
-        static BeginInst* split_basic_block(BeginInst* bb, Instruction* split_at);
-        static bool is_state_change_for_other_instruction (Instruction* I);
-        static Instruction* get_depending_instruction (Instruction* I);
-        /**
-         * CAVEAT: This method will also move non floating instructions. Only use this method if you are certain
-         * that these operations are valid and the semantics of the program will be maintained. If you want to 
-         * move floating instructions use cacao.jit.compiler2.Instruction::set_BeginInst. 
-         **/
-        static void move_instruction_to_bb (Instruction* to_move, BeginInst* target_bb, Instruction* schedule_after);
-        static void move_instruction_to_method (Instruction* to_move, Method* target_method);
-        static void connect_with_jump (BeginInst* source, BeginInst* target);
-        static void remove_instruction(Instruction* to_remove);
+public:
+	static BeginInst* split_basic_block(BeginInst* bb, Instruction* split_at);
+	static bool is_state_change_for_other_instruction(Instruction* I);
+	static Instruction* get_depending_instruction(Instruction* I);
+	/**
+	 * CAVEAT: This method will also move non floating instructions. Only use this method if you are
+	 *certain that these operations are valid and the semantics of the program will be maintained.
+	 *If you want to move floating instructions use cacao.jit.compiler2.Instruction::set_BeginInst.
+	 **/
+	static void
+	move_instruction_to_bb(Instruction* to_move, BeginInst* target_bb, Instruction* schedule_after);
+	static void move_instruction_to_method(Instruction* to_move, Method* target_method);
+	static void connect_with_jump(BeginInst* source, BeginInst* target);
+	static void remove_instruction(Instruction* to_remove);
 };
 
 } // end namespace compiler2
@@ -56,7 +57,6 @@ class HIRManipulations {
 #undef DEBUG_NAME
 
 #endif /* _JIT_COMPILER2_HIRMANIPULATIONS */
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

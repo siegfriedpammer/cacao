@@ -54,12 +54,10 @@ class InliningPass : public Pass, public memory::ManagerMixin<InliningPass> {
 public:
 	static Option<bool> enabled;
 	InliningPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
-    
-    bool is_enabled() const override {
-        return InliningPass::enabled;
-    }
+	virtual bool run(JITData& JD);
+	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
+
+	bool is_enabled() const override { return InliningPass::enabled; }
 };
 
 } // end namespace compiler2
@@ -67,7 +65,6 @@ public:
 } // end namespace cacao
 
 #endif /* _JIT_COMPILER2_INLININGPASS */
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

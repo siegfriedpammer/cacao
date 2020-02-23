@@ -202,12 +202,13 @@ void HIRManipulations::connect_with_jump(BeginInst* source, BeginInst* target)
 	source->get_Method()->add_Instruction(end_inst);
 }
 
-void HIRManipulations::remove_instruction(Instruction* to_remove){
+void HIRManipulations::remove_instruction(Instruction* to_remove)
+{
 	LOG("removing " << to_remove << " with (r)dependencies" << nl);
 
 	LOG("Removing deps " << to_remove << nl);
 	auto it = to_remove->dep_begin();
-	while (it != to_remove->dep_end()){
+	while (it != to_remove->dep_end()) {
 		auto I = *it;
 		LOG("dep " << I << nl);
 		to_remove->remove_dep(I);
@@ -216,16 +217,17 @@ void HIRManipulations::remove_instruction(Instruction* to_remove){
 
 	LOG("Removing reverse deps " << to_remove << nl);
 	it = to_remove->rdep_begin();
-	while (it != to_remove->rdep_end()){
+	while (it != to_remove->rdep_end()) {
 		auto I = *it;
 		LOG("rdep " << I << nl);
 		I->remove_dep(to_remove);
 		it = to_remove->rdep_begin();
 	}
 
-	if(to_remove->get_opcode() == Instruction::BeginInstID){
-		to_remove->get_Method()->remove_bb(to_remove->to_BeginInst());	
-	} else {
+	if (to_remove->get_opcode() == Instruction::BeginInstID) {
+		to_remove->get_Method()->remove_bb(to_remove->to_BeginInst());
+	}
+	else {
 		to_remove->get_Method()->remove_Instruction(to_remove);
 	}
 }
