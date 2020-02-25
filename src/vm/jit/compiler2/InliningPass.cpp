@@ -61,12 +61,18 @@ namespace jit {
 namespace compiler2 {
 
 /*
-    IMPORTANT: The current implementation does not work with on-stack-replacement. Therefore the
+   IMPORTANT: The current implementation does not work with on-stack replacement. Therefore the
    InliningPass should not be opted in, when testing or working with deoptimization and
-   on-stack-replacement. The reason for this is, that the SourceStateInstructions are not handled
-   correctly. For example the source state instruction for the inlined call will be deleted
-   completely, which causes information loss.
+   on-stack replacement. The reason for this is, that the SourceStateInstructions are not handled
+   correctly.
 */
+void create_work_around_source_state(INVOKEInst* source_location_from, BeginInst* for_inst){
+	auto source_location = source_location_from->get_SourceStateInst()->get_source_location();
+	auto source_state = new SourceStateInst(source_location, for_inst);
+	source_location_from->to_Instruction()->get_Method()->add_Instruction(source_state);
+}
+
+
 class Heuristic {
 private:
 	bool is_currently_monomorphic(INVOKEInst* I)
@@ -401,6 +407,7 @@ public:
 		LOG("Inserting new basic blocks into original method" << nl);
 		pre_call_site_bb = old_call_site_bb;
 		post_call_site_bb = HIRManipulations::split_basic_block(pre_call_site_bb, call_site);
+		create_work_around_source_state(call_site, post_call_site_bb); // this workaround ensures that there is a source_state
 		add_call_site_bbs();
 		replace_method_parameters();
 		HIRManipulations::connect_with_jump(pre_call_site_bb, callee_method->get_init_bb());
@@ -432,10 +439,10 @@ private:
 		auto new_bb = new BeginInst();
 		target_method->add_bb(new_bb);
 		new_bb->append_dep(I);
-		auto source_state = I->get_SourceStateInst();
-		source_state->replace_dep(I->get_BeginInst(), new_bb);
 		I->set_BeginInst_unsafe(new_bb);
+		create_work_around_source_state(I, new_bb);
 
+		// TODO inlining: jump to afterbranch
 		auto return_inst = new RETURNInst(new_bb, I);
 		target_method->add_Instruction(return_inst);
 
@@ -447,12 +454,16 @@ private:
 		auto true_branch = target_method->get_init_bb();
 		auto false_branch = create_false_branch(I);
 
-		// TODO inlining: Can we get the current class, or not?
+		/**
+		 * Currently Compiler2 does not support invoking native methods such as java/lang/Object.getClass().
+		 * Therefore a "dummy" assertion (obj == obj) was introduced. After implementing native methods
+		 * in Compiler2, this should be fixed.
+		 */
 		auto check_bb = new BeginInst();
 		auto current_object = I->get_operand(0);
-		// TODO inlining: get the adress of the initial object
-		auto if_inst = new IFInst(check_bb, current_object, current_object, Conditional::EQ,
-		                          true_branch, false_branch);
+		create_work_around_source_state(I, check_bb);
+
+		auto if_inst = new IFInst(check_bb, current_object, current_object, Conditional::EQ, true_branch, false_branch);
 
 		check_bb->set_EndInst(if_inst);
 		target_method->add_bb(check_bb);
@@ -523,9 +534,15 @@ void inline_instruction(INVOKEInst* I, Heuristic* heuristic)
 }
 
 bool InliningPass::run(JITData& JD)
-{
+{	
 	LOG("Start of inlining pass." << nl);
 	Method* M = JD.get_Method();
+
+	if(M->get_class_name_utf8() == "CompilerIniliningUtils"){
+		LOG("Skipping CompilerIniliningUtils." << nl);
+		return true;
+	}
+
 	LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
 	LOG("Inlining for method: " << M->get_name_utf8() << nl);
 
