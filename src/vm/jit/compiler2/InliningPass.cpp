@@ -81,9 +81,15 @@ void ensure_source_state(INVOKEInst* source_location_from, BeginInst* for_inst){
 
 class Heuristic {
 private:
-	bool is_currently_monomorphic(INVOKEInst* I)
+	inline bool is_monomorphic_and_implemented(INVOKEInst* I)
 	{
-		return I->get_fmiref()->p.method->flags & ACC_METHOD_MONOMORPHIC;
+		auto flags = I->get_fmiref()->p.method->flags;
+		return  (flags & ACC_METHOD_MONOMORPHIC) && (flags & ACC_METHOD_IMPLEMENTED);
+	}
+
+	inline bool is_abstract(INVOKEInst* I)
+	{
+		return I->get_fmiref()->p.method->flags & ACC_ABSTRACT;
 	}
 
 protected:
@@ -96,7 +102,7 @@ protected:
 		bool is_polymorphic_call = I->get_opcode() == Instruction::INVOKEVIRTUALInstID ||
 		                           I->get_opcode() == Instruction::INVOKEINTERFACEInstID;
 
-		if (!(is_monomorphic_call || (is_polymorphic_call && is_currently_monomorphic(I))))
+		if (!(is_monomorphic_call || (is_polymorphic_call && is_monomorphic_and_implemented(I) && !is_abstract(I))))
 			return false;
 
 		auto source_method = I->get_Method();
@@ -594,7 +600,7 @@ CodeFactory* get_code_factory(INVOKEInst* I)
 		case Instruction::INVOKESPECIALInstID:
 			LOG("Using normal code factory");
 			return new CodeFactory();
-		case Instruction::INVOKEVIRTUALInstID:
+		case Instruction::INVOKEVIRTUALInstID: // TODO inlining: enable "guards" with compiler directive
 		case Instruction::INVOKEINTERFACEInstID:
 			LOG("Using guarded code factory");
 			return new GuardedCodeFactory();
