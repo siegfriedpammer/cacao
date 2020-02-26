@@ -72,6 +72,12 @@ void create_work_around_source_state(INVOKEInst* source_location_from, BeginInst
 	source_location_from->to_Instruction()->get_Method()->add_Instruction(source_state);
 }
 
+void ensure_source_state(INVOKEInst* source_location_from, BeginInst* for_inst){
+	auto source_state_it = std::find_if(for_inst->rdep_begin(), for_inst->rdep_end(), [](Instruction* i) {return i->get_opcode() == Instruction::SourceStateInstID;});
+	if(source_state_it == for_inst->rdep_end()){
+		create_work_around_source_state(source_location_from, for_inst);
+	}
+}
 
 class Heuristic {
 private:
@@ -169,9 +175,9 @@ public:
 	LimitedBreathFirstHeuristic(Method* method, int max_size) : M(method), max_size(max_size)
 	{
 		current_size = M->size();
-		auto is_invoke = [&](Instruction* i) { return should_inline(i); };
-		auto i_iter = boost::make_filter_iterator(is_invoke, M->begin(), M->end());
-		auto i_end = boost::make_filter_iterator(is_invoke, M->end(), M->end());
+		auto is_candidate = [&](Instruction* i) { return should_inline(i); };
+		auto i_iter = boost::make_filter_iterator(is_candidate, M->begin(), M->end());
+		auto i_end = boost::make_filter_iterator(is_candidate, M->end(), M->end());
 
 		LOG("LimitedBreathFirstHeuristic: Instruction in the heuristic work list (max: "
 		    << max_size << ")." << nl);
@@ -211,6 +217,91 @@ public:
 	{
 		if (should_inline(instruction)) {
 			work_list.push_back((INVOKEInst*)instruction);
+		}
+	}
+};
+
+class KnapSackHeuristic : public Heuristic {
+private:
+	static float getBenefit(INVOKEInst* invoke){
+		return 10;
+	}
+
+	static int getCost(INVOKEInst* invoke){
+		return invoke->get_fmiref()->p.method->jcodelength;
+	}
+
+	struct CompareInvokes { 
+		bool operator()(INVOKEInst* l, INVOKEInst* r) 
+		{ 
+			float priorityLeft = getBenefit(l) / getCost(l);
+			float priorityRight = getBenefit(r) / getCost(r);
+			return priorityLeft > priorityRight;
+		} 
+	}; 
+
+	std::priority_queue<INVOKEInst*, std::vector<INVOKEInst*>, CompareInvokes> work_queue;
+	Method* M;
+	int budget;
+
+	bool is_within_budget(INVOKEInst* instruction)
+	{
+		// Only estimate size to limit the number of methods which need compiler2 compilation
+		int estimated_size = instruction->get_fmiref()->p.method->jcodelength;
+		return estimated_size <= budget;
+	}
+
+	bool should_inline(Instruction* I)
+	{
+		auto invoke_inst = I->to_INVOKEInst();
+		return invoke_inst != NULL && can_inline(invoke_inst) && is_within_budget(invoke_inst);
+	}
+
+public:
+	KnapSackHeuristic(Method* method, int budget) : M(method), budget(budget)
+	{
+		auto is_candidate = [&](Instruction* i) { return should_inline(i); };
+		auto i_iter = boost::make_filter_iterator(is_candidate, M->begin(), M->end());
+		auto i_end = boost::make_filter_iterator(is_candidate, M->end(), M->end());
+
+		LOG("KnapSackHeuristic: Budget: " << budget << "." << nl);
+		for (; i_iter != i_end; i_iter++) {
+			auto I = (INVOKEInst*)*i_iter;
+			LOG("KnapSackHeuristic: Adding " << I << nl);
+			work_queue.push(I);
+		}
+	}
+
+	bool has_next()
+	{
+		while (work_queue.size() > 0) {
+			auto next = work_queue.top();
+			
+			if (is_within_budget(next)) {
+				return true;
+			}
+
+			LOG("KnapSackHeuristic: Skipping " << next << " as it does not fit within the remainin budget ("<< budget <<")." << nl);
+			work_queue.pop();
+		}
+		
+		return false;
+	}
+
+	INVOKEInst* next()
+	{
+		auto result = work_queue.top();
+		work_queue.pop();
+		return result;
+	}
+
+	static int compare_instructions(INVOKEInst* left, INVOKEInst* right){
+	}
+
+	void on_new_instruction(Instruction* instruction)
+	{
+		if (should_inline(instruction)) {
+			work_queue.push((INVOKEInst*)instruction);
 		}
 	}
 };
@@ -257,25 +348,21 @@ private:
 	BeginInst* call_site_bb;
 	BeginInst* caller_bb;
 
-	bool needs_null_check() { return call_site->to_INVOKESTATICInst() == NULL; }
-
 	void add_call_site_bbs()
 	{
 		LOG("add_call_site_bbs" << nl);
 		List<Instruction*> to_remove;
 
 		Instruction* null_check_inst = NULL;
-		if (needs_null_check()) {
-			auto is_null_check_inst = [](Instruction* i) {
-				return i->get_opcode() == Instruction::CHECKNULLInstID;
-			};
-			auto null_check_inst_it =
-			    std::find_if(call_site->dep_begin(), call_site->dep_end(), is_null_check_inst);
-			if (null_check_inst_it != call_site->dep_end()) {
-				null_check_inst = *null_check_inst_it;
-				LOG("Null check inst " << null_check_inst << nl);
-				call_site_bb->get_EndInst()->append_dep(null_check_inst);
-			}
+		auto is_null_check_inst = [](Instruction* i) {
+			return i->get_opcode() == Instruction::CHECKNULLInstID;
+		};
+		auto null_check_inst_it =
+			std::find_if(call_site->dep_begin(), call_site->dep_end(), is_null_check_inst);
+		if (null_check_inst_it != call_site->dep_end()) {
+			null_check_inst = *null_check_inst_it;
+			LOG("Null check inst " << null_check_inst << nl);
+			call_site_bb->get_EndInst()->append_dep(null_check_inst);
 		}
 
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
@@ -442,7 +529,6 @@ private:
 		I->set_BeginInst_unsafe(new_bb);
 		create_work_around_source_state(I, new_bb);
 
-		// TODO inlining: jump to afterbranch
 		auto return_inst = new RETURNInst(new_bb, I);
 		target_method->add_Instruction(return_inst);
 
@@ -520,10 +606,9 @@ CodeFactory* get_code_factory(INVOKEInst* I)
 
 void inline_instruction(INVOKEInst* I, Heuristic* heuristic)
 {
-	auto codeFactory = get_code_factory(I);
+	std::unique_ptr<CodeFactory> codeFactory(get_code_factory(I));
 	LOG("Inlining invoke instruction " << I << nl);
 	auto callee_method = codeFactory->create_ssa(I);
-	delete codeFactory;
 	LOG("Successfully retrieved SSA-Code for instruction " << nl);
 	if (callee_method.get_Method()->bb_size() == 1) {
 		SingleBBInliningOperation(I, callee_method.get_Method(), heuristic).execute();
@@ -546,7 +631,7 @@ bool InliningPass::run(JITData& JD)
 	LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
 	LOG("Inlining for method: " << M->get_name_utf8() << nl);
 
-	LimitedBreathFirstHeuristic heuristic(M, 100);
+	KnapSackHeuristic heuristic(M, 100);
 	List<INVOKEInst*> to_remove;
 	while (heuristic.has_next()) {
 		auto I = heuristic.next();
