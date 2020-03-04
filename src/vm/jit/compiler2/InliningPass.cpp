@@ -349,84 +349,7 @@ protected:
 	}
 };
 
-class SingleBBInliningOperation : InliningOperationBase {
-private:
-	BeginInst* call_site_bb;
-	BeginInst* caller_bb;
-
-	void add_call_site_bbs()
-	{
-		LOG("add_call_site_bbs" << nl);
-		List<Instruction*> to_remove;
-
-		Instruction* null_check_inst = NULL;
-		auto is_null_check_inst = [](Instruction* i) {
-			return i->get_opcode() == Instruction::CHECKNULLInstID;
-		};
-		auto null_check_inst_it =
-			std::find_if(call_site->dep_begin(), call_site->dep_end(), is_null_check_inst);
-		if (null_check_inst_it != call_site->dep_end()) {
-			null_check_inst = *null_check_inst_it;
-			LOG("Null check inst " << null_check_inst << nl);
-			call_site_bb->get_EndInst()->append_dep(null_check_inst);
-		}
-
-		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
-			Instruction* I = *it;
-			LOG("Adding to call site " << *I << nl);
-
-			if (I->get_opcode() == Instruction::BeginInstID) {
-				to_remove.push_back(I);
-				continue; // ignore begin instruction
-			}
-			else if (I->get_opcode() == Instruction::RETURNInstID) {
-				auto returnInst = I->to_RETURNInst();
-				LOG("return operation " << returnInst << " with op size " << returnInst->op_size()
-				                        << nl);
-				if (returnInst->op_size() > 0) {
-					auto result = *(returnInst->op_begin());
-					call_site->replace_value(result);
-					LOG("result: " << result << nl);
-				}
-				to_remove.push_back(returnInst);
-				continue;
-			}
-
-			HIRManipulations::move_instruction_to_method(I, caller_method);
-			// do not move instructions without basic block into a basic block
-			if (I->get_BeginInst()) {
-				HIRManipulations::move_instruction_to_bb(I, call_site_bb, call_site);
-			}
-
-			if (null_check_inst != NULL) {
-				I->append_dep(null_check_inst);
-			}
-
-			on_inlined_inst(I);
-		}
-
-		for (auto it = to_remove.begin(); it != to_remove.end(); it++) {
-			HIRManipulations::remove_instruction(*it);
-		}
-	}
-
-public:
-	SingleBBInliningOperation(INVOKEInst* site, Method* callee, Heuristic* heuristic)
-	    : InliningOperationBase(site, callee, heuristic)
-	{
-		call_site_bb = call_site->get_BeginInst();
-		caller_bb = callee->get_init_bb();
-	}
-
-	virtual void execute()
-	{
-		LOG("Inserting new basic blocks into original method" << nl);
-		add_call_site_bbs();
-		replace_method_parameters();
-	}
-};
-
-class ComplexInliningOperation : InliningOperationBase {
+class InliningOperation : InliningOperationBase {
 private:
 	BeginInst* old_call_site_bb;
 	BeginInst* pre_call_site_bb;
@@ -489,7 +412,7 @@ private:
 	}
 
 public:
-	ComplexInliningOperation(INVOKEInst* site, Method* callee, Heuristic* heuristic)
+	InliningOperation(INVOKEInst* site, Method* callee, Heuristic* heuristic)
 	    : InliningOperationBase(site, callee, heuristic)
 	{
 		old_call_site_bb = call_site->get_BeginInst();
@@ -616,19 +539,14 @@ void inline_instruction(INVOKEInst* I, Heuristic* heuristic)
 	LOG("Inlining invoke instruction " << I << nl);
 	auto callee_method = codeFactory->create_ssa(I);
 	LOG("Successfully retrieved SSA-Code for instruction " << nl);
-	if (callee_method.get_Method()->bb_size() == 1) {
-		SingleBBInliningOperation(I, callee_method.get_Method(), heuristic).execute();
-	}
-	else {
-		ComplexInliningOperation(I, callee_method.get_Method(), heuristic).execute();
-	}
+	InliningOperation(I, callee_method.get_Method(), heuristic).execute();
 }
 
 bool InliningPass::run(JITData& JD)
 {	
 	LOG("Start of inlining pass." << nl);
 	Method* M = JD.get_Method();
-
+	
 	if(M->get_class_name_utf8() == "CompilerIniliningUtils"){
 		LOG("Skipping CompilerIniliningUtils." << nl);
 		return true;
@@ -658,7 +576,6 @@ bool InliningPass::run(JITData& JD)
 	}
 
 	LOG("End of inlining pass." << nl);
-
 	return true;
 }
 

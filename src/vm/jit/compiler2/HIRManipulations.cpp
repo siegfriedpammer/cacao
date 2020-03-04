@@ -224,6 +224,7 @@ void HIRManipulations::remove_instruction(Instruction* to_remove)
 		it = to_remove->rdep_begin();
 	}
 
+	LOG("Removing from method " << to_remove << nl);
 	if (to_remove->get_opcode() == Instruction::BeginInstID) {
 		to_remove->get_Method()->remove_bb(to_remove->to_BeginInst());
 	}
