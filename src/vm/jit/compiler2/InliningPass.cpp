@@ -576,6 +576,15 @@ bool InliningPass::run(JITData& JD)
 	}
 
 	LOG("End of inlining pass." << nl);
+
+	for(auto it = JD.get_Method()->bb_begin(); it != JD.get_Method()->bb_end(); it++){
+		auto i = *it;
+		LOG("Preds of " << i << nl);
+		for(auto itt = i->pred_begin(); itt != i->pred_end(); itt++){
+			LOG(" " << *itt << nl);
+		}
+	}
+
 	return true;
 }
 

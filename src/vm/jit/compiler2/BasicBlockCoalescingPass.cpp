@@ -56,16 +56,8 @@ void coalesce(BeginInst* first, BeginInst* second)
 	LOG("merging " << first << " with second: " << second <<nl);
 	for (auto it = new_end_inst->succ_begin(); it != new_end_inst->succ_end(); it++) {
 		auto succ = (*it).get();
-		LOG("Predecessor of " << succ <<nl);
-		for (auto itt = succ->pred_begin(); itt != succ->pred_end(); itt++){
-			LOG(" " << *itt<<nl);
-		}
 		succ->remove_predecessor(second);
         succ->append_predecessor(first);
-		LOG("Predecessor of " << succ <<nl);
-		for (auto itt = succ->pred_begin(); itt != succ->pred_end(); itt++){
-			LOG(" " << *itt<<nl);
-		}
 	}
 	LOG("merged " << first << " with second: " << second <<nl);
 }

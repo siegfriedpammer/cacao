@@ -123,6 +123,12 @@ public:
 			dependent_inst->replace_state_change_dep(last_state_change);
 		}
 
+		for(auto it = end_inst->succ_begin(); it != end_inst->succ_end(); it++){
+			auto succ = (*it).get();
+			succ->remove_predecessor(first_bb);
+			succ->append_predecessor(second_bb);
+		}
+
 		return second_bb;
 	}
 };
