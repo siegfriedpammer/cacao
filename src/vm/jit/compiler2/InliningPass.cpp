@@ -44,6 +44,8 @@
 // define name for debugging (see logging.hpp)
 #define DEBUG_NAME "compiler2/InliningPass"
 
+#define GUARDED_INLINING 0
+
 STAT_DECLARE_GROUP(compiler2_stat)
 STAT_REGISTER_SUBGROUP(compiler2_inliningpass_stat,
                        "inliningpasspass",
@@ -99,10 +101,15 @@ protected:
 		bool is_monomorphic_call = I->get_opcode() == Instruction::INVOKESTATICInstID ||
 		                           I->get_opcode() == Instruction::INVOKESPECIALInstID;
 
+		#if(GUARDED_INLINING)
 		bool is_polymorphic_call = I->get_opcode() == Instruction::INVOKEVIRTUALInstID ||
 		                           I->get_opcode() == Instruction::INVOKEINTERFACEInstID;
+		bool is_inlineable_polymorphic_call = is_polymorphic_call && is_monomorphic_and_implemented(I) && !is_abstract(I);						   
+		#else
+		bool is_inlineable_polymorphic_call = false;
+		#endif						   
 
-		if (!(is_monomorphic_call || (is_polymorphic_call && is_monomorphic_and_implemented(I) && !is_abstract(I))))
+		if (!(is_monomorphic_call || is_inlineable_polymorphic_call))
 			return false;
 
 		auto source_method = I->get_Method();
@@ -312,18 +319,16 @@ public:
 	}
 };
 
-class InliningOperationBase {
-protected:
+class InliningOperation {
+private:
 	INVOKEInst* call_site;
 	Method* caller_method;
 	Method* callee_method;
 	Heuristic* heuristic;
-
-	InliningOperationBase(INVOKEInst* site, Method* callee, Heuristic* heuristic)
-	    : call_site(site), callee_method(callee), heuristic(heuristic)
-	{
-		caller_method = call_site->get_Method();
-	}
+	BeginInst* old_call_site_bb;
+	BeginInst* pre_call_site_bb;
+	BeginInst* post_call_site_bb;
+	PHIInst* phi;
 
 	void replace_method_parameters()
 	{
@@ -347,14 +352,6 @@ protected:
 	{
 		this->heuristic->on_new_instruction(instruction);
 	}
-};
-
-class InliningOperation : InliningOperationBase {
-private:
-	BeginInst* old_call_site_bb;
-	BeginInst* pre_call_site_bb;
-	BeginInst* post_call_site_bb;
-	PHIInst* phi;
 
 	bool needs_phi() { return call_site->get_type() != Type::VoidTypeID; }
 
@@ -413,8 +410,9 @@ private:
 
 public:
 	InliningOperation(INVOKEInst* site, Method* callee, Heuristic* heuristic)
-	    : InliningOperationBase(site, callee, heuristic)
+	    : call_site(site), callee_method(callee), heuristic(heuristic)
 	{
+		caller_method = call_site->get_Method();
 		old_call_site_bb = call_site->get_BeginInst();
 	}
 
@@ -446,6 +444,7 @@ public:
 	}
 };
 
+#if(GUARDED_INLINING)
 class GuardedCodeFactory : public CodeFactory {
 private:
 	Method* target_method;
@@ -497,6 +496,7 @@ public:
 		return JD;
 	}
 };
+#endif
 
 void remove_call_site(INVOKEInst* call_site)
 {
@@ -523,10 +523,12 @@ CodeFactory* get_code_factory(INVOKEInst* I)
 		case Instruction::INVOKESPECIALInstID:
 			LOG("Using normal code factory");
 			return new CodeFactory();
-		case Instruction::INVOKEVIRTUALInstID: // TODO inlining: enable "guards" with compiler directive
+		#if(GUARDED_INLINING)	
+		case Instruction::INVOKEVIRTUALInstID:
 		case Instruction::INVOKEINTERFACEInstID:
 			LOG("Using guarded code factory");
 			return new GuardedCodeFactory();
+		#endif
 		default:
 			LOG("Cannot get code factory for " << I << nl);
 			throw std::runtime_error("Unsupported invoke instruction!");
@@ -546,11 +548,6 @@ bool InliningPass::run(JITData& JD)
 {	
 	LOG("Start of inlining pass." << nl);
 	Method* M = JD.get_Method();
-	
-	if(M->get_class_name_utf8() == "CompilerIniliningUtils"){
-		LOG("Skipping CompilerIniliningUtils." << nl);
-		return true;
-	}
 
 	LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
 	LOG("Inlining for method: " << M->get_name_utf8() << nl);
@@ -576,14 +573,6 @@ bool InliningPass::run(JITData& JD)
 	}
 
 	LOG("End of inlining pass." << nl);
-
-	for(auto it = JD.get_Method()->bb_begin(); it != JD.get_Method()->bb_end(); it++){
-		auto i = *it;
-		LOG("Preds of " << i << nl);
-		for(auto itt = i->pred_begin(); itt != i->pred_end(); itt++){
-			LOG(" " << *itt << nl);
-		}
-	}
 
 	return true;
 }
