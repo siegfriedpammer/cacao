@@ -42,6 +42,7 @@ void coalesce(BeginInst* first, BeginInst* second)
 	auto method = first->get_Method();
 
 	auto new_end_inst = second->get_EndInst();
+	LOG("New end inst for " << first << " is " << new_end_inst << nl);
 	first->set_EndInst(new_end_inst);
 	second->set_EndInst(NULL);
 

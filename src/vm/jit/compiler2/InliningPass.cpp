@@ -237,7 +237,7 @@ public:
 class KnapSackHeuristic : public Heuristic {
 private:
 	static float getBenefit(INVOKEInst* invoke){
-		return 10;
+		return 1;
 	}
 
 	static int getCost(INVOKEInst* invoke){
@@ -306,9 +306,6 @@ public:
 		auto result = work_queue.top();
 		work_queue.pop();
 		return result;
-	}
-
-	static int compare_instructions(INVOKEInst* left, INVOKEInst* right){
 	}
 
 	void on_new_instruction(Instruction* instruction)
