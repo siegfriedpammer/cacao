@@ -484,6 +484,13 @@ public:
 		return *i;
 	}
 	int get_successor_index(const BeginInst* BI) const;
+	void remove_predecessor (BeginInst* BI) {
+		auto index = get_predecessor_index (BI);
+		pred_list.erase(pred_list.begin() + index);
+	}
+	void append_predecessor (BeginInst* BI) {
+		pred_list.push_back(BI);
+	}
 
 	EndInst *get_EndInst() const { return end; }
 	void set_EndInst(EndInst* e) { end = e; }
