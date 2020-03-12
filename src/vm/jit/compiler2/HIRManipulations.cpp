@@ -33,7 +33,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-static bool is_source_state_or_begin_inst(Instruction* I)
+static bool is_not_source_state_or_begin_inst(Instruction* I)
 {
 	auto op_code = I->get_opcode();
 	return op_code != Instruction::SourceStateInstID && op_code != Instruction::BeginInstID;
@@ -41,12 +41,12 @@ static bool is_source_state_or_begin_inst(Instruction* I)
 
 bool HIRManipulations::is_state_change_for_other_instruction(Instruction* I)
 {
-	return std::any_of(I->rdep_begin(), I->rdep_end(), is_source_state_or_begin_inst);
+	return std::any_of(I->rdep_begin(), I->rdep_end(), is_not_source_state_or_begin_inst);
 }
 
 Instruction* HIRManipulations::get_depending_instruction(Instruction* I)
 {
-	return *std::find_if(I->rdep_begin(), I->rdep_end(), is_source_state_or_begin_inst);
+	return *std::find_if(I->rdep_begin(), I->rdep_end(), is_not_source_state_or_begin_inst);
 }
 
 class SplitBasicBlockOperation {
@@ -140,16 +140,17 @@ BeginInst* HIRManipulations::split_basic_block(BeginInst* bb, Instruction* split
 
 void correct_scheduling_edges(Instruction* I, Instruction* schedule_after)
 {
-	if (!I->has_side_effects())
+	if (!I->has_side_effects()) {
 		return;
+	}
 
-	// TODO inlining: this is not fully correct.
-
+	LOG ("Correcting scheduling edges for " << I << nl);
 	auto state_change = I->get_last_state_change();
+	LOG ("Last state change " << state_change << nl);
 	// If the last state change points to the basic block, then there is no state changing
 	// instruction before this instruction in this bb. Therefore the new state change has to be the
 	// last state changing instruction before the initial call site (or the new bb).
-	if (state_change->to_BeginInst()) {
+	if (state_change->to_BeginInst() != NULL) {
 		LOG("Setting last state change for " << I << " to " << schedule_after << nl);
 		I->replace_state_change_dep(schedule_after);
 	}
@@ -171,6 +172,7 @@ void HIRManipulations::move_instruction_to_bb(Instruction* to_move,
                                               BeginInst* target_bb,
                                               Instruction* schedule_after)
 {
+	LOG("Moving " << to_move << " into " << target_bb << nl);
 	to_move->replace_dep(to_move->get_BeginInst(), target_bb);
 
 	if (to_move->is_floating()) {
@@ -179,9 +181,12 @@ void HIRManipulations::move_instruction_to_bb(Instruction* to_move,
 		return;
 	}
 
-	LOG("Moving non-floating instruction " << to_move << " into " << target_bb << nl);
-	to_move->set_BeginInst_unsafe(target_bb);
-	correct_scheduling_edges(to_move, schedule_after);
+	// Source state instructions get the beginInst from their scheduling dependency graph.
+	if (to_move->get_opcode() != Instruction::SourceStateInstID){
+		LOG("Moving non-floating instruction " << to_move << " into " << target_bb << nl);
+		to_move->set_BeginInst_unsafe(target_bb);
+		correct_scheduling_edges(to_move, schedule_after);
+	}
 }
 
 void HIRManipulations::move_instruction_to_method(Instruction* to_move, Method* target_method)
