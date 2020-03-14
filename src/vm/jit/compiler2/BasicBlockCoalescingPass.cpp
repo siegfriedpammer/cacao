@@ -59,6 +59,7 @@ void coalesce(BeginInst* first, BeginInst* second)
 		auto inst = *it;
 		if (inst->get_BeginInst() == second && inst != second) {
 			auto last_state_change = get_leaf_of_local_scheduling_graph(first);
+			LOG("State change leaf for " << inst << ": " << last_state_change << nl);
 			HIRManipulations::move_instruction_to_bb(inst, first, last_state_change);
 		}
 	}

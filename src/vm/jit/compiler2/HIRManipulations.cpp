@@ -143,12 +143,14 @@ BeginInst* HIRManipulations::split_basic_block(BeginInst* bb, Instruction* split
 
 void correct_scheduling_edges(Instruction* I, Instruction* schedule_after)
 {
-	if (!I->has_side_effects()) {
+	LOG ("Correcting scheduling edges for " << I << nl);
+	auto state_change = I->get_last_state_change();
+	
+	if(!state_change){
+		LOG ("Stop correcting scheduling edges for instruction without last state change" << nl);
 		return;
 	}
 
-	LOG ("Correcting scheduling edges for " << I << nl);
-	auto state_change = I->get_last_state_change();
 	LOG ("Last state change " << state_change << nl);
 	auto is_root_of_local_scheduling_graph = state_change->to_BeginInst() != NULL;
 	auto is_leaf_of_local_scheduling_graph = !HIRManipulations::is_state_change_for_other_instruction(I);
