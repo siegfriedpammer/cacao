@@ -33,21 +33,23 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-static bool is_not_source_state_or_begin_inst(Instruction* I)
+static bool is_state_change_for(Instruction* state_change, Instruction* I)
 {
 	auto op_code = I->get_opcode();
-	return op_code != Instruction::SourceStateInstID && op_code != Instruction::BeginInstID;
+	return op_code != Instruction::SourceStateInstID &&
+	       I->get_last_state_change() == state_change;
 }
 
 bool HIRManipulations::is_state_change_for_other_instruction(Instruction* I)
 {
-	return std::any_of(I->rdep_begin(), I->rdep_end(), is_not_source_state_or_begin_inst);
+	return get_depending_instruction(I) != NULL;
 }
 
 Instruction* HIRManipulations::get_depending_instruction(Instruction* I)
 {
-	auto result = std::find_if(I->rdep_begin(), I->rdep_end(), is_not_source_state_or_begin_inst);
-	return result == I->rdep_end() ? NULL : *result;
+	auto found_inst = std::find_if(I->rdep_begin(), I->rdep_end(), [&](Instruction* rdep){return is_state_change_for(I, rdep);});
+	auto result = found_inst == I->rdep_end() ? NULL : *found_inst;
+	return result;
 }
 
 class SplitBasicBlockOperation {
