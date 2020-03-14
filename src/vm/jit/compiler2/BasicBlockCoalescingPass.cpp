@@ -21,8 +21,8 @@
    02110-1301, USA.
 
 */
-#include "toolbox/logging.hpp"
 #include "vm/jit/compiler2/BasicBlockCoalescingPass.hpp"
+#include "toolbox/logging.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/DominatorPass.hpp"
 #include "vm/jit/compiler2/HIRManipulations.hpp"
@@ -35,6 +35,15 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+
+Instruction* get_leaf_of_local_scheduling_graph(Instruction* start)
+{
+	if (HIRManipulations::is_state_change_for_other_instruction(start)) {
+		auto dependent = HIRManipulations::get_depending_instruction(start);
+		return get_leaf_of_local_scheduling_graph(dependent);
+	}
+	return start;
+}
 
 void coalesce(BeginInst* first, BeginInst* second)
 {
@@ -49,18 +58,18 @@ void coalesce(BeginInst* first, BeginInst* second)
 	for (auto it = method->begin(); it != method->end(); it++) {
 		auto inst = *it;
 		if (inst->get_BeginInst() == second && inst != second) {
-			// TODO inlining: schedule after last inst
-			HIRManipulations::move_instruction_to_bb(inst, first, first);
+			auto last_state_change = get_leaf_of_local_scheduling_graph(first);
+			HIRManipulations::move_instruction_to_bb(inst, first, last_state_change);
 		}
 	}
 
-	LOG("merging " << first << " with second: " << second <<nl);
+	LOG("merging " << first << " with second: " << second << nl);
 	for (auto it = new_end_inst->succ_begin(); it != new_end_inst->succ_end(); it++) {
 		auto succ = (*it).get();
 		succ->remove_predecessor(second);
-        succ->append_predecessor(first);
+		succ->append_predecessor(first);
 	}
-	LOG("merged " << first << " with second: " << second <<nl);
+	LOG("merged " << first << " with second: " << second << nl);
 }
 
 void coalesce_if_possible(BeginInst* begin_inst)
@@ -81,12 +90,12 @@ void coalesce_if_possible(BeginInst* begin_inst)
 	else {
 		BeginInst* first_suc = end_inst->succ_begin()->get();
 		LOG("Basic blocks " << begin_inst << " and " << first_suc << " eligible for merge." << nl);
-        auto old_end_inst = begin_inst->get_EndInst();
+		auto old_end_inst = begin_inst->get_EndInst();
 		coalesce(begin_inst, first_suc);
 		HIRManipulations::remove_instruction(first_suc);
 		HIRManipulations::remove_instruction(old_end_inst);
-        first_suc = NULL;
-        old_end_inst = NULL;
+		first_suc = NULL;
+		old_end_inst = NULL;
 		coalesce_if_possible(begin_inst);
 		return;
 	}
@@ -99,7 +108,20 @@ void coalesce_if_possible(BeginInst* begin_inst)
 
 bool BasicBlockCoalescingPass::run(JITData& JD)
 {
-	coalesce_if_possible(JD.get_Method()->get_init_bb());
+	M = JD.get_Method();
+	coalesce_if_possible(M->get_init_bb());
+	return true;
+}
+
+bool BasicBlockCoalescingPass::verify() const
+{
+	LOG("Verifying all instructions" << nl);
+	for (auto it = M->begin(); it != M->end(); it++) {
+		auto inst = *it;
+		if (!inst->verify()) {
+			return false;
+		}
+	}
 	return true;
 }
 

@@ -45,15 +45,15 @@ class Method;
 /**
  * InliningPass
  */
-class BasicBlockCoalescingPass : public Pass, public memory::ManagerMixin<BasicBlockCoalescingPass> {
-#ifdef ENABLE_LOGGING
-	void print_final_results();
-#endif
-
+class BasicBlockCoalescingPass : public Pass,
+                                 public memory::ManagerMixin<BasicBlockCoalescingPass> {
+private:
+	Method* M; // used for verification
 public:
 	static Option<bool> enabled;
 	BasicBlockCoalescingPass() : Pass() {}
 	virtual bool run(JITData& JD);
+	virtual bool verify() const;
 	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
 
 	bool is_enabled() const override { return BasicBlockCoalescingPass::enabled; }

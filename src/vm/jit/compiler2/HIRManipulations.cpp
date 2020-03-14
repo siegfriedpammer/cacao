@@ -46,7 +46,8 @@ bool HIRManipulations::is_state_change_for_other_instruction(Instruction* I)
 
 Instruction* HIRManipulations::get_depending_instruction(Instruction* I)
 {
-	return *std::find_if(I->rdep_begin(), I->rdep_end(), is_not_source_state_or_begin_inst);
+	auto result = std::find_if(I->rdep_begin(), I->rdep_end(), is_not_source_state_or_begin_inst);
+	return result == I->rdep_end() ? NULL : *result;
 }
 
 class SplitBasicBlockOperation {
@@ -118,9 +119,9 @@ public:
 		if (HIRManipulations::is_state_change_for_other_instruction(split_at)) {
 			auto last_state_change = split_at->get_last_state_change();
 			auto dependent_inst = HIRManipulations::get_depending_instruction(split_at);
-			LOG("Replacing last state change for " << dependent_inst << " to " << last_state_change
+			LOG("Replacing last state change for " << dependent_inst << " to " << second_bb
 			                                       << "." << nl);
-			dependent_inst->replace_state_change_dep(last_state_change);
+			dependent_inst->replace_state_change_dep(second_bb);
 		}
 
 		for(auto it = end_inst->succ_begin(); it != end_inst->succ_end(); it++){
@@ -147,24 +148,30 @@ void correct_scheduling_edges(Instruction* I, Instruction* schedule_after)
 	LOG ("Correcting scheduling edges for " << I << nl);
 	auto state_change = I->get_last_state_change();
 	LOG ("Last state change " << state_change << nl);
-	// If the last state change points to the basic block, then there is no state changing
-	// instruction before this instruction in this bb. Therefore the new state change has to be the
-	// last state changing instruction before the initial call site (or the new bb).
-	if (state_change->to_BeginInst() != NULL) {
-		LOG("Setting last state change for " << I << " to " << schedule_after << nl);
-		I->replace_state_change_dep(schedule_after);
-	}
+	auto is_root_of_local_scheduling_graph = state_change->to_BeginInst() != NULL;
+	auto is_leaf_of_local_scheduling_graph = !HIRManipulations::is_state_change_for_other_instruction(I);
 
 	// If the call site is the last state change for an instruction, this instruction now needs to
 	// depend on the last state changing instruction of the inlined region, or the state change
 	// before the invocation.
-	if (HIRManipulations::is_state_change_for_other_instruction(schedule_after) &&
-	    !HIRManipulations::is_state_change_for_other_instruction(I)) {
+	if (is_leaf_of_local_scheduling_graph) {
 		auto first_dependency_after_inlined_region =
 		    HIRManipulations::get_depending_instruction(schedule_after);
-		LOG("Setting last state change for " << first_dependency_after_inlined_region << " to " << I
-		                                     << nl);
-		first_dependency_after_inlined_region->replace_state_change_dep(I);
+		if(first_dependency_after_inlined_region) {
+			LOG("Setting last state change for " << first_dependency_after_inlined_region << " to " << I
+												<< nl);
+			first_dependency_after_inlined_region->replace_state_change_dep(I);
+		} else {
+			LOG("No dependency after " << schedule_after << " (except moved instructions)." << nl);
+		}
+	}
+
+	// If the last state change points to the basic block, then there is no state changing
+	// instruction before this instruction in this bb. Therefore the new state change has to be the
+	// last state changing instruction before the initial call site (or the new bb).
+	if (is_root_of_local_scheduling_graph) {
+		LOG("Setting last state change for " << I << " to " << schedule_after << nl);
+		I->replace_state_change_dep(schedule_after);
 	}
 }
 
@@ -172,7 +179,7 @@ void HIRManipulations::move_instruction_to_bb(Instruction* to_move,
                                               BeginInst* target_bb,
                                               Instruction* schedule_after)
 {
-	LOG("Moving " << to_move << " into " << target_bb << nl);
+	LOG("Moving " << to_move << "(" << to_move->get_BeginInst() << ") into " << target_bb << nl);
 	to_move->replace_dep(to_move->get_BeginInst(), target_bb);
 
 	if (to_move->is_floating()) {
