@@ -50,7 +50,6 @@ public:
      * @returns true if there is another instruction using this instruction as last state change.
      **/
 	static bool is_state_change_for_other_instruction(Instruction* I);
-    // TODO inlining: is there only one, except phis?
     /**
      * Gets the instruction which depends on the given instruction as last state change. See is_state_change_for_other_instruction
      * for further details.
