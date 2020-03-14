@@ -72,8 +72,12 @@ void coalesce(BeginInst* first, BeginInst* second)
 	LOG("merged " << first << " with second: " << second << nl);
 }
 
-void coalesce_if_possible(BeginInst* begin_inst)
+void BasicBlockCoalescingPass::coalesce_if_possible(BeginInst* begin_inst)
 {
+	if(std::find(visited.begin(), visited.end(), begin_inst) != visited.end()){
+		LOG(begin_inst << " already visited");
+		return;
+	}
 	LOG("coalesce_if_possible " << begin_inst << nl);
 
 	auto end_inst = begin_inst->get_EndInst();
@@ -100,6 +104,7 @@ void coalesce_if_possible(BeginInst* begin_inst)
 		return;
 	}
 
+	visited.push_back(begin_inst);
 	LOG("invoking for successors" << nl);
 	for (auto it = end_inst->succ_begin(); it != end_inst->succ_end(); it++) {
 		coalesce_if_possible(it->get());
@@ -109,6 +114,7 @@ void coalesce_if_possible(BeginInst* begin_inst)
 bool BasicBlockCoalescingPass::run(JITData& JD)
 {
 	M = JD.get_Method();
+	visited.clear();
 	coalesce_if_possible(M->get_init_bb());
 	return true;
 }

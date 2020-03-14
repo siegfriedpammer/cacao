@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_BASICBLOCKCOALESCINGPASS
 
 #include "vm/jit/compiler2/Pass.hpp"
+#include <list>
 
 MM_MAKE_NAME(InliningPass)
 
@@ -49,6 +50,8 @@ class BasicBlockCoalescingPass : public Pass,
                                  public memory::ManagerMixin<BasicBlockCoalescingPass> {
 private:
 	Method* M; // used for verification
+   std::list<BeginInst*> visited;
+   void coalesce_if_possible(BeginInst* begin_inst);
 public:
 	static Option<bool> enabled;
 	BasicBlockCoalescingPass() : Pass() {}
