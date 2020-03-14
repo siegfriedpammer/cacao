@@ -37,6 +37,10 @@
 #include "vm/jit/compiler2/InstructionVisitor.hpp"
 #include "vm/types.hpp"
 
+#include "toolbox/logging.hpp"
+
+#define DEBUG_NAME "compiler2/Instructions"
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -596,6 +600,20 @@ public:
 	BeginInstRef& get_successor(size_t i) {
 		assert(i < succ_size());
 		return succ_list[i];
+	}
+	
+	virtual bool verify() const {
+		LOG ("Verifying successors" << nl);
+		for(auto succ_it = succ_begin(); succ_it != succ_end(); succ_it++){
+			auto succ = (*succ_it).get();
+			auto correct_reverse_edge = std::find(succ->pred_begin(), succ->pred_end(), begin) != succ->pred_end();
+			if (!correct_reverse_edge) {
+				LOG(Red << "Instruction verification error!" << reset_color << nl <<
+				"Missing predecessor edge from " << succ << " to " << begin);
+				return false;
+			}
+		}
+		return Instruction::verify();
 	}
 
 	friend class BeginInst;

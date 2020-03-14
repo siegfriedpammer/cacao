@@ -178,13 +178,10 @@ public:
 	void replace_dep(Instruction* i_old, Instruction* i_new) {
 		assert(i_old);
 		assert(i_new);
-		auto found_it = std::find(dep_list.begin(), dep_list.end(), i_old);
-		if(found_it != dep_list.end()){
-			std::replace(dep_list.begin(), dep_list.end(), i_old, i_new);
+		std::replace(dep_list.begin(), dep_list.end(), i_old, i_new);
+		for(int i = 0; i < std::count(dep_list.begin(), dep_list.end(), i_new); i++){
 			i_old->reverse_dep_list.remove(this);
-			for(int i = 0; i < std::count(dep_list.begin(), dep_list.end(), i_new); i++){
-				i_new->reverse_dep_list.push_back(this);
-			}
+			i_new->reverse_dep_list.push_back(this);
 		}
 	}
 	
@@ -197,7 +194,9 @@ public:
 		auto state_change_it = std::next(dep_list.begin(), 1);
 		auto i_old = *state_change_it;
 		*state_change_it = i_new;
-		i_old->reverse_dep_list.remove(this);
+		// Don't delete all occurences. Only one.
+		auto rdep_it = std::find(i_old->reverse_dep_list.begin(), i_old->reverse_dep_list.end(), this);
+		i_old->reverse_dep_list.erase(rdep_it);
 		i_new->reverse_dep_list.push_back(this);
 	}
 

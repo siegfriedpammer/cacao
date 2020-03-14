@@ -90,6 +90,26 @@ bool Instruction::verify() const {
 			}
 		}
 	}
+	LOG ("Verifying deps for " << this << nl);
+	for(auto dep_it = dep_list.begin(); dep_it != dep_list.end(); dep_it++){
+		auto dep = *dep_it;
+		auto correct_reverse_edge = std::find(dep->rdep_begin(), dep->rdep_end(), this) != dep->rdep_end();
+		if (!correct_reverse_edge) {
+			LOG(Red << "Instruction verification error!" << reset_color << nl <<
+			 "Missing reverse dependency edge from " << dep << " to " << this);
+			return false;
+		}
+	}
+	LOG ("Verifying reverse deps for " << this << nl);
+	for(auto rdep_it = reverse_dep_list.begin(); rdep_it != reverse_dep_list.end(); rdep_it++){
+		auto rdep = *rdep_it;
+		auto correct_reverse_edge = std::find(rdep->dep_begin(), rdep->dep_end(), this) != rdep->rdep_end();
+		if (!correct_reverse_edge) {
+			LOG(Red << "Instruction verification error!" << reset_color << nl <<
+			 "Obsolete reverse dependency edge from " << this << " to " << rdep);
+			return false;
+		}
+	}
 	return true;
 }
 
