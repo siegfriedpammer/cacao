@@ -544,7 +544,7 @@ void inline_instruction(INVOKEInst* I, Heuristic* heuristic)
 bool InliningPass::run(JITData& JD)
 {	
 	LOG("Start of inlining pass." << nl);
-	Method* M = JD.get_Method();
+	M = JD.get_Method();
 
 	LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
 	LOG("Inlining for method: " << M->get_name_utf8() << nl);
@@ -571,6 +571,17 @@ bool InliningPass::run(JITData& JD)
 
 	LOG("End of inlining pass." << nl);
 
+	return true;
+}
+
+bool InliningPass::verify() const {
+	LOG("Verifying all instructions" << nl);
+	for(auto it = M->begin(); it != M->end(); it++){
+		auto inst = *it;
+		if(!inst->verify()){
+			return false;
+		}
+	}
 	return true;
 }
 

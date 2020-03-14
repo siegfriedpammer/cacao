@@ -47,16 +47,14 @@ class Method;
  * InliningPass
  */
 class InliningPass : public Pass, public memory::ManagerMixin<InliningPass> {
-#ifdef ENABLE_LOGGING
-	void print_final_results();
-#endif
-
+private: 
+   Method* M; // used for verification
 public:
 	static Option<bool> enabled;
 	InliningPass() : Pass() {}
 	virtual bool run(JITData& JD);
+   virtual bool verify() const;
 	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
-
 	bool is_enabled() const override { return InliningPass::enabled; }
 };
 
