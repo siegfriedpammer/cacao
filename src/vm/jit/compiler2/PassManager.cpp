@@ -135,6 +135,18 @@ void PassRunner::runPassesUntil(JITData &JD, PassInfo::IDTy last_pass) {
 			os::abort("compiler2: error");
 		}
 
+		#if ENABLE_RT_TIMING
+		timer.stop();
+		if (option::dump_method_json) {
+			auto ts = timer.time();
+			graphPrinter.printPass(JD, P.get(), PS.get_Pass_name(id), ts.count());
+		}
+		#else
+		if (option::dump_method_json) {
+			graphPrinter.printPass(JD, P.get(), PS.get_Pass_name(id), 0);
+		}
+		#endif
+		
 		#ifndef NDEBUG
 		LOG("verifying: " << PS.get_Pass_name(id) << nl);
 		if (!P->verify()) {
@@ -148,17 +160,6 @@ void PassRunner::runPassesUntil(JITData &JD, PassInfo::IDTy last_pass) {
 		});
 		LOG("finialize: " << PS.get_Pass_name(id) << nl);
 		P->finalize();
-		#if ENABLE_RT_TIMING
-		timer.stop();
-		if (option::dump_method_json) {
-			auto ts = timer.time();
-			graphPrinter.printPass(JD, P.get(), PS.get_Pass_name(id), ts.count());
-		}
-		#else
-		if (option::dump_method_json) {
-			graphPrinter.printPass(JD, P.get(), PS.get_Pass_name(id), 0);
-		}
-		#endif
 
 		if(id == last_pass){
 			LOG("Last pass " << PS.get_Pass_name(last_pass) << " reached." << nl);
