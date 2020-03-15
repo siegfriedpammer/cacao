@@ -305,12 +305,14 @@ public:
 	{
 		auto result = work_queue.top();
 		work_queue.pop();
+		budget -= getCost(result);
 		return result;
 	}
 
 	void on_new_instruction(Instruction* instruction)
 	{
 		if (should_inline(instruction)) {
+			LOG("KnapSackHeuristic: Adding " << instruction << " to work list.");
 			work_queue.push((INVOKEInst*)instruction);
 		}
 	}
