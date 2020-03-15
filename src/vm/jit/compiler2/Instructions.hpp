@@ -2040,6 +2040,15 @@ public:
 	}
 	virtual bool is_floating() const { return false; }
 
+	virtual bool verify() const {
+		if(op_size() == 0){
+			LOG(Red << "Instruction verification error!" << reset_color << "\nThe phi instruction " << this
+				<< " has no operands." << nl);
+			return false;
+		}
+		return MultiOpInst::verify();
+	}
+
 	// exporting to the public
 	using Instruction::append_op;
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
