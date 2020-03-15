@@ -28,6 +28,7 @@
 
 #include "boost/iterator/filter_iterator.hpp"
 #include "vm/jit/compiler2/HIRManipulations.hpp"
+#include "vm/jit/compiler2/HIRUtils.hpp"
 #include "vm/jit/compiler2/InliningPass.hpp"
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
@@ -571,20 +572,14 @@ bool InliningPass::run(JITData& JD)
 		remove_call_site(call_site);
 	}
 
+	LOG("Invoking coalescing." << nl);
+	HIRManipulations::coalesce_bbs(M);
 	LOG("End of inlining pass." << nl);
-
 	return true;
 }
 
 bool InliningPass::verify() const {
-	LOG("Verifying all instructions" << nl);
-	for(auto it = M->begin(); it != M->end(); it++){
-		auto inst = *it;
-		if(!inst->verify()){
-			return false;
-		}
-	}
-	return true;
+	return HIRUtils::verify_all_instructions(M);
 }
 
 // pass usage

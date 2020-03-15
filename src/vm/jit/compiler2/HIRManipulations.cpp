@@ -23,6 +23,7 @@
 */
 
 #include "vm/jit/compiler2/HIRManipulations.hpp"
+#include "vm/jit/compiler2/HIRUtils.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -32,25 +33,6 @@
 namespace cacao {
 namespace jit {
 namespace compiler2 {
-
-static bool is_state_change_for(Instruction* state_change, Instruction* I)
-{
-	auto op_code = I->get_opcode();
-	return op_code != Instruction::SourceStateInstID &&
-	       I->get_last_state_change() == state_change;
-}
-
-bool HIRManipulations::is_state_change_for_other_instruction(Instruction* I)
-{
-	return get_depending_instruction(I) != NULL;
-}
-
-Instruction* HIRManipulations::get_depending_instruction(Instruction* I)
-{
-	auto found_inst = std::find_if(I->rdep_begin(), I->rdep_end(), [&](Instruction* rdep){return is_state_change_for(I, rdep);});
-	auto result = found_inst == I->rdep_end() ? NULL : *found_inst;
-	return result;
-}
 
 class SplitBasicBlockOperation {
 private:
@@ -118,9 +100,9 @@ public:
 
 		add_dependent(split_at);
 
-		if (HIRManipulations::is_state_change_for_other_instruction(split_at)) {
+		if (HIRUtils::is_state_change_for_other_instruction(split_at)) {
 			auto last_state_change = split_at->get_last_state_change();
-			auto dependent_inst = HIRManipulations::get_depending_instruction(split_at);
+			auto dependent_inst = HIRUtils::get_depending_instruction(split_at);
 			LOG("Replacing last state change for " << dependent_inst << " to " << second_bb
 			                                       << "." << nl);
 			dependent_inst->replace_state_change_dep(second_bb);
@@ -153,14 +135,14 @@ void correct_scheduling_edges(Instruction* I, Instruction* schedule_after)
 
 	LOG ("Last state change " << state_change << nl);
 	auto is_root_of_local_scheduling_graph = state_change->to_BeginInst() != NULL;
-	auto is_leaf_of_local_scheduling_graph = !HIRManipulations::is_state_change_for_other_instruction(I);
+	auto is_leaf_of_local_scheduling_graph = !HIRUtils::is_state_change_for_other_instruction(I);
 
 	// If the call site is the last state change for an instruction, this instruction now needs to
 	// depend on the last state changing instruction of the inlined region, or the state change
 	// before the invocation.
 	if (is_leaf_of_local_scheduling_graph) {
 		auto first_dependency_after_inlined_region =
-		    HIRManipulations::get_depending_instruction(schedule_after);
+		    HIRUtils::get_depending_instruction(schedule_after);
 		if(first_dependency_after_inlined_region) {
 			LOG("Setting last state change for " << first_dependency_after_inlined_region << " to " << I
 												<< nl);
@@ -253,6 +235,96 @@ void HIRManipulations::remove_instruction(Instruction* to_remove)
 	else {
 		to_remove->get_Method()->remove_Instruction(to_remove);
 	}
+}
+
+
+class CoalesceBasicBlocksOperation {
+private:
+	std::list<BeginInst*> visited;
+
+	Instruction* get_leaf_of_local_scheduling_graph(Instruction* start)
+	{
+		if (HIRUtils::is_state_change_for_other_instruction(start)) {
+			auto dependent = HIRUtils::get_depending_instruction(start);
+			return get_leaf_of_local_scheduling_graph(dependent);
+		}
+		return start;
+	}
+
+	void coalesce(BeginInst* first, BeginInst* second)
+	{
+		LOG("coalesce " << first << " " << second << nl);
+		auto method = first->get_Method();
+
+		auto new_end_inst = second->get_EndInst();
+		LOG("New end inst for " << first << " is " << new_end_inst << nl);
+		first->set_EndInst(new_end_inst);
+		second->set_EndInst(NULL);
+
+		for (auto it = method->begin(); it != method->end(); it++) {
+			auto inst = *it;
+			if (inst->get_BeginInst() == second && inst != second) {
+				auto last_state_change = get_leaf_of_local_scheduling_graph(first);
+				LOG("State change leaf for " << inst << ": " << last_state_change << nl);
+				HIRManipulations::move_instruction_to_bb(inst, first, last_state_change);
+			}
+		}
+
+		LOG("merging " << first << " with second: " << second << nl);
+		for (auto it = new_end_inst->succ_begin(); it != new_end_inst->succ_end(); it++) {
+			auto succ = (*it).get();
+			succ->remove_predecessor(second);
+			succ->append_predecessor(first);
+		}
+		LOG("merged " << first << " with second: " << second << nl);
+	}
+
+public:	
+	void coalesce_if_possible(BeginInst* begin_inst)
+	{
+		LOG("coalesce_if_possible " << begin_inst << nl);
+		if(std::find(visited.begin(), visited.end(), begin_inst) != visited.end()){
+			LOG(begin_inst << " already visited" << nl);
+			return;
+		}
+
+		auto end_inst = begin_inst->get_EndInst();
+		if (end_inst->succ_size() == 0) {
+			LOG("Basic block " << begin_inst << " has no successors. Nothing to merge." << nl);
+		}
+		else if (end_inst->succ_size() > 1) {
+			LOG("Basic block " << begin_inst << " has multiple successors. Nothing to merge." << nl);
+		}
+		else if (end_inst->succ_begin()->get()->pred_size() > 1) {
+			auto first_suc = end_inst->succ_begin()->get();
+			LOG("Basic block " << first_suc << " has multiple predecessors. Nothing to merge." << nl);
+		}
+		else {
+			BeginInst* first_suc = end_inst->succ_begin()->get();
+			LOG("Basic blocks " << begin_inst << " and " << first_suc << " eligible for merge." << nl);
+			auto old_end_inst = begin_inst->get_EndInst();
+			coalesce(begin_inst, first_suc);
+			HIRManipulations::remove_instruction(first_suc);
+			HIRManipulations::remove_instruction(old_end_inst);
+			first_suc = NULL;
+			old_end_inst = NULL;
+			coalesce_if_possible(begin_inst);
+			return;
+		}
+
+		visited.push_back(begin_inst);
+		LOG("invoking for successors for " << end_inst << nl);
+		for (auto it = end_inst->succ_begin(); it != end_inst->succ_end(); it++) {
+			coalesce_if_possible(it->get());
+		}
+	}
+};
+
+void HIRManipulations::coalesce_bbs(Method* M)
+{
+	LOG("Coealescing Starting"<<nl);
+	CoalesceBasicBlocksOperation().coalesce_if_possible(M->get_init_bb());
+	LOG("Coealescing Finished"<<nl);
 }
 
 } // end namespace compiler2

@@ -49,8 +49,6 @@ libcompiler2_la_SOURCES = \
 	Backend.cpp \
 	Backend.hpp \
 	BasicBlockSchedule.hpp \
-	BasicBlockCoalescingPass.cpp \
-	BasicBlockCoalescingPass.hpp \
 	BasicBlockSchedulingPass.cpp \
 	BasicBlockSchedulingPass.hpp \
 	CFGConstructionPass.cpp \
@@ -87,6 +85,8 @@ libcompiler2_la_SOURCES = \
 	GraphHelper.hpp \
 	HIRManipulations.cpp \
 	HIRManipulations.hpp \
+	HIRUtils.cpp \
+	HIRUtils.hpp \
 	ICMDPrinterPass.cpp \
 	ICMDPrinterPass.hpp \
 	InliningPass.cpp \

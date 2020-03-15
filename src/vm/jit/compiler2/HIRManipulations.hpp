@@ -43,19 +43,6 @@ public:
      * @returns the new basic block
      **/
 	static BeginInst* split_basic_block(BeginInst* bb, Instruction* split_at);
-    /**
-     * Indicates whether this instruction has another instruction depending on it, as last state changing instruction.
-     * This method should only return false, if the given instruction is the last state-changing instruction in the
-     * execution path.
-     * @returns true if there is another instruction using this instruction as last state change.
-     **/
-	static bool is_state_change_for_other_instruction(Instruction* I);
-    /**
-     * Gets the instruction which depends on the given instruction as last state change. See is_state_change_for_other_instruction
-     * for further details.
-     * @returns Instruction depending on the given instruction
-     **/
-	static Instruction* get_depending_instruction(Instruction* I);
 	/**
 	 * CAVEAT: This method will also move non floating instructions. Only use this method if you are
 	 * certain that these operations are valid and the semantics of the program will be maintained.
@@ -79,6 +66,10 @@ public:
      * will be delted from the containing method.
      */
 	static void remove_instruction(Instruction* to_remove);
+    /**
+     * Coalesce basic blocks.
+     */
+	static void coalesce_bbs(Method* M);
 };
 
 } // end namespace compiler2
