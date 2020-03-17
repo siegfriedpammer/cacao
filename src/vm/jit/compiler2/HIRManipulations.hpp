@@ -34,6 +34,9 @@ namespace jit {
 namespace compiler2 {
 
 class HIRManipulations {
+private:
+    class SplitBasicBlockOperation;
+    class CoalesceBasicBlocksOperation;
 public:
     /**
      * Splits a basic block at a given instruction. All depending instructions will be moved into the new basic block.

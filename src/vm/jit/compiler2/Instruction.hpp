@@ -215,16 +215,6 @@ public:
 	size_t rdep_size() const { return reverse_dep_list.size(); }
 
 	/**
-	 * Sets the corresponding BeginInst. This operation does not check, if the current Instruction is floating. 
-	 * This operation is needed in certain circumstances (e.g. splitting a basic block).
-	 * Use with caution!
-	 */
-	void set_BeginInst_unsafe(BeginInst* b){
-		LOG("Setting begin inst from " << begin << " to " << b << nl);
-		begin = b;
-	}
-
-	/**
 	 * Get the corresponding BeginInst.
 	 *
 	 * BeginInst are used to mark control flow joins (aka the start of a basic block).
@@ -234,7 +224,7 @@ public:
 	virtual BeginInst *get_BeginInst() const { return begin; }
 	virtual bool set_BeginInst(BeginInst *b) {
 		if (is_floating()) {
-			set_BeginInst_unsafe(b);
+			begin = b;
 			return true;
 		}
 		assert(0 && "Trying to set BeginInst of a non floating instruction");
@@ -294,6 +284,7 @@ public:
 
 	// needed to access replace_op in replace_value
 	friend class Value;
+	friend class HIRManipulations;
 };
 
 /**

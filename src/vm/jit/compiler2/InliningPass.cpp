@@ -392,16 +392,19 @@ private:
 			}
 
 			auto new_inst = transform_instruction(I);
+			LOG("transformed inst " << new_inst << nl);
 			HIRManipulations::move_instruction_to_method(new_inst, caller_method);
 			on_inlined_inst(new_inst);
 		}
 
 		if (needs_phi()) {
 			if (phi->op_size() == 1) {
+				LOG("Removing phi because op size is one"<<nl);
 				call_site->replace_value(*(phi->op_begin()));
 				delete phi;
 			}
 			else {
+				LOG("Adding phi " << phi << nl);
 				caller_method->add_Instruction(phi);
 				call_site->replace_value(phi);
 			}

@@ -27,9 +27,6 @@ AM_JAVACFLAGS = -source 1.6 -target 1.6 -nowarn -bootclasspath $(BOOTCLASSPATH)
 
 AUTOMAKE_OPTIONS = subdir-objects
 
-# set default search extension
-AM_DEFAULT_SOURCE_EXT = .cpp
-
 #bin_PROGRAMS = catch-tests
 
 javadir = $(builddir)
@@ -39,12 +36,24 @@ JAVAROOT = $(builddir)
 #dist_java_JAVA = \
 #	CriticalEdgeSplitTest.java
 
-LDADD = $(top_builddir)/src/cacao/libjvm.la
+## Add Test cases here
+#catch_tests_SOURCES = \
+#	CriticalEdgeSplitTest.cpp \
+#	OperandSetTest.cpp
 
-TESTS = \
-    HIRManipulationsTest
+## Add the framework
+#catch_tests_SOURCES += \
+#	framework/CacaoVM.cpp \
+#	framework/CacaoVM.hpp \
+#	framework/PassRunner.cpp \
+#	framework/PassRunner.hpp \
+#	framework/tests-main.cpp
 
-check_PROGRAMS = $(TESTS)
+#LDADD = $(top_builddir)/src/cacao/libjvm.la
+
+#TESTS = catch-tests
+
+#check_PROGRAMS = $(TESTS)
 
 ## Local variables:
 ## mode: Makefile

@@ -34,7 +34,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class SplitBasicBlockOperation {
+class HIRManipulations::SplitBasicBlockOperation {
 private:
 	BeginInst* first_bb;
 	BeginInst* second_bb;
@@ -48,7 +48,7 @@ private:
 	{
 		LOG("Adding " << I << " to second bb " << second_bb << nl);
 
-		I->set_BeginInst_unsafe(second_bb);
+		I->begin = second_bb;
 
 		if (first_bb->get_EndInst() == I) {
 			LOG("Setting end inst of second bb " << I << nl);
@@ -95,7 +95,7 @@ public:
 		// add end inst of call site bb
 		auto end_inst = first_bb->get_EndInst();
 		LOG("new end inst for new bb " << end_inst << nl);
-		end_inst->set_BeginInst_unsafe(second_bb);
+		end_inst->begin = second_bb;
 		second_bb->set_EndInst(end_inst);
 
 		add_dependent(split_at);
@@ -177,7 +177,7 @@ void HIRManipulations::move_instruction_to_bb(Instruction* to_move,
 	// Source state instructions get the beginInst from their scheduling dependency graph.
 	if (to_move->get_opcode() != Instruction::SourceStateInstID){
 		LOG("Moving non-floating instruction " << to_move << " into " << target_bb << nl);
-		to_move->set_BeginInst_unsafe(target_bb);
+		to_move->begin = target_bb; 
 		correct_scheduling_edges(to_move, schedule_after);
 	}
 }
@@ -238,7 +238,7 @@ void HIRManipulations::remove_instruction(Instruction* to_remove)
 }
 
 
-class CoalesceBasicBlocksOperation {
+class HIRManipulations::CoalesceBasicBlocksOperation {
 private:
 	std::list<BeginInst*> visited;
 
