@@ -112,8 +112,10 @@ bool Instruction::verify() const {
 	}
 	LOG ("Verifying ops for " << this << nl);
 	for(auto op_it = op_list.begin(); op_it != op_list.end(); op_it++){
+		LOG("X"<<nl);
 		auto op = *op_it;
 		auto op_inst = op->to_Instruction();
+		LOG("Y"<<nl);
 
 		if(!op_inst)
 			continue;

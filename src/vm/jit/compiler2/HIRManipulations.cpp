@@ -110,8 +110,7 @@ public:
 
 		for(auto it = end_inst->succ_begin(); it != end_inst->succ_end(); it++){
 			auto succ = (*it).get();
-			succ->remove_predecessor(first_bb);
-			succ->append_predecessor(second_bb);
+			succ->replace_predecessor(first_bb, second_bb);
 		}
 
 		return second_bb;
@@ -208,25 +207,24 @@ void HIRManipulations::connect_with_jump(BeginInst* source, BeginInst* target)
 
 void HIRManipulations::remove_instruction(Instruction* to_remove)
 {
-	LOG("removing " << to_remove << " with (r)dependencies" << nl);
-
-	LOG("Removing deps " << to_remove << nl);
-	auto it = to_remove->dep_begin();
-	while (it != to_remove->dep_end()) {
-		auto I = *it;
-		LOG("dep " << I << nl);
-		to_remove->remove_dep(I);
-		it = to_remove->dep_begin();
+	LOG("removing " << to_remove << nl);
+	assert(to_remove->user_size() <= 1);
+	if(to_remove->user_size() == 1){
+		auto source_state = (*to_remove->user_begin())->to_SourceStateInst();
+		assert(source_state);
+		HIRManipulations::remove_instruction(source_state);
 	}
+	assert(to_remove->rdep_size() == 0);
 
+	/* TODO Inlining: necessary?
 	LOG("Removing reverse deps " << to_remove << nl);
-	it = to_remove->rdep_begin();
+	auto it = to_remove->rdep_begin();
 	while (it != to_remove->rdep_end()) {
 		auto I = *it;
 		LOG("rdep " << I << nl);
 		I->remove_dep(to_remove);
 		it = to_remove->rdep_begin();
-	}
+	}*/
 
 	LOG("Removing from method " << to_remove << nl);
 	if (to_remove->get_opcode() == Instruction::BeginInstID) {
@@ -273,8 +271,7 @@ private:
 		LOG("merging " << first << " with second: " << second << nl);
 		for (auto it = new_end_inst->succ_begin(); it != new_end_inst->succ_end(); it++) {
 			auto succ = (*it).get();
-			succ->remove_predecessor(second);
-			succ->append_predecessor(first);
+			succ->replace_predecessor(second, first);
 		}
 		LOG("merged " << first << " with second: " << second << nl);
 	}

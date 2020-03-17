@@ -60,6 +60,7 @@ bool HIRUtils::verify_all_instructions(Method* M){
 			return false;
 		}
 	}
+   LOG(Green << "Instructions verified"<<reset_color<<nl);
 	return true;
 }
 

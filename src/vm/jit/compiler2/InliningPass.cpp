@@ -69,15 +69,20 @@ namespace compiler2 {
    on-stack replacement. The reason for this is, that the SourceStateInstructions are not handled
    correctly.
 */
-void create_work_around_source_state(INVOKEInst* source_location_from, BeginInst* for_inst){
+void create_work_around_source_state(INVOKEInst* source_location_from, BeginInst* for_inst)
+{
 	auto source_location = source_location_from->get_SourceStateInst()->get_source_location();
 	auto source_state = new SourceStateInst(source_location, for_inst);
 	source_location_from->to_Instruction()->get_Method()->add_Instruction(source_state);
 }
 
-void ensure_source_state(INVOKEInst* source_location_from, BeginInst* for_inst){
-	auto source_state_it = std::find_if(for_inst->rdep_begin(), for_inst->rdep_end(), [](Instruction* i) {return i->get_opcode() == Instruction::SourceStateInstID;});
-	if(source_state_it == for_inst->rdep_end()){
+void ensure_source_state(INVOKEInst* source_location_from, BeginInst* for_inst)
+{
+	auto source_state_it =
+	    std::find_if(for_inst->rdep_begin(), for_inst->rdep_end(), [](Instruction* i) {
+		    return i->get_opcode() == Instruction::SourceStateInstID;
+	    });
+	if (source_state_it == for_inst->rdep_end()) {
 		create_work_around_source_state(source_location_from, for_inst);
 	}
 }
@@ -87,7 +92,7 @@ private:
 	inline bool is_monomorphic_and_implemented(INVOKEInst* I)
 	{
 		auto flags = I->get_fmiref()->p.method->flags;
-		return  (flags & ACC_METHOD_MONOMORPHIC) && (flags & ACC_METHOD_IMPLEMENTED);
+		return (flags & ACC_METHOD_MONOMORPHIC) && (flags & ACC_METHOD_IMPLEMENTED);
 	}
 
 	inline bool is_abstract(INVOKEInst* I)
@@ -102,13 +107,14 @@ protected:
 		bool is_monomorphic_call = I->get_opcode() == Instruction::INVOKESTATICInstID ||
 		                           I->get_opcode() == Instruction::INVOKESPECIALInstID;
 
-		#if(GUARDED_INLINING)
+#if (GUARDED_INLINING)
 		bool is_polymorphic_call = I->get_opcode() == Instruction::INVOKEVIRTUALInstID ||
 		                           I->get_opcode() == Instruction::INVOKEINTERFACEInstID;
-		bool is_inlineable_polymorphic_call = is_polymorphic_call && is_monomorphic_and_implemented(I) && !is_abstract(I);						   
-		#else
+		bool is_inlineable_polymorphic_call =
+		    is_polymorphic_call && is_monomorphic_and_implemented(I) && !is_abstract(I);
+#else
 		bool is_inlineable_polymorphic_call = false;
-		#endif						   
+#endif
 
 		if (!(is_monomorphic_call || is_inlineable_polymorphic_call))
 			return false;
@@ -237,22 +243,18 @@ public:
 
 class KnapSackHeuristic : public Heuristic {
 private:
-	static float getBenefit(INVOKEInst* invoke){
-		return 1;
-	}
+	static float getBenefit(INVOKEInst* invoke) { return 1; }
 
-	static int getCost(INVOKEInst* invoke){
-		return invoke->get_fmiref()->p.method->jcodelength;
-	}
+	static int getCost(INVOKEInst* invoke) { return invoke->get_fmiref()->p.method->jcodelength; }
 
-	struct CompareInvokes { 
-		bool operator()(INVOKEInst* l, INVOKEInst* r) 
-		{ 
+	struct CompareInvokes {
+		bool operator()(INVOKEInst* l, INVOKEInst* r)
+		{
 			float priorityLeft = getBenefit(l) / getCost(l);
 			float priorityRight = getBenefit(r) / getCost(r);
 			return priorityLeft > priorityRight;
-		} 
-	}; 
+		}
+	};
 
 	std::priority_queue<INVOKEInst*, std::vector<INVOKEInst*>, CompareInvokes> work_queue;
 	Method* M;
@@ -290,15 +292,17 @@ public:
 	{
 		while (work_queue.size() > 0) {
 			auto next = work_queue.top();
-			
+
 			if (is_within_budget(next)) {
 				return true;
 			}
 
-			LOG("KnapSackHeuristic: Skipping " << next << " as it does not fit within the remainin budget ("<< budget <<")." << nl);
+			LOG("KnapSackHeuristic: Skipping "
+			    << next << " as it does not fit within the remainin budget (" << budget << ")."
+			    << nl);
 			work_queue.pop();
 		}
-		
+
 		return false;
 	}
 
@@ -328,7 +332,8 @@ private:
 	BeginInst* old_call_site_bb;
 	BeginInst* pre_call_site_bb;
 	BeginInst* post_call_site_bb;
-	PHIInst* phi;
+	std::list<Instruction*> phi_operands;
+	std::list<Instruction*> to_remove;
 
 	void replace_method_parameters()
 	{
@@ -360,37 +365,70 @@ private:
 		LOG("Transforming " << I << nl);
 		switch (I->get_opcode()) {
 			case Instruction::RETURNInstID: {
+				auto return_inst = I->to_RETURNInst();
+				if (return_inst->op_size() > 0) {
+					auto operand = (*return_inst->op_begin())->to_Instruction();
+					LOG("Appending phi operand " << operand << nl);
+					phi_operands.push_back(operand);
+				}
 				auto begin_inst = I->get_BeginInst();
 				auto end_instruction = new GOTOInst(begin_inst, post_call_site_bb);
 				begin_inst->set_EndInst(end_instruction);
 				LOG("Rewriting return instruction " << I << " to " << end_instruction << nl);
-				delete I;
+				to_remove.push_back(I);
 				return end_instruction;
 			}
 			default: return I;
 		}
 	}
 
-	void add_call_site_bbs()
+	void replace_invoke_with_result()
 	{
-		LOG("add_call_site_bbs" << callee_method->get_desc_utf8() << nl);
-		if (needs_phi()) {
-			// the phi will be the replacement for the dependencies to the invoke inst in the post
-			// call site bb
-			auto return_type = call_site->get_type();
-			phi = new PHIInst(return_type, post_call_site_bb);
+		// no phi needed, if there is only one return point
+		if (phi_operands.size() == 1) {
+			LOG("Phi node not necessary" << nl);
+			auto result = *phi_operands.begin();
+			call_site->replace_value(result);
+			return;
 		}
 
+		// the phi will be the replacement for the dependencies to the invoke inst in the post call
+		// site bb
+		auto return_type = call_site->get_type();
+		auto phi = new PHIInst(return_type, post_call_site_bb);
+
+		for(auto it = phi_operands.begin(); it != phi_operands.end(); it++){
+			LOG("Registered operands: " << *it << " (" << (*it)->get_BeginInst() << ")" << nl);
+		}
+
+		for (auto it = post_call_site_bb->pred_begin(); it != post_call_site_bb->pred_end(); it++) {
+			auto bb = *it;
+			LOG("Searching for phi operand in " << bb << nl);
+			auto is_in_bb = [bb](Instruction* inst) { return inst->get_BeginInst() == bb; };
+			auto is_in_no_bb = [](Instruction* inst) { return inst->get_BeginInst() == NULL; };
+			auto next_op_it = std::find_if(phi_operands.begin(), phi_operands.end(), is_in_bb);
+			if(next_op_it == phi_operands.end()){
+				next_op_it = std::find_if(phi_operands.begin(), phi_operands.end(), is_in_no_bb);
+			}
+			assert(next_op_it != phi_operands.end());
+			auto next_op = *next_op_it;
+			LOG("Found operand " << next_op << nl);
+			phi_operands.erase(next_op_it);
+			phi->append_op(next_op);
+		}
+
+		LOG("Adding phi " << phi << nl);
+		caller_method->add_Instruction(phi);
+	}
+
+	void add_call_site_bbs()
+	{
+		LOG("add_call_site_bbs " << callee_method->get_name_utf8() << nl);
+		// TODO inlining: phi must same order as dependencies from post_call_site
+		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
 			Instruction* I = *it;
 			LOG("Adding to call site " << I << nl);
-
-			if (I->get_opcode() == Instruction::RETURNInstID) {
-				auto returnInst = I->to_RETURNInst();
-				if (needs_phi())
-					phi->append_op(*(returnInst->op_begin()));
-			}
-
 			auto new_inst = transform_instruction(I);
 			LOG("transformed inst " << new_inst << nl);
 			HIRManipulations::move_instruction_to_method(new_inst, caller_method);
@@ -398,16 +436,7 @@ private:
 		}
 
 		if (needs_phi()) {
-			if (phi->op_size() == 1) {
-				LOG("Removing phi because op size is one"<<nl);
-				call_site->replace_value(*(phi->op_begin()));
-				delete phi;
-			}
-			else {
-				LOG("Adding phi " << phi << nl);
-				caller_method->add_Instruction(phi);
-				call_site->replace_value(phi);
-			}
+			replace_invoke_with_result();
 		}
 	}
 
@@ -428,6 +457,9 @@ public:
 		add_call_site_bbs();
 		replace_method_parameters();
 		HIRManipulations::connect_with_jump(pre_call_site_bb, callee_method->get_init_bb());
+		for(auto it = to_remove.begin(); it != to_remove.end(); it++){
+			HIRManipulations::remove_instruction(*it);
+		}
 	}
 };
 
@@ -447,7 +479,7 @@ public:
 	}
 };
 
-#if(GUARDED_INLINING)
+#if (GUARDED_INLINING)
 class GuardedCodeFactory : public CodeFactory {
 private:
 	Method* target_method;
@@ -472,15 +504,16 @@ private:
 		auto false_branch = create_false_branch(I);
 
 		/**
-		 * Currently Compiler2 does not support invoking native methods such as java/lang/Object.getClass().
-		 * Therefore a "dummy" assertion (obj == obj) was introduced. After implementing native methods
-		 * in Compiler2, this should be fixed.
+		 * Currently Compiler2 does not support invoking native methods such as
+		 * java/lang/Object.getClass(). Therefore a "dummy" assertion (obj == obj) was introduced.
+		 * After implementing native methods in Compiler2, this should be fixed.
 		 */
 		auto check_bb = new BeginInst();
 		auto current_object = I->get_operand(0);
 		create_work_around_source_state(I, check_bb);
 
-		auto if_inst = new IFInst(check_bb, current_object, current_object, Conditional::EQ, true_branch, false_branch);
+		auto if_inst = new IFInst(check_bb, current_object, current_object, Conditional::EQ,
+		                          true_branch, false_branch);
 
 		check_bb->set_EndInst(if_inst);
 		target_method->add_bb(check_bb);
@@ -526,12 +559,12 @@ CodeFactory* get_code_factory(INVOKEInst* I)
 		case Instruction::INVOKESPECIALInstID:
 			LOG("Using normal code factory");
 			return new CodeFactory();
-		#if(GUARDED_INLINING)	
+#if (GUARDED_INLINING)
 		case Instruction::INVOKEVIRTUALInstID:
 		case Instruction::INVOKEINTERFACEInstID:
 			LOG("Using guarded code factory");
 			return new GuardedCodeFactory();
-		#endif
+#endif
 		default:
 			LOG("Cannot get code factory for " << I << nl);
 			throw std::runtime_error("Unsupported invoke instruction!");
@@ -548,7 +581,7 @@ void inline_instruction(INVOKEInst* I, Heuristic* heuristic)
 }
 
 bool InliningPass::run(JITData& JD)
-{	
+{
 	LOG("Start of inlining pass." << nl);
 	M = JD.get_Method();
 
@@ -581,7 +614,8 @@ bool InliningPass::run(JITData& JD)
 	return true;
 }
 
-bool InliningPass::verify() const {
+bool InliningPass::verify() const
+{
 	return HIRUtils::verify_all_instructions(M);
 }
 

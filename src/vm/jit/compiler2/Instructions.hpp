@@ -454,6 +454,9 @@ private:
 	void set_predecessor(int index, BeginInst *BI) {
 		pred_list[index] = BI;
 	}
+	void append_predecessor(BeginInst *BI) {
+		pred_list.push_back(BI);
+	}
 	void set_successor(int index, BeginInst *BI);
 
 public:
@@ -488,12 +491,10 @@ public:
 		return *i;
 	}
 	int get_successor_index(const BeginInst* BI) const;
-	void remove_predecessor (BeginInst* BI) {
-		auto index = get_predecessor_index (BI);
-		pred_list.erase(pred_list.begin() + index);
-	}
-	void append_predecessor (BeginInst* BI) {
-		pred_list.push_back(BI);
+	void replace_predecessor (BeginInst* old_bb, BeginInst* new_bb) {
+		auto index = get_predecessor_index (old_bb);
+		assert(index >= 0);
+		pred_list.at(index) = new_bb;
 	}
 
 	EndInst *get_EndInst() const { return end; }
@@ -506,6 +507,7 @@ public:
 
 	friend class EndInst;
 	friend class Method;
+	friend class HIRManipulations;
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -611,6 +613,21 @@ public:
 				LOG(Red << "Instruction verification error!" << reset_color << nl <<
 				"Missing predecessor edge from " << succ << " to " << begin);
 				return false;
+			}
+			// TODO: this could be solved in a better way by moving it into EndInst. Due to the
+			// forward reference this is not possible at the moment
+			LOG ("Verifying predecessors for " << succ << nl);
+			for(auto succ_pred_it = succ->pred_begin(); succ_pred_it != succ->pred_end(); succ_pred_it++){
+				auto succ_pred = *succ_pred_it;
+				auto end_inst = succ_pred->get_EndInst();
+				auto check_if_backedge = [&](BeginInstRef ref) {return ref.get() == succ;};
+				auto correct_reverse_edge_inner = 
+					std::find_if(end_inst->succ_begin(), end_inst->succ_end(), check_if_backedge) != end_inst->succ_end();
+				if (!correct_reverse_edge_inner) {
+					LOG(Red << "Instruction verification error!" << reset_color << nl <<
+					"Obsolete predecessor edge from " << succ << " to " << succ_pred);
+					return false;
+				}
 			}
 		}
 		return Instruction::verify();
