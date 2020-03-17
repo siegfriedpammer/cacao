@@ -71,15 +71,18 @@ namespace compiler2 {
 */
 void create_work_around_source_state(INVOKEInst* source_location_from, BeginInst* for_inst)
 {
-	auto source_location = source_location_from->get_SourceStateInst()->get_source_location();
+	LOG("Creating work around source state for " << for_inst << " from " << source_location_from << nl);
+	auto old_source_state = source_location_from->get_SourceStateInst();
+	assert(old_source_state);
+	auto source_location = old_source_state->get_source_location();
 	auto source_state = new SourceStateInst(source_location, for_inst);
-	source_location_from->to_Instruction()->get_Method()->add_Instruction(source_state);
+	for_inst->get_Method()->add_Instruction(source_state);
 }
 
 void ensure_source_state(INVOKEInst* source_location_from, BeginInst* for_inst)
 {
 	auto source_state_it =
-	    std::find_if(for_inst->rdep_begin(), for_inst->rdep_end(), [](Instruction* i) {
+	    std::find_if(for_inst->dep_begin(), for_inst->dep_end(), [](Instruction* i) {
 		    return i->get_opcode() == Instruction::SourceStateInstID;
 	    });
 	if (source_state_it == for_inst->rdep_end()) {
@@ -337,18 +340,20 @@ private:
 
 	void replace_method_parameters()
 	{
-		List<Instruction*> to_remove;
+		List<Instruction*> to_remove_after_replace;
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
 			auto I = *it;
 			if (I->get_opcode() == Instruction::LOADInstID) {
+				auto load_inst = I->to_LOADInst();
 				auto index = (I->to_LOADInst())->get_index();
 				auto given_operand = call_site->get_operand(index);
 				LOG("Replacing Load inst" << I << " with " << given_operand << nl);
+				load_inst->get_SourceStateInst()->remove_dep(I);
 				I->replace_value(given_operand);
-				to_remove.push_back(I);
+				to_remove_after_replace.push_back(I);
 			}
 		}
-		for (auto it = to_remove.begin(); it != to_remove.end(); it++) {
+		for (auto it = to_remove_after_replace.begin(); it != to_remove_after_replace.end(); it++) {
 			HIRManipulations::remove_instruction(*it);
 		}
 	}
@@ -384,6 +389,8 @@ private:
 
 	void replace_invoke_with_result()
 	{
+		LOG("replace_invoke_with_result for " << call_site << nl);
+		HIRManipulations::remove_instruction(call_site->get_SourceStateInst());
 		// no phi needed, if there is only one return point
 		if (phi_operands.size() == 1) {
 			LOG("Phi node not necessary" << nl);
@@ -394,6 +401,7 @@ private:
 
 		// the phi will be the replacement for the dependencies to the invoke inst in the post call
 		// site bb
+		LOG("Phi node is necessary"<<nl);
 		auto return_type = call_site->get_type();
 		auto phi = new PHIInst(return_type, post_call_site_bb);
 
@@ -419,6 +427,7 @@ private:
 
 		LOG("Adding phi " << phi << nl);
 		caller_method->add_Instruction(phi);
+		call_site->replace_value(phi);
 	}
 
 	void add_call_site_bbs()
@@ -434,6 +443,8 @@ private:
 			HIRManipulations::move_instruction_to_method(new_inst, caller_method);
 			on_inlined_inst(new_inst);
 		}
+
+		LOG("All basic blockes moved." << nl);
 
 		if (needs_phi()) {
 			replace_invoke_with_result();
@@ -453,7 +464,7 @@ public:
 		LOG("Inserting new basic blocks into original method" << nl);
 		pre_call_site_bb = old_call_site_bb;
 		post_call_site_bb = HIRManipulations::split_basic_block(pre_call_site_bb, call_site);
-		create_work_around_source_state(call_site, post_call_site_bb); // this workaround ensures that there is a source_state
+		// ensure_source_state(call_site, post_call_site_bb); // this workaround ensures that there is a source_state
 		add_call_site_bbs();
 		replace_method_parameters();
 		HIRManipulations::connect_with_jump(pre_call_site_bb, callee_method->get_init_bb());

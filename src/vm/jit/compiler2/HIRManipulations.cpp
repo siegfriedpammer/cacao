@@ -207,6 +207,7 @@ void HIRManipulations::connect_with_jump(BeginInst* source, BeginInst* target)
 
 void HIRManipulations::remove_instruction(Instruction* to_remove)
 {
+	assert(to_remove);
 	LOG("removing " << to_remove << nl);
 	assert(to_remove->user_size() <= 1);
 	if(to_remove->user_size() == 1){
@@ -214,17 +215,16 @@ void HIRManipulations::remove_instruction(Instruction* to_remove)
 		assert(source_state);
 		HIRManipulations::remove_instruction(source_state);
 	}
-	assert(to_remove->rdep_size() == 0);
 
-	/* TODO Inlining: necessary?
-	LOG("Removing reverse deps " << to_remove << nl);
+	// This is primarily for deleting SourceStateInsts and should probably removed
+	// when correct SourceState handling is implemented.
 	auto it = to_remove->rdep_begin();
 	while (it != to_remove->rdep_end()) {
 		auto I = *it;
-		LOG("rdep " << I << nl);
+		LOG(Yellow << "Removing dep from " << I << " to " << to_remove << reset_color << nl);
 		I->remove_dep(to_remove);
 		it = to_remove->rdep_begin();
-	}*/
+	}
 
 	LOG("Removing from method " << to_remove << nl);
 	if (to_remove->get_opcode() == Instruction::BeginInstID) {
