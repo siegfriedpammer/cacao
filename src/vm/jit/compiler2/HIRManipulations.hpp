@@ -73,6 +73,7 @@ public:
      * Coalesce basic blocks.
      */
 	static void coalesce_bbs(Method* M);
+	static void replace_value_without_source_states(Value* old_value, Value* new_value);
 };
 
 } // end namespace compiler2

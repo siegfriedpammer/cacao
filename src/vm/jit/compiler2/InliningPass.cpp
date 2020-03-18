@@ -340,6 +340,7 @@ private:
 
 	void replace_method_parameters()
 	{
+		LOG("replace_method_parameters"<<nl);
 		List<Instruction*> to_remove_after_replace;
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
 			auto I = *it;
@@ -348,8 +349,7 @@ private:
 				auto index = (I->to_LOADInst())->get_index();
 				auto given_operand = call_site->get_operand(index);
 				LOG("Replacing Load inst" << I << " with " << given_operand << nl);
-				load_inst->get_SourceStateInst()->remove_dep(I);
-				I->replace_value(given_operand);
+				HIRManipulations::replace_value_without_source_states(I, given_operand);
 				to_remove_after_replace.push_back(I);
 			}
 		}
@@ -390,12 +390,11 @@ private:
 	void replace_invoke_with_result()
 	{
 		LOG("replace_invoke_with_result for " << call_site << nl);
-		HIRManipulations::remove_instruction(call_site->get_SourceStateInst());
 		// no phi needed, if there is only one return point
 		if (phi_operands.size() == 1) {
 			LOG("Phi node not necessary" << nl);
 			auto result = *phi_operands.begin();
-			call_site->replace_value(result);
+			HIRManipulations::replace_value_without_source_states(call_site, result);
 			return;
 		}
 
@@ -427,14 +426,12 @@ private:
 
 		LOG("Adding phi " << phi << nl);
 		caller_method->add_Instruction(phi);
-		call_site->replace_value(phi);
+		HIRManipulations::replace_value_without_source_states(call_site, phi);
 	}
 
 	void add_call_site_bbs()
 	{
 		LOG("add_call_site_bbs " << callee_method->get_name_utf8() << nl);
-		// TODO inlining: phi must same order as dependencies from post_call_site
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
 			Instruction* I = *it;
 			LOG("Adding to call site " << I << nl);

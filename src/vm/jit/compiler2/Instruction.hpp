@@ -174,6 +174,14 @@ public:
 		dep_list.remove(I);
 		I->reverse_dep_list.remove(this);
 	}
+
+	void remove_op(Instruction* I) {
+		assert(I);
+		auto found = std::find(op_begin(), op_end(), I);
+		op_list.erase(found);
+		auto found_reverse = std::find(I->user_begin(), I->user_end(), this);
+		I->user_list.erase(found_reverse);
+	}
 	
 	void replace_dep(Instruction* i_old, Instruction* i_new) {
 		assert(i_old);

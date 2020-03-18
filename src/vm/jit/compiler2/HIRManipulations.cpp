@@ -209,21 +209,23 @@ void HIRManipulations::remove_instruction(Instruction* to_remove)
 {
 	assert(to_remove);
 	LOG("removing " << to_remove << nl);
-	assert(to_remove->user_size() <= 1);
-	if(to_remove->user_size() == 1){
-		auto source_state = (*to_remove->user_begin())->to_SourceStateInst();
-		assert(source_state);
-		HIRManipulations::remove_instruction(source_state);
-	}
 
 	// This is primarily for deleting SourceStateInsts and should probably removed
 	// when correct SourceState handling is implemented.
-	auto it = to_remove->rdep_begin();
-	while (it != to_remove->rdep_end()) {
-		auto I = *it;
+	auto it_rdep = to_remove->rdep_begin();
+	while (it_rdep != to_remove->rdep_end()) {
+		auto I = *it_rdep;
 		LOG(Yellow << "Removing dep from " << I << " to " << to_remove << reset_color << nl);
 		I->remove_dep(to_remove);
-		it = to_remove->rdep_begin();
+		it_rdep = to_remove->rdep_begin();
+	}
+
+	auto it_user = to_remove->user_begin();
+	while (it_user != to_remove->user_end()) {
+		auto I = *it_user;
+		LOG(Yellow << "Removing op from " << I << " to " << to_remove << reset_color << nl);
+		I->remove_op(to_remove);
+		it_user = to_remove->user_begin();
 	}
 
 	LOG("Removing from method " << to_remove << nl);
@@ -322,6 +324,23 @@ void HIRManipulations::coalesce_bbs(Method* M)
 	LOG("Coealescing Starting"<<nl);
 	CoalesceBasicBlocksOperation().coalesce_if_possible(M->get_init_bb());
 	LOG("Coealescing Finished"<<nl);
+}
+
+void HIRManipulations::replace_value_without_source_states(Value* old_value, Value* new_value){
+	LOG("HIRManipulations::replace_value_without_source_states(this=" << old_value << ",v=" << new_value << ")" << nl );
+	std::list<Value*> replace_for;
+	for (auto it = old_value->user_begin(); it != old_value->user_end(); it++) {
+		auto I = *it;
+		assert(I);
+		if(!I->to_SourceStateInst()){
+			replace_for.push_back(I);
+		}
+	}
+	for(auto it = replace_for.begin(); it != replace_for.end(); it++){
+		auto I = (*it)->to_Instruction();
+		LOG("replacing value " << old_value << " with " << new_value << " in " << I << nl );
+		I->replace_op(old_value, new_value);
+	}
 }
 
 } // end namespace compiler2
