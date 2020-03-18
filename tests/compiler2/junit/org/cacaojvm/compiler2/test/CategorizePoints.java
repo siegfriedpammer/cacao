@@ -5,14 +5,14 @@ import java.util.Random;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
-public class CreatePoints extends Compiler2TestBase {
+public class CategorizePoints extends Compiler2TestBase {
     @Test
     public void execute() throws Throwable{
-		TimingResults tr = new TimingResults();
+        TimingResults tr = new TimingResults();
 
         Random random = new Random();
-        int [] x = new int[100000];
-        int [] y = new int[100000];
+        int [] x = new int[1000000];
+        int [] y = new int[1000000];
         for(int i = 0; i < x.length; i++){
             x[i] = random.nextInt();
             y[i] = random.nextInt();
@@ -20,18 +20,18 @@ public class CreatePoints extends Compiler2TestBase {
 
         int[] xBaseline = x.clone();
         int[] yBaseline = y.clone();
-		Point[] resultBaseline = (Point[]) runBaseline("createPoints", "([I[I)[Lorg/cacaojvm/compiler2/test/CreatePoints$Point;", tr.baseline, xBaseline, yBaseline);
+		int[] resultBaseline = (int[]) runBaseline("categorizePoints", "([I[I)[I", tr.baseline, xBaseline, yBaseline);
 
         int[] xCompiler2 = x.clone();
         int[] yCompiler2 = y.clone();
-		Point[] resultCompiler2 = (Point[]) runCompiler2("createPoints", "([I[I)[Lorg/cacaojvm/compiler2/test/CreatePoints$Point;", tr.compiler2, xCompiler2, yCompiler2);
+		int[] resultCompiler2 = (int[]) runCompiler2("categorizePoints", "([I[I)[I", tr.compiler2, xCompiler2, yCompiler2);
         
 		assertArrayEquals(resultBaseline, resultCompiler2);
         
 		tr.report();
     }
-
-    private static final class Point {
+      
+    public final static class Point {
         private int x;
         private int y;
 
@@ -40,12 +40,22 @@ public class CreatePoints extends Compiler2TestBase {
             this.y = y;
         }
 
-        public int getX(){
+        public final int getX(){
             return x;
         }
 
-        public int getY(){
+        public final int getY(){
             return y;
+        }
+
+        public final int getQuadrant(){
+            if (getX() == 0 || getY() == 0){
+                return 0;
+            } else if(getX() > 0){
+                return getY() > 0 ? 1 : 4;
+            } else {
+                return getY() > 0 ? 2 : 3;
+            }
         }
 
         @Override
@@ -58,13 +68,13 @@ public class CreatePoints extends Compiler2TestBase {
         }
     }
 
-    static Point[] createPoints(int x[], int y[]) 
+    static int[] categorizePoints(int[] x, int[] y) 
     { 
-        int N = x.length;
-        Point[] points = new Point[N];
-        for(int i = 0; i < N; i++){
-            points[i] = new Point(x[i], y[i]);
+        int[] categories = new int[5];
+        for(int i = 0; i < x.length; i++){
+            Point p = new Point(x[i], y[i]);
+            categories[p.getQuadrant()] += 1;
         }
-        return points;
+        return categories;
     }
 }

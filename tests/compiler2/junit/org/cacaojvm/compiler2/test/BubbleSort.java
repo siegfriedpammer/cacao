@@ -11,7 +11,7 @@ public class BubbleSort extends Compiler2TestBase {
 		TimingResults tr = new TimingResults();
 
         Random random = new Random();
-        int [] data = new int[10000];
+        int [] data = new int[1000];
         for(int i = 0; i < data.length; i++){
             data[i] = random.nextInt();
         }

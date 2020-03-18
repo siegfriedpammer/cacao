@@ -27,8 +27,16 @@ import org.junit.Test;
 
 
 public class InliningTests extends Compiler2TestBase {
-	private static class TestObject {
+	private static interface TestInterface {
+		public long getValueInterface();
+	}
+
+	private static class TestObject implements TestInterface {
 		public long m_value;
+
+		public TestObject(){
+			this(0);
+		}
 
 		public TestObject (long value){
 			m_value = value;
@@ -40,6 +48,26 @@ public class InliningTests extends Compiler2TestBase {
 
 		public final long getValueSpecial(){
 			return m_value;
+		}
+		
+		public long getValueInterface(){
+			return m_value;
+		}
+	}
+
+	private static class TestObjectDerived extends TestObject {
+		public long getValueVirtual(){
+			return 123;
+		}
+	}
+
+	private static abstract class AbstractTestObject{
+		public abstract long getValue();
+	}
+
+	private static class DerivedFromAbstractTestObject extends AbstractTestObject {
+		public long getValue(){
+			return 1234;
 		}
 	}
 
@@ -62,35 +90,53 @@ public class InliningTests extends Compiler2TestBase {
 		return Math.max(12, 43);
 	}
 
-	//@Test
+	@Test
 	public void testStaticInliningWithSingleCalls() {
 		testResultEqual("singleStatic", "()J");
+		// TODO inlining: Assert with statistics
 	}
 
 	/** This is the method under test. */
-	static long mutipleStatic() {
-		long a = Math.max(111l,112l);
-		long b = Math.max(149l,15l);
-		return Math.max(a,b);
+	static long multipleStatic() {
+		long a = Math.max(142l, 9l);
+		long b = Math.max(a, 43l);
+		long c = Math.max(b, 43l);
+		long d = Math.max(c, 1000l);
+		long e = Math.max(d, 823l);
+		return e;
 	}
 
-	//@Test
+	@Test
 	public void testStaticInliningWithMultipleCalls() {
-		testResultEqual("mutipleStatic", "()J");
+		testResultEqual("multipleStatic", "()J");
+		// TODO inlining: Assert with statistics
+	}
+
+	static long smallerOrTen(int a) {
+		long ten = 10;
+		return a > 0 ? Math.max(a, ten) : a;
+	}
+
+	@Test
+	public void testStaticInliningInControlFlow() {
+		testResultEqual("smallerOrTen", "(I)J", 11);
+		// TODO inlining: Assert with statistics
 	}
 
     static long inlinePrivateInvoke(InliningTests testObj){
         return testObj.const_val();
     }
 
-	//@Test
+	@Test
 	public void testinlinePrivateInvoke() {
 		testResultEqual("inlinePrivateInvoke", "(Lorg/cacaojvm/compiler2/test/InliningTests;)J", this);
+		// TODO inlining: Assert with statistics
 	}
 
-	// //@Test NOTE: also fails without inlining pass 
+	//@Test NOTE: also fails without inlining pass 
 	public void testinlinePrivateInvokeWithNull() {
 		testResultEqual("inlinePrivateInvoke", "(Lorg/cacaojvm/compiler2/test/InliningTests;)J");
+		// TODO inlining: Assert with statistics
 	}
 
     static long inlineFieldAccess(InliningTests testObj){
@@ -101,18 +147,50 @@ public class InliningTests extends Compiler2TestBase {
         return new TestObject(20).getValueSpecial();
     }
 
-	//@Test // TODO inlining: scheduling edges are not set.
+	@Test
 	public void testInlineFinalGetterWithCtor() {
 		testResultEqual("inlineFinalGetterWithCtor", "()J");
+		// TODO inlining: Assert with statistics
 	}
 
-    static long inlineVirtualGetterWithCtor(){
-        return new TestObject(20).getValueVirtual();
+    static long inlineVirtualGetter(TestObject obj){
+        return obj.getValueVirtual();
     }
 
-	//@Test
-	public void testInlineVirtualGetterWithCtor() {
-		testResultEqual("inlineVirtualGetterWithCtor", "()J");
+	@Test
+	public void testInlineVirtualGetter() {
+		testResultEqual("inlineVirtualGetter", "(Lorg/cacaojvm/compiler2/test/InliningTests$TestObject;)J", new TestObject(20));
+		// TODO inlining: Assert with statistics
+	}
+
+    static long inlineDerivedVirtualGetter(TestObject obj){
+        return obj.getValueVirtual();
+    }
+
+	@Test
+	public void testInlineDerivedVirtualGetter() {
+		testResultEqual("inlineDerivedVirtualGetter", "(Lorg/cacaojvm/compiler2/test/InliningTests$TestObject;)J", new TestObjectDerived());
+		// TODO inlining: Assert with statistics
+	}
+
+    static long inlineInterfaceGetterWithCtor(TestInterface obj){
+        return obj.getValueInterface();
+    }
+
+	@Test
+	public void testInlineDerivedAbstractGetter() {
+		testResultEqual("inlineDerivedAbstractGetter", "(Lorg/cacaojvm/compiler2/test/InliningTests$AbstractTestObject;)J", new DerivedFromAbstractTestObject());
+		// TODO inlining: Assert with statistics
+	}
+
+    static long inlineDerivedAbstractGetter(AbstractTestObject obj){
+        return obj.getValue();
+    }
+
+	@Test
+	public void testInlineInterfaceGetterWithCtor() {
+		testResultEqual("inlineInterfaceGetterWithCtor", "(Lorg/cacaojvm/compiler2/test/InliningTests$TestInterface;)J", new TestObject(20));
+		// TODO inlining: Assert with statistics
 	}
 
     static long dontInlineRecursive(long n){
@@ -120,17 +198,9 @@ public class InliningTests extends Compiler2TestBase {
         return n + dontInlineRecursive(n - 1);
     }
 
-	//@Test
+	@Test
 	public void testDontInlineRecursive() {
 		testResultEqual("dontInlineRecursive", "(J)J", 5);
-	}
-
-    static long guardedExample(InliningTests obj){
-		return obj.fieldVirtual();
-    }
-
-	@Test
-	public void testGuardedExample() {
-		testResultEqual("guardedExample", "(Lorg/cacaojvm/compiler2/test/InliningTests;)J", this);
+		// TODO inlining: Assert with statistics
 	}
 }
