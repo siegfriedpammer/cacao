@@ -321,6 +321,22 @@ public:
 		}
 	}
 
+	virtual void remove_op(Instruction* I) {
+		Instruction::remove_op(I);
+		std::remove(stackvars.begin(), stackvars.end(), I);
+		std::remove(params.begin(), params.end(), I);
+		for (JavalocalListTy::iterator i = javalocals.begin(), e = javalocals.end();
+				i != e; i++) {
+			Javalocal &local = *i;
+			if (local.value == I) {
+				LOG("Deleting op java local for " << I << nl);
+				// This can be done better
+				javalocals.erase(i);
+				i = javalocals.begin();
+			}
+		}
+	}
+
 	/**
 	 * @see Instruction::is_homogeneous()
 	 */

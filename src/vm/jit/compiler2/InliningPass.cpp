@@ -617,7 +617,7 @@ bool InliningPass::run(JITData& JD)
 	}
 
 	LOG("Invoking coalescing." << nl);
-	HIRManipulations::coalesce_bbs(M);
+	//HIRManipulations::coalesce_bbs(M);
 	LOG("End of inlining pass." << nl);
 	return true;
 }

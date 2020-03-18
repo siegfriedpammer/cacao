@@ -213,6 +213,7 @@ void HIRManipulations::remove_instruction(Instruction* to_remove)
 	// This is primarily for deleting SourceStateInsts and should probably removed
 	// when correct SourceState handling is implemented.
 	auto it_rdep = to_remove->rdep_begin();
+	LOG("rdep size " << to_remove->rdep_size() <<nl);
 	while (it_rdep != to_remove->rdep_end()) {
 		auto I = *it_rdep;
 		LOG(Yellow << "Removing dep from " << I << " to " << to_remove << reset_color << nl);
@@ -221,6 +222,7 @@ void HIRManipulations::remove_instruction(Instruction* to_remove)
 	}
 
 	auto it_user = to_remove->user_begin();
+	LOG("user size " << to_remove->user_size() <<nl);
 	while (it_user != to_remove->user_end()) {
 		auto I = *it_user;
 		LOG(Yellow << "Removing op from " << I << " to " << to_remove << reset_color << nl);

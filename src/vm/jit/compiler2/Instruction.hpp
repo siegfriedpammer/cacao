@@ -175,7 +175,7 @@ public:
 		I->reverse_dep_list.remove(this);
 	}
 
-	void remove_op(Instruction* I) {
+	virtual void remove_op(Instruction* I) {
 		assert(I);
 		auto found = std::find(op_begin(), op_end(), I);
 		op_list.erase(found);
