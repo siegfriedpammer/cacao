@@ -330,9 +330,8 @@ public:
 			Javalocal &local = *i;
 			if (local.value == I) {
 				LOG("Deleting op java local for " << I << nl);
-				// This can be done better
 				javalocals.erase(i);
-				i = javalocals.begin();
+				return;
 			}
 		}
 	}

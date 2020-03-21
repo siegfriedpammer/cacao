@@ -11,7 +11,7 @@ public class BigCallGraph extends Compiler2TestBase {
         TimingResults tr = new TimingResults();
 
         Random random = new Random();
-        int [] data = new int[1000000];
+        int [] data = new int[100000];
         for(int i = 0; i < data.length; i++){
             data[i] = random.nextInt();
         }
@@ -20,7 +20,7 @@ public class BigCallGraph extends Compiler2TestBase {
 		int[] resultBaseline = (int[]) runBaseline("bigCallGraph", "([I)[I", tr.baseline, dataBaseline);
 
         int[] dataCompiler2 = data.clone();
-		int[] resultCompiler2 = (int[]) runCompiler2("bigCallGraph", "([I)[I", tr.compiler2, dataCompiler2);
+        int[] resultCompiler2 = (int[]) runCompiler2("bigCallGraph", "([I)[I", tr.compiler2, dataCompiler2);
         
 		assertArrayEquals(resultBaseline, resultCompiler2);
         
@@ -41,7 +41,13 @@ public class BigCallGraph extends Compiler2TestBase {
         value = bigMethod(value);
         value = square(value);
         value = biggerThanTen(value) ? value : abs(value);
-        return thousand(); 
+        int x = Math.min (0, 10);
+        value = Math.max (x, value);
+        for (int i = 0; i < 1000; i++){
+            value = plusOne (value);
+        }
+        value = deeplyNestedFunc(value);
+        return thousand() + value; 
     }
 
     static int bigMethod(int value){
@@ -50,6 +56,15 @@ public class BigCallGraph extends Compiler2TestBase {
             value -= 1;
         }
         value++;
+        int absVal = abs(value);
+        value = square(absVal);
+        return Math.max(value, 1);
+    }
+
+    static int mediumMethod(int value){
+        for(int i = 0; i < 100; i++){
+            value -= 1;
+        }
         int absVal = abs(value);
         return value;
     }
@@ -70,7 +85,31 @@ public class BigCallGraph extends Compiler2TestBase {
         return value * value;
     }
 
+    static int pluOne (int value){
+        return value + 1;
+    }
+
     static boolean isRealPositive(int value){
         return value > 0;
+    }
+
+    static int plusOne (int value){
+        return value + 1;
+    }
+
+    static int deeplyNestedFunc (int value) {
+        return deeplyNestedFunc1(value) + deeplyNestedFunc1(value);
+    }
+
+    static int deeplyNestedFunc1 (int value) {
+        return deeplyNestedFunc2(value) + deeplyNestedFunc2(value);
+    }
+
+    static int deeplyNestedFunc2 (int value) {
+        return deeplyNestedFunc3(value);
+    }
+
+    static int deeplyNestedFunc3 (int value) {
+        return Math.abs(value);
     }
 }
