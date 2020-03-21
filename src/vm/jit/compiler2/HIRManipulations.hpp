@@ -63,7 +63,14 @@ public:
      * Coalesce basic blocks.
      */
 	static void coalesce_bbs(Method* M);
+    /**
+     * Replaces a value with another one in every user except source states.
+     */
 	static void replace_value_without_source_states(Value* old_value, Value* new_value);
+    /**
+     * Replaces a value with another one in every user except source states.
+     */
+	static void force_set_beginInst(Instruction* I, BeginInst* new_bb);
 };
 
 } // end namespace compiler2

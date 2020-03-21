@@ -194,7 +194,7 @@ private:
 
 	void append_leafs_of_local_scheduling_graph(std::list<Instruction*>* append_to, Instruction* I)
 	{
-		if (I->rdep_size() == 0) {
+		if (I->rdep_size() == 0 && I->get_opcode() != Instruction::SourceStateInstID) {
 			append_to->push_back(I);
 			return;
 		}
@@ -217,9 +217,19 @@ private:
 		std::list<Instruction*> leafs;
 		append_leafs_of_local_scheduling_graph(&leafs, first);
 
+		if(leafs.size() == 0){
+			leafs.push_back(first);
+		}
+
+		LOG("Leafs: " << nl);
+		for(auto leaf_it = leafs.begin(); leaf_it != leafs.end(); leaf_it++){
+			LOG("  " << *leaf_it << nl);
+		}
+
 		for (auto it = method->begin(); it != method->end(); it++) {
 			auto inst = *it;
-			
+
+			if (inst->get_opcode() == Instruction::SourceStateInstID) continue;
 			if (inst->get_BeginInst() != second || inst == second) continue;
 			
 			if(inst->is_floating()){
@@ -229,15 +239,24 @@ private:
 			}
 
 			LOG("Moving non-floating instruction " << inst << " into " << first << nl);
+			inst->begin = first;
+		}
+
+		auto rdep_it = second->rdep_begin();
+		while (rdep_it != second->rdep_end()){
+			auto rdep = *rdep_it;
+			rdep->replace_dep(second, first);
 			for(auto leaf_it = leafs.begin(); leaf_it != leafs.end(); leaf_it++){
 				auto leaf = *leaf_it;
-				inst->append_dep(leaf);
+				rdep->append_dep(leaf);
 			}
+			rdep_it = second->rdep_begin();
 		}
 
 		LOG("merging " << first << " with second: " << second << nl);
 		for (auto it = new_end_inst->succ_begin(); it != new_end_inst->succ_end(); it++) {
 			auto succ = (*it).get();
+			LOG(" succ " << succ << nl);
 			succ->replace_predecessor(second, first);
 		}
 		LOG("merged " << first << " with second: " << second << nl);
@@ -311,6 +330,10 @@ void HIRManipulations::replace_value_without_source_states(Value* old_value, Val
 		LOG("replacing value " << old_value << " with " << new_value << " in " << I << nl);
 		I->replace_op(old_value, new_value);
 	}
+}
+
+void HIRManipulations::force_set_beginInst(Instruction* I, BeginInst* new_bb){
+	I->begin = new_bb;
 }
 
 } // end namespace compiler2

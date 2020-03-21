@@ -46,7 +46,7 @@
 #define DEBUG_NAME "compiler2/InliningPass"
 
 // TODO inlining: fix guarded adaption
-#define GUARDED_INLINING 0
+#define GUARDED_INLINING 1
 
 STAT_DECLARE_GROUP(compiler2_stat)
 STAT_REGISTER_SUBGROUP(compiler2_inliningpass_stat,
@@ -80,17 +80,6 @@ void create_work_around_source_state(INVOKEInst* source_location_from, BeginInst
 	for_inst->get_Method()->add_Instruction(source_state);
 }
 
-void ensure_source_state(INVOKEInst* source_location_from, BeginInst* for_inst)
-{
-	auto source_state_it =
-	    std::find_if(for_inst->dep_begin(), for_inst->dep_end(), [](Instruction* i) {
-		    return i->get_opcode() == Instruction::SourceStateInstID;
-	    });
-	if (source_state_it == for_inst->rdep_end()) {
-		create_work_around_source_state(source_location_from, for_inst);
-	}
-}
-
 class Heuristic {
 private:
 	inline bool is_monomorphic_and_implemented(INVOKEInst* I)
@@ -106,6 +95,7 @@ private:
 
 protected:
 	Heuristic() {}
+	
 	bool can_inline(INVOKEInst* I)
 	{
 		bool is_monomorphic_call = I->get_opcode() == Instruction::INVOKESTATICInstID ||
@@ -114,6 +104,7 @@ protected:
 #if (GUARDED_INLINING)
 		bool is_polymorphic_call = I->get_opcode() == Instruction::INVOKEVIRTUALInstID ||
 		                           I->get_opcode() == Instruction::INVOKEINTERFACEInstID;
+		// Searching for the implementation of an abstract method or interface is not supported at the moment.
 		bool is_inlineable_polymorphic_call =
 		    is_polymorphic_call && is_monomorphic_and_implemented(I) && !is_abstract(I);
 #else
@@ -123,6 +114,7 @@ protected:
 		if (!(is_monomorphic_call || is_inlineable_polymorphic_call))
 			return false;
 
+		// Check if the invocation refers to the current method.
 		auto source_method = I->get_Method();
 		auto target_method = I->to_INVOKEInst()->get_fmiref()->p.method;
 		auto is_recursive_call =
@@ -138,6 +130,9 @@ public:
 	virtual void on_new_instruction(Instruction* instruction) = 0;
 };
 
+/*
+*	This Heuristic will inline all possible call sites. This should only be used in testing scenarios.
+*/
 class EverythingPossibleHeuristic : public Heuristic {
 private:
 	List<INVOKEInst*> work_list;
@@ -175,6 +170,10 @@ public:
 	}
 };
 
+/*
+*	Iterates over all instructions in a FIFO fashion. Inlining stops when the max method size is
+*	exceeded.
+*/
 class LimitedBreathFirstHeuristic : public Heuristic {
 private:
 	List<INVOKEInst*> work_list;
@@ -245,6 +244,10 @@ public:
 	}
 };
 
+/*
+*	Models the problem with the KNAPSACK problem. Every call site is assigned a benefit and a cost.
+*	The call sites are inlined acording to their priority (benefit / cost).
+*/
 class KnapSackHeuristic : public Heuristic {
 private:
 	static float getBenefit(INVOKEInst* invoke) { return 1; }
@@ -268,6 +271,7 @@ private:
 	{
 		// Only estimate size to limit the number of methods which need compiler2 compilation
 		int estimated_size = instruction->get_fmiref()->p.method->jcodelength;
+		// guarantees that small methods get inlined.
 		int offset = -5;
 		return (offset + estimated_size) <= budget;
 	}
@@ -328,6 +332,9 @@ public:
 	}
 };
 
+/*
+*	This class 
+*/
 class InliningOperation {
 private:
 	INVOKEInst* call_site;
@@ -463,7 +470,6 @@ public:
 		LOG("Inserting new basic blocks into original method" << nl);
 		pre_call_site_bb = old_call_site_bb;
 		post_call_site_bb = HIRManipulations::split_basic_block(pre_call_site_bb, call_site);
-		// ensure_source_state(call_site, post_call_site_bb); // this workaround ensures that there is a source_state
 		add_call_site_bbs();
 		replace_method_parameters();
 		HIRManipulations::connect_with_jump(pre_call_site_bb, callee_method->get_init_bb());
@@ -499,7 +505,7 @@ private:
 		auto new_bb = new BeginInst();
 		target_method->add_bb(new_bb);
 		new_bb->append_dep(I);
-		I->set_BeginInst_unsafe(new_bb);
+		HIRManipulations::force_set_beginInst(I, new_bb);
 		create_work_around_source_state(I, new_bb);
 
 		auto return_inst = new RETURNInst(new_bb, I);
@@ -550,8 +556,7 @@ void remove_call_site(INVOKEInst* call_site)
 	auto is_source_state = [](Instruction* I) {
 		return I->get_opcode() == Instruction::SourceStateInstID;
 	};
-	auto source_state_it =
-	    std::find_if(call_site->rdep_begin(), call_site->rdep_end(), is_source_state);
+	auto source_state_it = std::find_if(call_site->rdep_begin(), call_site->rdep_end(), is_source_state);
 	if (source_state_it != call_site->rdep_end()) {
 		auto source_state = *source_state_it;
 		LOG("Appending source state " << source_state << " to bb " << call_site->get_BeginInst()
@@ -598,7 +603,7 @@ bool InliningPass::run(JITData& JD)
 	LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
 	LOG("Inlining for method: " << M->get_name_utf8() << nl);
 
-	EverythingPossibleHeuristic heuristic(M);
+	KnapSackHeuristic heuristic(M, 100);
 	List<INVOKEInst*> to_remove;
 	while (heuristic.has_next()) {
 		auto I = heuristic.next();
@@ -619,7 +624,7 @@ bool InliningPass::run(JITData& JD)
 	}
 
 	LOG("Invoking coalescing." << nl);
-	//HIRManipulations::coalesce_bbs(M);
+	HIRManipulations::coalesce_bbs(M);
 	LOG("End of inlining pass." << nl);
 	return true;
 }
