@@ -1531,13 +1531,6 @@ public:
 	 * A LOADInst must not float, it has to stay in the method's initial block.
 	 */
 	bool is_floating() const { return false; }
-	
-	virtual SourceStateInst* get_SourceStateInst() const {
-		auto is_source_state = [](Instruction* inst) {return inst->to_SourceStateInst() != NULL;};
-		auto found = std::find_if(user_begin(), user_end(), is_source_state);
-		assert(found != user_end());
-		return (*found)->to_SourceStateInst();
-	}
 
 	/**
 	 * Visitor pattern.

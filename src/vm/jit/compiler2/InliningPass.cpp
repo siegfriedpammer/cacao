@@ -45,6 +45,7 @@
 // define name for debugging (see logging.hpp)
 #define DEBUG_NAME "compiler2/InliningPass"
 
+// TODO inlining: fix guarded adaption
 #define GUARDED_INLINING 0
 
 STAT_DECLARE_GROUP(compiler2_stat)
@@ -267,7 +268,8 @@ private:
 	{
 		// Only estimate size to limit the number of methods which need compiler2 compilation
 		int estimated_size = instruction->get_fmiref()->p.method->jcodelength;
-		return estimated_size <= budget;
+		int offset = -5;
+		return (offset + estimated_size) <= budget;
 	}
 
 	bool should_inline(Instruction* I)
@@ -596,7 +598,7 @@ bool InliningPass::run(JITData& JD)
 	LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
 	LOG("Inlining for method: " << M->get_name_utf8() << nl);
 
-	KnapSackHeuristic heuristic(M, 100);
+	EverythingPossibleHeuristic heuristic(M);
 	List<INVOKEInst*> to_remove;
 	while (heuristic.has_next()) {
 		auto I = heuristic.next();

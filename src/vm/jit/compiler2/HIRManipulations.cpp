@@ -38,6 +38,7 @@ class HIRManipulations::SplitBasicBlockOperation {
 private:
 	BeginInst* first_bb;
 	BeginInst* second_bb;
+	Instruction* split_at;
 
 	bool belongs_to_second_bb(Instruction* I)
 	{
@@ -55,6 +56,7 @@ private:
 			second_bb->set_EndInst(I->to_EndInst());
 		}
 
+		// This replacement has to be done here, so the SourceStateInst knows the correct basic block it is in
 		LOG("Replacing " << first_bb << " dep for " << second_bb << " in " << I << nl);
 		I->replace_dep(first_bb, second_bb);
 	}
@@ -79,14 +81,25 @@ private:
 		std::for_each(I->user_begin(), I->user_end(), add_rec_op);
 	}
 
+	void fix_scheduling_information(){
+		auto M = first_bb->get_Method();
+		for(auto it = M->begin(); it != M->end(); it++){
+			auto I = *it;
+			if(I->get_BeginInst() == second_bb){
+				// this dependency is now given via basic block successor/predecessor information
+				LOG("Replacing " << split_at << " dep for " << second_bb << " in " << I << nl);
+				I->replace_dep(split_at, second_bb);
+			}
+		}
+	}
+
 public:
-	SplitBasicBlockOperation(BeginInst* bb)
+	SplitBasicBlockOperation(BeginInst* bb, Instruction* split_at) : first_bb(bb), split_at(split_at)
 	{
-		first_bb = bb;
 		second_bb = new BeginInst();
 	}
 
-	BeginInst* execute(Instruction* split_at)
+	BeginInst* execute()
 	{
 		LOG("Splitting bb " << first_bb << " by " << split_at << " into itself and " << second_bb
 		                    << nl);
@@ -99,19 +112,14 @@ public:
 		second_bb->set_EndInst(end_inst);
 
 		add_dependent(split_at);
+		fix_scheduling_information();
 
-		if (HIRUtils::is_state_change_for_other_instruction(split_at)) {
-			auto last_state_change = split_at->get_last_state_change();
-			auto dependent_inst = HIRUtils::get_depending_instruction(split_at);
-			LOG("Replacing last state change for " << dependent_inst << " to " << second_bb
-			                                       << "." << nl);
-			dependent_inst->replace_state_change_dep(second_bb);
-		}
-
-		for(auto it = end_inst->succ_begin(); it != end_inst->succ_end(); it++){
+		for (auto it = end_inst->succ_begin(); it != end_inst->succ_end(); it++) {
 			auto succ = (*it).get();
 			succ->replace_predecessor(first_bb, second_bb);
 		}
+
+		LOG("Split end" << nl);
 
 		return second_bb;
 	}
@@ -119,66 +127,7 @@ public:
 
 BeginInst* HIRManipulations::split_basic_block(BeginInst* bb, Instruction* split_at)
 {
-	return SplitBasicBlockOperation(bb).execute(split_at);
-}
-
-void correct_scheduling_edges(Instruction* I, Instruction* schedule_after)
-{
-	LOG ("Correcting scheduling edges for " << I << nl);
-	auto state_change = I->get_last_state_change();
-	
-	if(!state_change){
-		LOG ("Stop correcting scheduling edges for instruction without last state change" << nl);
-		return;
-	}
-
-	LOG ("Last state change " << state_change << nl);
-	auto is_root_of_local_scheduling_graph = state_change->to_BeginInst() != NULL;
-	auto is_leaf_of_local_scheduling_graph = !HIRUtils::is_state_change_for_other_instruction(I);
-
-	// If the call site is the last state change for an instruction, this instruction now needs to
-	// depend on the last state changing instruction of the inlined region, or the state change
-	// before the invocation.
-	if (is_leaf_of_local_scheduling_graph) {
-		auto first_dependency_after_inlined_region =
-		    HIRUtils::get_depending_instruction(schedule_after);
-		if(first_dependency_after_inlined_region) {
-			LOG("Setting last state change for " << first_dependency_after_inlined_region << " to " << I
-												<< nl);
-			first_dependency_after_inlined_region->replace_state_change_dep(I);
-		} else {
-			LOG("No dependency after " << schedule_after << " (except moved instructions)." << nl);
-		}
-	}
-
-	// If the last state change points to the basic block, then there is no state changing
-	// instruction before this instruction in this bb. Therefore the new state change has to be the
-	// last state changing instruction before the initial call site (or the new bb).
-	if (is_root_of_local_scheduling_graph) {
-		LOG("Setting last state change for " << I << " to " << schedule_after << nl);
-		I->replace_state_change_dep(schedule_after);
-	}
-}
-
-void HIRManipulations::move_instruction_to_bb(Instruction* to_move,
-                                              BeginInst* target_bb,
-                                              Instruction* schedule_after)
-{
-	LOG("Moving " << to_move << "(" << to_move->get_BeginInst() << ") into " << target_bb << nl);
-	to_move->replace_dep(to_move->get_BeginInst(), target_bb);
-
-	if (to_move->is_floating()) {
-		LOG("Moving floating instruction " << to_move << " into " << target_bb << nl);
-		to_move->set_BeginInst(target_bb);
-		return;
-	}
-
-	// Source state instructions get the beginInst from their scheduling dependency graph.
-	if (to_move->get_opcode() != Instruction::SourceStateInstID){
-		LOG("Moving non-floating instruction " << to_move << " into " << target_bb << nl);
-		to_move->begin = target_bb; 
-		correct_scheduling_edges(to_move, schedule_after);
-	}
+	return SplitBasicBlockOperation(bb, split_at).execute();
 }
 
 void HIRManipulations::move_instruction_to_method(Instruction* to_move, Method* target_method)
@@ -213,7 +162,7 @@ void HIRManipulations::remove_instruction(Instruction* to_remove)
 	// This is primarily for deleting SourceStateInsts and should probably removed
 	// when correct SourceState handling is implemented.
 	auto it_rdep = to_remove->rdep_begin();
-	LOG("rdep size " << to_remove->rdep_size() <<nl);
+	LOG("rdep size " << to_remove->rdep_size() << nl);
 	while (it_rdep != to_remove->rdep_end()) {
 		auto I = *it_rdep;
 		LOG(Yellow << "Removing dep from " << I << " to " << to_remove << reset_color << nl);
@@ -222,7 +171,7 @@ void HIRManipulations::remove_instruction(Instruction* to_remove)
 	}
 
 	auto it_user = to_remove->user_begin();
-	LOG("user size " << to_remove->user_size() <<nl);
+	LOG("user size " << to_remove->user_size() << nl);
 	while (it_user != to_remove->user_end()) {
 		auto I = *it_user;
 		LOG(Yellow << "Removing op from " << I << " to " << to_remove << reset_color << nl);
@@ -239,18 +188,20 @@ void HIRManipulations::remove_instruction(Instruction* to_remove)
 	}
 }
 
-
 class HIRManipulations::CoalesceBasicBlocksOperation {
 private:
 	std::list<BeginInst*> visited;
 
-	Instruction* get_leaf_of_local_scheduling_graph(Instruction* start)
+	void append_leafs_of_local_scheduling_graph(std::list<Instruction*>* append_to, Instruction* I)
 	{
-		if (HIRUtils::is_state_change_for_other_instruction(start)) {
-			auto dependent = HIRUtils::get_depending_instruction(start);
-			return get_leaf_of_local_scheduling_graph(dependent);
+		if (I->rdep_size() == 0) {
+			append_to->push_back(I);
+			return;
 		}
-		return start;
+
+		for (auto it = I->rdep_begin(); it != I->rdep_end(); it++) {
+			append_leafs_of_local_scheduling_graph(append_to, *it);
+		}
 	}
 
 	void coalesce(BeginInst* first, BeginInst* second)
@@ -263,12 +214,24 @@ private:
 		first->set_EndInst(new_end_inst);
 		second->set_EndInst(NULL);
 
+		std::list<Instruction*> leafs;
+		append_leafs_of_local_scheduling_graph(&leafs, first);
+
 		for (auto it = method->begin(); it != method->end(); it++) {
 			auto inst = *it;
-			if (inst->get_BeginInst() == second && inst != second) {
-				auto last_state_change = get_leaf_of_local_scheduling_graph(first);
-				LOG("State change leaf for " << inst << ": " << last_state_change << nl);
-				HIRManipulations::move_instruction_to_bb(inst, first, last_state_change);
+			
+			if (inst->get_BeginInst() != second || inst == second) continue;
+			
+			if(inst->is_floating()){
+				LOG("Moving floating instruction " << inst << " into " << first << nl);
+				inst->set_BeginInst(first);
+				continue;
+			}
+
+			LOG("Moving non-floating instruction " << inst << " into " << first << nl);
+			for(auto leaf_it = leafs.begin(); leaf_it != leafs.end(); leaf_it++){
+				auto leaf = *leaf_it;
+				inst->append_dep(leaf);
 			}
 		}
 
@@ -280,11 +243,11 @@ private:
 		LOG("merged " << first << " with second: " << second << nl);
 	}
 
-public:	
+public:
 	void coalesce_if_possible(BeginInst* begin_inst)
 	{
 		LOG("coalesce_if_possible " << begin_inst << nl);
-		if(std::find(visited.begin(), visited.end(), begin_inst) != visited.end()){
+		if (std::find(visited.begin(), visited.end(), begin_inst) != visited.end()) {
 			LOG(begin_inst << " already visited" << nl);
 			return;
 		}
@@ -294,15 +257,18 @@ public:
 			LOG("Basic block " << begin_inst << " has no successors. Nothing to merge." << nl);
 		}
 		else if (end_inst->succ_size() > 1) {
-			LOG("Basic block " << begin_inst << " has multiple successors. Nothing to merge." << nl);
+			LOG("Basic block " << begin_inst << " has multiple successors. Nothing to merge."
+			                   << nl);
 		}
 		else if (end_inst->succ_begin()->get()->pred_size() > 1) {
 			auto first_suc = end_inst->succ_begin()->get();
-			LOG("Basic block " << first_suc << " has multiple predecessors. Nothing to merge." << nl);
+			LOG("Basic block " << first_suc << " has multiple predecessors. Nothing to merge."
+			                   << nl);
 		}
 		else {
 			BeginInst* first_suc = end_inst->succ_begin()->get();
-			LOG("Basic blocks " << begin_inst << " and " << first_suc << " eligible for merge." << nl);
+			LOG("Basic blocks " << begin_inst << " and " << first_suc << " eligible for merge."
+			                    << nl);
 			auto old_end_inst = begin_inst->get_EndInst();
 			coalesce(begin_inst, first_suc);
 			HIRManipulations::remove_instruction(first_suc);
@@ -323,24 +289,26 @@ public:
 
 void HIRManipulations::coalesce_bbs(Method* M)
 {
-	LOG("Coealescing Starting"<<nl);
+	LOG("Coealescing Starting" << nl);
 	CoalesceBasicBlocksOperation().coalesce_if_possible(M->get_init_bb());
-	LOG("Coealescing Finished"<<nl);
+	LOG("Coealescing Finished" << nl);
 }
 
-void HIRManipulations::replace_value_without_source_states(Value* old_value, Value* new_value){
-	LOG("HIRManipulations::replace_value_without_source_states(this=" << old_value << ",v=" << new_value << ")" << nl );
+void HIRManipulations::replace_value_without_source_states(Value* old_value, Value* new_value)
+{
+	LOG("HIRManipulations::replace_value_without_source_states(this=" << old_value << ",v="
+	                                                                  << new_value << ")" << nl);
 	std::list<Value*> replace_for;
 	for (auto it = old_value->user_begin(); it != old_value->user_end(); it++) {
 		auto I = *it;
 		assert(I);
-		if(!I->to_SourceStateInst()){
+		if (!I->to_SourceStateInst()) {
 			replace_for.push_back(I);
 		}
 	}
-	for(auto it = replace_for.begin(); it != replace_for.end(); it++){
+	for (auto it = replace_for.begin(); it != replace_for.end(); it++) {
 		auto I = (*it)->to_Instruction();
-		LOG("replacing value " << old_value << " with " << new_value << " in " << I << nl );
+		LOG("replacing value " << old_value << " with " << new_value << " in " << I << nl);
 		I->replace_op(old_value, new_value);
 	}
 }
