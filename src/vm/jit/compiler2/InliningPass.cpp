@@ -45,8 +45,7 @@
 // define name for debugging (see logging.hpp)
 #define DEBUG_NAME "compiler2/InliningPass"
 
-// TODO inlining fix guarded inlining
-#define GUARDED_INLINING 1
+#define GUARDED_INLINING 0
 #define MAXIMUM_METHOD_SIZE 250
 
 // TODO check statistics
