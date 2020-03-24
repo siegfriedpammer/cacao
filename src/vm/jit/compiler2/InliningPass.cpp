@@ -45,9 +45,11 @@
 // define name for debugging (see logging.hpp)
 #define DEBUG_NAME "compiler2/InliningPass"
 
-// TODO inlining: fix guarded adaption
+// TODO inlining fix guarded inlining
 #define GUARDED_INLINING 1
+#define MAXIMUM_METHOD_SIZE 250
 
+// TODO check statistics
 STAT_DECLARE_GROUP(compiler2_stat)
 STAT_REGISTER_SUBGROUP(compiler2_inliningpass_stat,
                        "inliningpasspass",
@@ -70,14 +72,24 @@ namespace compiler2 {
    on-stack replacement. The reason for this is, that the SourceStateInstructions are not handled
    correctly.
 */
-void create_work_around_source_state(INVOKEInst* source_location_from, BeginInst* for_inst)
+SourceStateInst* create_work_around_source_state(Instruction* for_inst)
 {
-	LOG("Creating work around source state for " << for_inst << " from " << source_location_from << nl);
-	auto old_source_state = source_location_from->get_SourceStateInst();
-	assert(old_source_state);
-	auto source_location = old_source_state->get_source_location();
-	auto source_state = new SourceStateInst(source_location, for_inst);
+	LOG("Creating work around source state for " << for_inst << nl);
+	auto source_state = new SourceStateInst(123, for_inst);
 	for_inst->get_Method()->add_Instruction(source_state);
+	LOG("Work around source state created" << nl);
+	return source_state;
+}
+
+void ensure_source_state(Instruction* for_inst)
+{
+	auto source_state_it =
+	    std::find_if(for_inst->rdep_begin(), for_inst->rdep_end(), [](Instruction* i) {
+		    return i->get_opcode() == Instruction::SourceStateInstID;
+	    });
+	if (source_state_it == for_inst->rdep_end()) {
+		create_work_around_source_state(for_inst);
+	}
 }
 
 class Heuristic {
@@ -85,6 +97,8 @@ private:
 	inline bool is_monomorphic_and_implemented(INVOKEInst* I)
 	{
 		auto flags = I->get_fmiref()->p.method->flags;
+		// Monomorphic and implemented ensured that the implementation of the method
+		// can be found under the given fmi ref.
 		return (flags & ACC_METHOD_MONOMORPHIC) && (flags & ACC_METHOD_IMPLEMENTED);
 	}
 
@@ -102,26 +116,16 @@ protected:
 		                           I->get_opcode() == Instruction::INVOKESPECIALInstID;
 
 #if (GUARDED_INLINING)
-		bool is_polymorphic_call = I->get_opcode() == Instruction::INVOKEVIRTUALInstID ||
-		                           I->get_opcode() == Instruction::INVOKEINTERFACEInstID;
-		// Searching for the implementation of an abstract method or interface is not supported at the moment.
+		bool is_polymorphic_call = I->get_opcode() == Instruction::INVOKEVIRTUALInstID;
+		// Searching for the implementation of an abstract method is not supported at the moment.
 		bool is_inlineable_polymorphic_call =
 		    is_polymorphic_call && is_monomorphic_and_implemented(I) && !is_abstract(I);
 #else
 		bool is_inlineable_polymorphic_call = false;
 #endif
 
-		if (!(is_monomorphic_call || is_inlineable_polymorphic_call))
-			return false;
-
-		// Check if the invocation refers to the current method.
-		auto source_method = I->get_Method();
-		auto target_method = I->to_INVOKEInst()->get_fmiref()->p.method;
-		auto is_recursive_call =
-		    source_method->get_class_name_utf8() == target_method->clazz->name &&
-		    source_method->get_name_utf8() == target_method->name &&
-		    source_method->get_desc_utf8() == target_method->descriptor;
-		return !is_recursive_call;
+		return (is_monomorphic_call || is_inlineable_polymorphic_call) && 
+			   I->get_Method()->size() < MAXIMUM_METHOD_SIZE;
 	}
 
 public:
@@ -340,6 +344,7 @@ private:
 	INVOKEInst* call_site;
 	Method* caller_method;
 	Method* callee_method;
+	Instruction* do_not_inline;
 	Heuristic* heuristic;
 	BeginInst* old_call_site_bb;
 	BeginInst* pre_call_site_bb;
@@ -349,7 +354,7 @@ private:
 
 	void replace_method_parameters()
 	{
-		LOG("replace_method_parameters"<<nl);
+		LOG("InliningOperation: replace_method_parameters"<<nl);
 		List<Instruction*> to_remove_after_replace;
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
 			auto I = *it;
@@ -357,7 +362,7 @@ private:
 				auto load_inst = I->to_LOADInst();
 				auto index = (I->to_LOADInst())->get_index();
 				auto given_operand = call_site->get_operand(index);
-				LOG("Replacing Load inst" << I << " with " << given_operand << nl);
+				LOG("InliningOperation: Replacing Load inst" << I << " with " << given_operand << nl);
 				HIRManipulations::replace_value_without_source_states(I, given_operand);
 				to_remove_after_replace.push_back(I);
 			}
@@ -369,26 +374,28 @@ private:
 
 	void on_inlined_inst(Instruction* instruction)
 	{
-		this->heuristic->on_new_instruction(instruction);
+		if(instruction != do_not_inline) {
+			this->heuristic->on_new_instruction(instruction);
+		}
 	}
 
 	bool needs_phi() { return call_site->get_type() != Type::VoidTypeID; }
 
 	Instruction* transform_instruction(Instruction* I)
 	{
-		LOG("Transforming " << I << nl);
+		LOG("InliningOperation: Transforming " << I << nl);
 		switch (I->get_opcode()) {
 			case Instruction::RETURNInstID: {
 				auto return_inst = I->to_RETURNInst();
 				if (return_inst->op_size() > 0) {
 					auto operand = (*return_inst->op_begin())->to_Instruction();
-					LOG("Appending phi operand " << operand << nl);
+					LOG("InliningOperation: Appending phi operand " << operand << " in " << operand->get_BeginInst() << nl);
 					phi_operands.push_back(operand);
 				}
 				auto begin_inst = I->get_BeginInst();
 				auto end_instruction = new GOTOInst(begin_inst, post_call_site_bb);
 				begin_inst->set_EndInst(end_instruction);
-				LOG("Rewriting return instruction " << I << " to " << end_instruction << nl);
+				LOG("InliningOperation: Rewriting return instruction " << I << " to " << end_instruction << nl);
 				to_remove.push_back(I);
 				return end_instruction;
 			}
@@ -398,10 +405,10 @@ private:
 
 	void replace_invoke_with_result()
 	{
-		LOG("replace_invoke_with_result for " << call_site << nl);
+		LOG("InliningOperation: replace_invoke_with_result for " << call_site << nl);
 		// no phi needed, if there is only one return point
 		if (phi_operands.size() == 1) {
-			LOG("Phi node not necessary" << nl);
+			LOG("InliningOperation: Phi node not necessary" << nl);
 			auto result = *phi_operands.begin();
 			HIRManipulations::replace_value_without_source_states(call_site, result);
 			return;
@@ -409,17 +416,17 @@ private:
 
 		// the phi will be the replacement for the dependencies to the invoke inst in the post call
 		// site bb
-		LOG("Phi node is necessary"<<nl);
+		LOG("InliningOperation: Phi node is necessary"<<nl);
 		auto return_type = call_site->get_type();
 		auto phi = new PHIInst(return_type, post_call_site_bb);
 
 		for(auto it = phi_operands.begin(); it != phi_operands.end(); it++){
-			LOG("Registered operands: " << *it << " (" << (*it)->get_BeginInst() << ")" << nl);
+			LOG("InliningOperation: Registered operands: " << *it << " (" << (*it)->get_BeginInst() << ")" << nl);
 		}
 
 		for (auto it = post_call_site_bb->pred_begin(); it != post_call_site_bb->pred_end(); it++) {
 			auto bb = *it;
-			LOG("Searching for phi operand in " << bb << nl);
+			LOG("InliningOperation: Searching for phi operand in " << bb << nl);
 			auto is_in_bb = [bb](Instruction* inst) { return inst->get_BeginInst() == bb; };
 			auto is_in_no_bb = [](Instruction* inst) { return inst->get_BeginInst() == NULL; };
 			auto next_op_it = std::find_if(phi_operands.begin(), phi_operands.end(), is_in_bb);
@@ -428,29 +435,29 @@ private:
 			}
 			assert(next_op_it != phi_operands.end());
 			auto next_op = *next_op_it;
-			LOG("Found operand " << next_op << nl);
+			LOG("InliningOperation: Found operand " << next_op << nl);
 			phi_operands.erase(next_op_it);
 			phi->append_op(next_op);
 		}
 
-		LOG("Adding phi " << phi << nl);
+		LOG("InliningOperation: Adding phi " << phi << nl);
 		caller_method->add_Instruction(phi);
 		HIRManipulations::replace_value_without_source_states(call_site, phi);
 	}
 
 	void add_call_site_bbs()
 	{
-		LOG("add_call_site_bbs " << callee_method->get_name_utf8() << nl);
+		LOG("InliningOperation: add_call_site_bbs " << callee_method->get_name_utf8() << nl);
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
 			Instruction* I = *it;
-			LOG("Adding to call site " << I << nl);
+			LOG("InliningOperation: Adding to call site " << I << nl);
 			auto new_inst = transform_instruction(I);
-			LOG("transformed inst " << new_inst << nl);
+			LOG("InliningOperation: transformed inst " << new_inst << nl);
 			HIRManipulations::move_instruction_to_method(new_inst, caller_method);
 			on_inlined_inst(new_inst);
 		}
 
-		LOG("All basic blockes moved." << nl);
+		LOG("InliningOperation: All basic blockes moved." << nl);
 
 		if (needs_phi()) {
 			replace_invoke_with_result();
@@ -458,8 +465,8 @@ private:
 	}
 
 public:
-	InliningOperation(INVOKEInst* site, Method* callee, Heuristic* heuristic)
-	    : call_site(site), callee_method(callee), heuristic(heuristic)
+	InliningOperation(INVOKEInst* site, Method* callee, Instruction* do_not_inline, Heuristic* heuristic)
+	    : call_site(site), callee_method(callee), do_not_inline(do_not_inline), heuristic(heuristic)
 	{
 		caller_method = call_site->get_Method();
 		old_call_site_bb = call_site->get_BeginInst();
@@ -467,9 +474,10 @@ public:
 
 	virtual void execute()
 	{
-		LOG("Inserting new basic blocks into original method" << nl);
+		LOG("InliningOperation: Inserting new basic blocks into original method" << nl);
 		pre_call_site_bb = old_call_site_bb;
 		post_call_site_bb = HIRManipulations::split_basic_block(pre_call_site_bb, call_site);
+		ensure_source_state(post_call_site_bb); // this workaround ensures that there is a source_state
 		add_call_site_bbs();
 		replace_method_parameters();
 		HIRManipulations::connect_with_jump(pre_call_site_bb, callee_method->get_init_bb());
@@ -482,6 +490,15 @@ public:
 class CodeFactory {
 public:
 	virtual ~CodeFactory() {}
+
+	/**
+	 * Returns an instruction which should not be inlined. Used to avoid inlining
+	 * guarded call sites.
+	 */
+	virtual Instruction* do_not_inline(){
+		return NULL;
+	}
+
 	virtual JITData create_ssa(INVOKEInst* I)
 	{
 		auto callee = I->get_fmiref()->p.method;
@@ -499,16 +516,29 @@ public:
 class GuardedCodeFactory : public CodeFactory {
 private:
 	Method* target_method;
+	INVOKEInst* guarded_call;
+
+	virtual Instruction* do_not_inline(){
+		return guarded_call;
+	}
 
 	BeginInst* create_false_branch(INVOKEInst* I)
 	{
 		auto new_bb = new BeginInst();
 		target_method->add_bb(new_bb);
-		new_bb->append_dep(I);
-		HIRManipulations::force_set_beginInst(I, new_bb);
-		create_work_around_source_state(I, new_bb);
+		auto source_state = create_work_around_source_state(new_bb);
+		auto source_state_after_call_site = create_work_around_source_state(new_bb);
 
-		auto return_inst = new RETURNInst(new_bb, I);
+		guarded_call = new INVOKEVIRTUALInst(I->get_type(), I->get_MethodDescriptor().size(), I->get_fmiref(), new_bb, new_bb, source_state);
+		source_state_after_call_site->append_dep(guarded_call);
+		LOG("Created new call " << guarded_call << " within new basic block " << nl);
+		target_method->add_Instruction(guarded_call);
+		for(auto it = I->op_begin(); it != I->op_end(); it++){
+			auto op = *it;
+			guarded_call->append_parameter(op);
+		}
+
+		auto return_inst = new RETURNInst(new_bb, guarded_call);
 		target_method->add_Instruction(return_inst);
 
 		return new_bb;
@@ -516,8 +546,10 @@ private:
 
 	BeginInst* create_guard(INVOKEInst* I)
 	{
-		auto true_branch = target_method->get_init_bb();
-		auto false_branch = create_false_branch(I);
+		auto then_branch = target_method->get_init_bb();
+		LOG("GuardedCodeFactory: Then branch" << then_branch << nl);
+		auto else_branch = create_false_branch(I);
+		LOG("GuardedCodeFactory: Created else branch " << else_branch << nl);
 
 		/**
 		 * Currently Compiler2 does not support invoking native methods such as
@@ -525,15 +557,20 @@ private:
 		 * After implementing native methods in Compiler2, this should be fixed.
 		 */
 		auto check_bb = new BeginInst();
+		LOG("GuardedCodeFactory: Created guard basic block " << check_bb << nl);
 		auto current_object = I->get_operand(0);
-		create_work_around_source_state(I, check_bb);
+		LOG("GuardedCodeFactory: Receiver " << current_object << nl);
 
 		auto if_inst = new IFInst(check_bb, current_object, current_object, Conditional::EQ,
-		                          true_branch, false_branch);
+		                          then_branch, else_branch);
+		LOG("GuardedCodeFactory: Created guard " << if_inst << nl);
 
 		check_bb->set_EndInst(if_inst);
 		target_method->add_bb(check_bb);
 		target_method->add_Instruction(if_inst);
+		create_work_around_source_state(check_bb);
+
+		LOG("GuardedCodeFactory: Added guard to target method" << nl);
 
 		return check_bb;
 	}
@@ -542,6 +579,7 @@ public:
 	JITData create_ssa(INVOKEInst* I)
 	{
 		auto JD = CodeFactory::create_ssa(I);
+		LOG ("GuardedCodeFactory: Retrieved code from base class." << nl);
 		target_method = JD.get_Method();
 		auto new_init_bb = create_guard(I);
 		target_method->set_init_bb(new_init_bb);
@@ -572,12 +610,11 @@ CodeFactory* get_code_factory(INVOKEInst* I)
 	switch (I->get_opcode()) {
 		case Instruction::INVOKESTATICInstID:
 		case Instruction::INVOKESPECIALInstID:
-			LOG("Using normal code factory");
+			LOG("Using normal code factory" << nl);
 			return new CodeFactory();
 #if (GUARDED_INLINING)
 		case Instruction::INVOKEVIRTUALInstID:
-		case Instruction::INVOKEINTERFACEInstID:
-			LOG("Using guarded code factory");
+			LOG("Using guarded code factory" << nl);
 			return new GuardedCodeFactory();
 #endif
 		default:
@@ -588,11 +625,11 @@ CodeFactory* get_code_factory(INVOKEInst* I)
 
 void inline_instruction(INVOKEInst* I, Heuristic* heuristic)
 {
-	std::unique_ptr<CodeFactory> codeFactory(get_code_factory(I));
+	std::unique_ptr<CodeFactory> code_factory(get_code_factory(I));
 	LOG("Inlining invoke instruction " << I << nl);
-	auto callee_method = codeFactory->create_ssa(I);
+	auto callee_method = code_factory->create_ssa(I);
 	LOG("Successfully retrieved SSA-Code for instruction " << nl);
-	InliningOperation(I, callee_method.get_Method(), heuristic).execute();
+	InliningOperation(I, callee_method.get_Method(), code_factory->do_not_inline(), heuristic).execute();
 }
 
 bool InliningPass::run(JITData& JD)
@@ -609,11 +646,7 @@ bool InliningPass::run(JITData& JD)
 		auto I = heuristic.next();
 		inline_instruction(I, &heuristic);
 		auto op_code = I->get_opcode();
-		// don't delete guarded instructions
-		if (op_code == Instruction::INVOKESTATICInstID ||
-		    op_code == Instruction::INVOKESPECIALInstID) {
-			to_remove.push_back(I);
-		}
+		to_remove.push_back(I);
 		STATISTICS(inlined_method_invocations++);
 	}
 
