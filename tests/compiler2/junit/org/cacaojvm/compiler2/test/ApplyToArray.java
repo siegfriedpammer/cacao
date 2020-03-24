@@ -20,7 +20,7 @@ public class ApplyToArray extends Compiler2TestBase {
         int[] dataCompiler2 = data.clone();
 		int[] resultCompiler2 = (int[]) runCompiler2("executeApplyToArray", "([I)V", tr.compiler2, dataCompiler2);
         
-		assertArrayEquals(dataBaseline, dataCompiler2);
+		assertArrayEquals(resultBaseline, resultCompiler2);
         
 		tr.report();
     }

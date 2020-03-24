@@ -90,7 +90,7 @@ public class InliningTests extends Compiler2TestBase {
 		return Math.max(12, 43);
 	}
 
-	@Test
+	//@Test
 	public void testStaticInliningWithSingleCalls() {
 		testResultEqual("singleStatic", "()J");
 		// TODO inlining: Assert with statistics
@@ -106,7 +106,7 @@ public class InliningTests extends Compiler2TestBase {
 		return e;
 	}
 
-	@Test
+	//@Test
 	public void testStaticInliningWithMultipleCalls() {
 		testResultEqual("multipleStatic", "()J");
 		// TODO inlining: Assert with statistics
@@ -117,7 +117,7 @@ public class InliningTests extends Compiler2TestBase {
 		return a > 0 ? Math.max(a, ten) : a;
 	}
 
-	@Test
+	//@Test
 	public void testStaticInliningInControlFlow() {
 		testResultEqual("smallerOrTen", "(I)J", 11);
 		// TODO inlining: Assert with statistics
@@ -127,13 +127,13 @@ public class InliningTests extends Compiler2TestBase {
         return testObj.const_val();
     }
 
-	@Test
+	//@Test
 	public void testinlinePrivateInvoke() {
 		testResultEqual("inlinePrivateInvoke", "(Lorg/cacaojvm/compiler2/test/InliningTests;)J", this);
 		// TODO inlining: Assert with statistics
 	}
 
-	//@Test NOTE: also fails without inlining pass 
+	////@Test NOTE: also fails without inlining pass 
 	public void testinlinePrivateInvokeWithNull() {
 		testResultEqual("inlinePrivateInvoke", "(Lorg/cacaojvm/compiler2/test/InliningTests;)J");
 		// TODO inlining: Assert with statistics
@@ -147,7 +147,7 @@ public class InliningTests extends Compiler2TestBase {
         return new TestObject(20).getValueSpecial();
     }
 
-	@Test
+	//@Test
 	public void testInlineFinalGetterWithCtor() {
 		testResultEqual("inlineFinalGetterWithCtor", "()J");
 		// TODO inlining: Assert with statistics
@@ -167,7 +167,7 @@ public class InliningTests extends Compiler2TestBase {
         return obj.getValueVirtual();
     }
 
-	@Test
+	//@Test
 	public void testInlineDerivedVirtualGetter() {
 		testResultEqual("inlineDerivedVirtualGetter", "(Lorg/cacaojvm/compiler2/test/InliningTests$TestObject;)J", new TestObjectDerived());
 		// TODO inlining: Assert with statistics
@@ -177,7 +177,7 @@ public class InliningTests extends Compiler2TestBase {
         return obj.getValueInterface();
     }
 
-	@Test
+	//@Test
 	public void testInlineDerivedAbstractGetter() {
 		testResultEqual("inlineDerivedAbstractGetter", "(Lorg/cacaojvm/compiler2/test/InliningTests$AbstractTestObject;)J", new DerivedFromAbstractTestObject());
 		// TODO inlining: Assert with statistics
@@ -187,7 +187,7 @@ public class InliningTests extends Compiler2TestBase {
         return obj.getValue();
     }
 
-	@Test
+	//@Test
 	public void testInlineInterfaceGetterWithCtor() {
 		testResultEqual("inlineInterfaceGetterWithCtor", "(Lorg/cacaojvm/compiler2/test/InliningTests$TestInterface;)J", new TestObject(20));
 		// TODO inlining: Assert with statistics
@@ -198,7 +198,7 @@ public class InliningTests extends Compiler2TestBase {
         return n + dontInlineRecursive(n - 1);
     }
 
-	@Test
+	//@Test
 	public void testDontInlineRecursive() {
 		testResultEqual("dontInlineRecursive", "(J)J", 5);
 		// TODO inlining: Assert with statistics
