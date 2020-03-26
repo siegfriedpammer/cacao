@@ -86,7 +86,7 @@ public:
 	}
 };
 
-using CustomMemoryMap = std::unordered_map<void*,std::size_t, std::hash<void*>, std::equal_to<void*>, NoDeallocAllocator<std::pair<const void*, std::size_t>>>;
+using CustomMemoryMap = std::unordered_map<void*,std::size_t, std::hash<void*>, std::equal_to<void*>, NoDeallocAllocator<std::pair<void* const, std::size_t>>>;
 inline CustomMemoryMap& mem_map() {
 	static CustomMemoryMap mm;
 	return mm;

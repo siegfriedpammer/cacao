@@ -453,6 +453,7 @@ Distribution of basic blocks per method(method bb dist.):
 #if defined(ENABLE_STATISTICS)
 
 #include <assert.h>
+#include <string.h>
 #include <vector>
 #include <deque>
 
@@ -514,6 +515,15 @@ public:
 
 	virtual ~StatEntry() {}
 
+	/**
+	 * returns the entry with the entry_name
+	 */
+	virtual const StatEntry* find(const char* entry_name) const {
+	    if (strcmp(name, entry_name) == 0) {
+	        return this;
+	    }
+	    return NULL;
+	}
 };
 
 /**
@@ -581,6 +591,22 @@ public:
 			re->print_csv_intern(O,s);
 		}
 		s.pop_back();
+	}
+	virtual const StatEntry* find(const char* entry_name) const {
+	    const StatEntry *foundEntry = StatEntry::find(entry_name);
+	    if (foundEntry) {
+            return foundEntry;
+        }
+
+	    // check all contained entries in the group
+        for(StatEntryList::const_iterator i = members->begin(), e = members->end(); i != e; ++i) {
+            const StatEntry* re = *i;
+            foundEntry = re->find(entry_name);
+            if (foundEntry) {
+                return foundEntry;
+            }
+        }
+		return NULL;
 	}
 
 };
@@ -829,9 +855,7 @@ public:
 		parent.add(this);
 	}
 
-	virtual unsigned long get_value() const {
-		return (unsigned long)var;
-	}
+	virtual unsigned long get_value() const { return (unsigned long)var; }
 
 	_T get() const {
 		return var;

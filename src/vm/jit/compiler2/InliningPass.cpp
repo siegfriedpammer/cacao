@@ -48,18 +48,17 @@
 #define GUARDED_INLINING 0
 #define MAXIMUM_METHOD_SIZE 250
 
-// TODO check statistics
 STAT_DECLARE_GROUP(compiler2_stat)
 STAT_REGISTER_SUBGROUP(compiler2_inliningpass_stat,
-                       "inliningpasspass",
-                       "inliningpasspass",
+                       "inliningpass",
+                       "inliningpass",
                        compiler2_stat)
 STAT_REGISTER_GROUP_VAR(std::size_t,
                         inlined_method_invocations,
                         0,
                         "# of inlined method invocations",
                         "number of inlined method invocations",
-                        compiler2_inliningpasspass_stat)
+                        compiler2_inliningpass_stat)
 
 namespace cacao {
 namespace jit {
