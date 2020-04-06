@@ -46,13 +46,11 @@
 #define DEBUG_NAME "compiler2/InliningPass"
 
 #define GUARDED_INLINING 0
+// this value serves as a hard limit for heuristics which tend to inline very small methods, even though the budget is exceeded.
 #define MAXIMUM_METHOD_SIZE 250
 
 STAT_DECLARE_GROUP(compiler2_stat)
-STAT_REGISTER_SUBGROUP(compiler2_inliningpass_stat,
-                       "inliningpass",
-                       "inliningpass",
-                       compiler2_stat)
+STAT_REGISTER_SUBGROUP(compiler2_inliningpass_stat, "inliningpass", "inliningpass", compiler2_stat)
 STAT_REGISTER_GROUP_VAR(std::size_t,
                         inlined_method_invocations,
                         0,
@@ -63,6 +61,23 @@ STAT_REGISTER_GROUP_VAR(std::size_t,
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+
+namespace option {
+Option<const char*> op_heuristic("InliningHeuristic",
+                                 "compiler2: selects the heurstic which is used for inlining "
+                                 "(Everything, BreadthFirst, Knapsack)",
+                                 "Knapsack",
+                                 ::cacao::option::xx_root());
+Option<unsigned int> op_knapsack_budget("KnapsackBudget",
+                                "compiler2: budget for knapsack heuristic",
+                                100,
+                                ::cacao::option::xx_root());
+Option<unsigned int> op_breadth_first_method_size(
+    "BreathFirstMethodSize",
+    "compiler2: target method size for limited breadth first heuristik",
+    100,
+    ::cacao::option::xx_root());
+} // namespace options
 
 /*
  *   IMPORTANT: The current implementation does not work with on-stack replacement. Therefore the
@@ -119,7 +134,7 @@ private:
 
 protected:
 	Heuristic() {}
-	
+
 	bool can_inline(INVOKEInst* I)
 	{
 		bool is_monomorphic_call = I->get_opcode() == Instruction::INVOKESTATICInstID ||
@@ -134,8 +149,8 @@ protected:
 		bool is_inlineable_polymorphic_call = false;
 #endif
 
-		return (is_monomorphic_call || is_inlineable_polymorphic_call) && 
-			   I->get_Method()->size() < MAXIMUM_METHOD_SIZE;
+		return (is_monomorphic_call || is_inlineable_polymorphic_call) &&
+		       I->get_Method()->size() < MAXIMUM_METHOD_SIZE;
 	}
 
 public:
@@ -145,8 +160,9 @@ public:
 };
 
 /*
-*	This Heuristic will inline all possible call sites. This should only be used in testing scenarios.
-*/
+ *	This Heuristic will inline all possible call sites. This should only be used in testing
+ *scenarios.
+ */
 class EverythingPossibleHeuristic : public Heuristic {
 private:
 	List<INVOKEInst*> work_list;
@@ -185,9 +201,9 @@ public:
 };
 
 /*
-*	Iterates over all instructions in a FIFO fashion. Inlining stops when the max method size is
-*	exceeded.
-*/
+ *	Iterates over all instructions in a FIFO fashion. Inlining stops when the max method size is
+ *	exceeded.
+ */
 class LimitedBreadthFirstHeuristic : public Heuristic {
 private:
 	List<INVOKEInst*> work_list;
@@ -217,7 +233,7 @@ public:
 		auto i_end = boost::make_filter_iterator(is_candidate, M->end(), M->end());
 
 		LOG2("LimitedBreadthFirstHeuristic: Instruction in the heuristic work list (max: "
-		    << max_size << ")." << nl);
+		     << max_size << ")." << nl);
 		for (; i_iter != i_end; i_iter++) {
 			auto I = (INVOKEInst*)*i_iter;
 			LOG2("LimitedBreadthFirstHeuristic: Adding " << I << nl);
@@ -259,10 +275,10 @@ public:
 };
 
 /*
-*	Models the problem with the KNAPSACK problem. Every call site is assigned a benefit and a cost.
-*	The call sites are inlined acording to their priority (benefit / cost).
-*/
-class KnapSackHeuristic : public Heuristic {
+ *	Models the problem with the KNAPSACK problem. Every call site is assigned a benefit and a cost.
+ *	The call sites are inlined acording to their priority (benefit / cost).
+ */
+class KnapsackHeuristic : public Heuristic {
 private:
 	static float getBenefit(INVOKEInst* invoke) { return 1; }
 
@@ -297,7 +313,7 @@ private:
 	}
 
 public:
-	KnapSackHeuristic(Method* method, int budget) : M(method), budget(budget)
+	KnapsackHeuristic(Method* method, int budget) : M(method), budget(budget)
 	{
 		auto is_candidate = [&](Instruction* i) { return should_inline(i); };
 		auto i_iter = boost::make_filter_iterator(is_candidate, M->begin(), M->end());
@@ -347,8 +363,8 @@ public:
 };
 
 /*
-*	This class 
-*/
+ *	This class
+ */
 class InliningOperation {
 private:
 	INVOKEInst* call_site;
@@ -364,7 +380,7 @@ private:
 
 	void replace_method_parameters()
 	{
-		LOG3("InliningOperation: replace_method_parameters"<<nl);
+		LOG3("InliningOperation: replace_method_parameters" << nl);
 		List<Instruction*> to_remove_after_replace;
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
 			auto I = *it;
@@ -372,7 +388,8 @@ private:
 				auto load_inst = I->to_LOADInst();
 				auto index = (I->to_LOADInst())->get_index();
 				auto given_operand = call_site->get_operand(index);
-				LOG("InliningOperation: Replacing Load inst" << I << " with " << given_operand << nl);
+				LOG("InliningOperation: Replacing Load inst" << I << " with " << given_operand
+				                                             << nl);
 				HIRManipulations::replace_value_without_source_states(I, given_operand);
 				to_remove_after_replace.push_back(I);
 			}
@@ -384,7 +401,7 @@ private:
 
 	void on_inlined_inst(Instruction* instruction)
 	{
-		if(instruction != do_not_inline) {
+		if (instruction != do_not_inline) {
 			this->heuristic->on_new_instruction(instruction);
 		}
 	}
@@ -399,13 +416,15 @@ private:
 				auto return_inst = I->to_RETURNInst();
 				if (return_inst->op_size() > 0) {
 					auto operand = (*return_inst->op_begin())->to_Instruction();
-					LOG("InliningOperation: Appending phi operand " << operand << " in " << operand->get_BeginInst() << nl);
+					LOG("InliningOperation: Appending phi operand "
+					    << operand << " in " << operand->get_BeginInst() << nl);
 					phi_operands.push_back(operand);
 				}
 				auto begin_inst = I->get_BeginInst();
 				auto end_instruction = new GOTOInst(begin_inst, post_call_site_bb);
 				begin_inst->set_EndInst(end_instruction);
-				LOG("InliningOperation: Rewriting return instruction " << I << " to " << end_instruction << nl);
+				LOG("InliningOperation: Rewriting return instruction " << I << " to "
+				                                                       << end_instruction << nl);
 				to_remove.push_back(I);
 				return end_instruction;
 			}
@@ -426,12 +445,13 @@ private:
 
 		// the phi will be the replacement for the dependencies to the invoke inst in the post call
 		// site bb
-		LOG("InliningOperation: Phi node is necessary"<<nl);
+		LOG("InliningOperation: Phi node is necessary" << nl);
 		auto return_type = call_site->get_type();
 		auto phi = new PHIInst(return_type, post_call_site_bb);
 
-		for(auto it = phi_operands.begin(); it != phi_operands.end(); it++){
-			LOG("InliningOperation: Registered operands: " << *it << " (" << (*it)->get_BeginInst() << ")" << nl);
+		for (auto it = phi_operands.begin(); it != phi_operands.end(); it++) {
+			LOG("InliningOperation: Registered operands: " << *it << " (" << (*it)->get_BeginInst()
+			                                               << ")" << nl);
 		}
 
 		for (auto it = post_call_site_bb->pred_begin(); it != post_call_site_bb->pred_end(); it++) {
@@ -440,7 +460,7 @@ private:
 			auto is_in_bb = [bb](Instruction* inst) { return inst->get_BeginInst() == bb; };
 			auto is_in_no_bb = [](Instruction* inst) { return inst->get_BeginInst() == NULL; };
 			auto next_op_it = std::find_if(phi_operands.begin(), phi_operands.end(), is_in_bb);
-			if(next_op_it == phi_operands.end()){
+			if (next_op_it == phi_operands.end()) {
 				next_op_it = std::find_if(phi_operands.begin(), phi_operands.end(), is_in_no_bb);
 			}
 			assert(next_op_it != phi_operands.end());
@@ -475,7 +495,10 @@ private:
 	}
 
 public:
-	InliningOperation(INVOKEInst* site, Method* callee, Instruction* do_not_inline, Heuristic* heuristic)
+	InliningOperation(INVOKEInst* site,
+	                  Method* callee,
+	                  Instruction* do_not_inline,
+	                  Heuristic* heuristic)
 	    : call_site(site), callee_method(callee), do_not_inline(do_not_inline), heuristic(heuristic)
 	{
 		caller_method = call_site->get_Method();
@@ -487,11 +510,12 @@ public:
 		LOG("InliningOperation: Inserting new basic blocks into original method" << nl);
 		pre_call_site_bb = old_call_site_bb;
 		post_call_site_bb = HIRManipulations::split_basic_block(pre_call_site_bb, call_site);
-		ensure_source_state(post_call_site_bb); // this workaround ensures that there is a source_state
+		ensure_source_state(
+		    post_call_site_bb); // this workaround ensures that there is a source_state
 		add_call_site_bbs();
 		replace_method_parameters();
 		HIRManipulations::connect_with_jump(pre_call_site_bb, callee_method->get_init_bb());
-		for(auto it = to_remove.begin(); it != to_remove.end(); it++){
+		for (auto it = to_remove.begin(); it != to_remove.end(); it++) {
 			HIRManipulations::remove_instruction(*it);
 		}
 	}
@@ -505,9 +529,7 @@ public:
 	 * Returns an instruction which should not be inlined. Used to avoid inlining
 	 * guarded call sites.
 	 */
-	virtual Instruction* do_not_inline(){
-		return NULL;
-	}
+	virtual Instruction* do_not_inline() { return NULL; }
 
 	virtual JITData create_ssa(INVOKEInst* I)
 	{
@@ -528,9 +550,7 @@ private:
 	Method* target_method;
 	INVOKEInst* guarded_call;
 
-	virtual Instruction* do_not_inline(){
-		return guarded_call;
-	}
+	virtual Instruction* do_not_inline() { return guarded_call; }
 
 	BeginInst* create_false_branch(INVOKEInst* I)
 	{
@@ -539,11 +559,12 @@ private:
 		auto source_state = create_work_around_source_state(new_bb);
 		auto source_state_after_call_site = create_work_around_source_state(new_bb);
 
-		guarded_call = new INVOKEVIRTUALInst(I->get_type(), I->get_MethodDescriptor().size(), I->get_fmiref(), new_bb, new_bb, source_state);
+		guarded_call = new INVOKEVIRTUALInst(I->get_type(), I->get_MethodDescriptor().size(),
+		                                     I->get_fmiref(), new_bb, new_bb, source_state);
 		source_state_after_call_site->append_dep(guarded_call);
 		LOG("Created new call " << guarded_call << " within new basic block " << nl);
 		target_method->add_Instruction(guarded_call);
-		for(auto it = I->op_begin(); it != I->op_end(); it++){
+		for (auto it = I->op_begin(); it != I->op_end(); it++) {
 			auto op = *it;
 			guarded_call->append_parameter(op);
 		}
@@ -591,7 +612,7 @@ public:
 	JITData create_ssa(INVOKEInst* I)
 	{
 		auto JD = CodeFactory::create_ssa(I);
-		LOG2 ("GuardedCodeFactory: Retrieved code from base class." << nl);
+		LOG2("GuardedCodeFactory: Retrieved code from base class." << nl);
 		target_method = JD.get_Method();
 		auto new_init_bb = create_guard(I);
 		target_method->set_init_bb(new_init_bb);
@@ -606,11 +627,12 @@ void remove_call_site(INVOKEInst* call_site)
 	auto is_source_state = [](Instruction* I) {
 		return I->get_opcode() == Instruction::SourceStateInstID;
 	};
-	auto source_state_it = std::find_if(call_site->rdep_begin(), call_site->rdep_end(), is_source_state);
+	auto source_state_it =
+	    std::find_if(call_site->rdep_begin(), call_site->rdep_end(), is_source_state);
 	if (source_state_it != call_site->rdep_end()) {
 		auto source_state = *source_state_it;
 		LOG2("Appending source state " << source_state << " to bb " << call_site->get_BeginInst()
-		                              << nl);
+		                               << nl);
 		source_state->to_SourceStateInst()->replace_dep(call_site, call_site->get_BeginInst());
 	}
 
@@ -641,7 +663,26 @@ void inline_instruction(INVOKEInst* I, Heuristic* heuristic)
 	LOG("Inlining invoke instruction " << I << nl);
 	auto callee_method = code_factory->create_ssa(I);
 	LOG3("Successfully retrieved SSA-Code for instruction " << nl);
-	InliningOperation(I, callee_method.get_Method(), code_factory->do_not_inline(), heuristic).execute();
+	InliningOperation(I, callee_method.get_Method(), code_factory->do_not_inline(), heuristic)
+	    .execute();
+}
+
+Heuristic* create_heuristic(Method* M)
+{
+	auto heuristic = option::op_heuristic.get();
+	if (strcmp(heuristic, "Knapsack") == 0) {
+		auto budget = option::op_knapsack_budget.get();
+		LOG("Using KnapsackHeuristic(" << budget << ")" << nl);
+		return new KnapsackHeuristic(M, budget);
+	}
+	else if (strcmp(heuristic, "BreadthFirst") == 0) {
+		auto method_size = option::op_breadth_first_method_size.get();
+		LOG("Using LimitedBreadthFirstHeuristic(" << method_size << ")" << nl);
+		return new LimitedBreadthFirstHeuristic(M, method_size);
+	}
+
+	LOG("Using EverythingPossibleHeuristic" << nl);
+	return new EverythingPossibleHeuristic(M);
 }
 
 bool InliningPass::run(JITData& JD)
@@ -652,11 +693,11 @@ bool InliningPass::run(JITData& JD)
 	LOG("Inlining for class: " << M->get_class_name_utf8() << nl);
 	LOG("Inlining for method: " << M->get_name_utf8() << nl);
 
-	KnapSackHeuristic heuristic(M, 100);
+	std::unique_ptr<Heuristic> heuristic(create_heuristic(M));
 	List<INVOKEInst*> to_remove;
-	while (heuristic.has_next()) {
-		auto I = heuristic.next();
-		inline_instruction(I, &heuristic);
+	while (heuristic->has_next()) {
+		auto I = heuristic->next();
+		inline_instruction(I, heuristic.get());
 		auto op_code = I->get_opcode();
 		to_remove.push_back(I);
 		STATISTICS(inlined_method_invocations++);
