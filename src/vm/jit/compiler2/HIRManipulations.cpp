@@ -47,17 +47,17 @@ private:
 
 	void add_to_second_bb(Instruction* I)
 	{
-		LOG("Adding " << I << " to second bb " << second_bb << nl);
+		LOG3("Adding " << I << " to second bb " << second_bb << nl);
 
 		I->begin = second_bb;
 
 		if (first_bb->get_EndInst() == I) {
-			LOG("Setting end inst of second bb " << I << nl);
+			LOG3("Setting end inst of second bb " << I << nl);
 			second_bb->set_EndInst(I->to_EndInst());
 		}
 
 		// This replacement has to be done here, so the SourceStateInst knows the correct basic block it is in
-		LOG("Replacing " << first_bb << " dep for " << second_bb << " in " << I << nl);
+		LOG3("Replacing " << first_bb << " dep for " << second_bb << " in " << I << nl);
 		I->replace_dep(first_bb, second_bb);
 	}
 
@@ -87,7 +87,7 @@ private:
 			auto I = *it;
 			if(I->get_BeginInst() == second_bb){
 				// this dependency is now given via basic block successor/predecessor information
-				LOG("Replacing " << split_at << " dep for " << second_bb << " in " << I << nl);
+				LOG3("Replacing " << split_at << " dep for " << second_bb << " in " << I << nl);
 				I->replace_dep(split_at, second_bb);
 			}
 		}
@@ -101,13 +101,13 @@ public:
 
 	BeginInst* execute()
 	{
-		LOG("Splitting bb " << first_bb << " by " << split_at << " into itself and " << second_bb
+		LOG3("Splitting bb " << first_bb << " by " << split_at << " into itself and " << second_bb
 		                    << nl);
 		first_bb->get_Method()->add_bb(second_bb);
 
 		// add end inst of call site bb
 		auto end_inst = first_bb->get_EndInst();
-		LOG("new end inst for new bb " << end_inst << nl);
+		LOG3("new end inst for new bb " << end_inst << nl);
 		end_inst->begin = second_bb;
 		second_bb->set_EndInst(end_inst);
 
@@ -119,7 +119,7 @@ public:
 			succ->replace_predecessor(first_bb, second_bb);
 		}
 
-		LOG("Split end" << nl);
+		LOG3("Split end" << nl);
 
 		return second_bb;
 	}
@@ -148,7 +148,7 @@ void HIRManipulations::connect_with_jump(BeginInst* source, BeginInst* target)
 		throw std::runtime_error("HIRManipulations: source and target must be in same method!");
 	}
 
-	LOG("Rewriting next bb of " << source << " to " << target << nl);
+	LOG3("Rewriting next bb of " << source << " to " << target << nl);
 	auto end_inst = new GOTOInst(source, target);
 	source->set_EndInst(end_inst);
 	source->get_Method()->add_Instruction(end_inst);
@@ -162,7 +162,7 @@ void HIRManipulations::remove_instruction(Instruction* to_remove)
 	// This is primarily for deleting SourceStateInsts and should probably removed
 	// when correct SourceState handling is implemented.
 	auto it_rdep = to_remove->rdep_begin();
-	LOG("rdep size " << to_remove->rdep_size() << nl);
+	LOG3("rdep size " << to_remove->rdep_size() << nl);
 	while (it_rdep != to_remove->rdep_end()) {
 		auto I = *it_rdep;
 		LOG(Yellow << "Removing dep from " << I << " to " << to_remove << reset_color << nl);
@@ -171,7 +171,7 @@ void HIRManipulations::remove_instruction(Instruction* to_remove)
 	}
 
 	auto it_user = to_remove->user_begin();
-	LOG("user size " << to_remove->user_size() << nl);
+	LOG3("user size " << to_remove->user_size() << nl);
 	while (it_user != to_remove->user_end()) {
 		auto I = *it_user;
 		LOG(Yellow << "Removing op from " << I << " to " << to_remove << reset_color << nl);
@@ -179,7 +179,7 @@ void HIRManipulations::remove_instruction(Instruction* to_remove)
 		it_user = to_remove->user_begin();
 	}
 
-	LOG("Removing from method " << to_remove << nl);
+	LOG3("Removing from method " << to_remove << nl);
 	if (to_remove->get_opcode() == Instruction::BeginInstID) {
 		to_remove->get_Method()->remove_bb(to_remove->to_BeginInst());
 	}
@@ -206,11 +206,11 @@ private:
 
 	void coalesce(BeginInst* first, BeginInst* second)
 	{
-		LOG("coalesce " << first << " " << second << nl);
+		LOG3("coalesce " << first << " " << second << nl);
 		auto method = first->get_Method();
 
 		auto new_end_inst = second->get_EndInst();
-		LOG("New end inst for " << first << " is " << new_end_inst << nl);
+		LOG3("New end inst for " << first << " is " << new_end_inst << nl);
 		first->set_EndInst(new_end_inst);
 		second->set_EndInst(NULL);
 
@@ -221,9 +221,9 @@ private:
 			leafs.push_back(first);
 		}
 
-		LOG("Leafs: " << nl);
+		LOG3("Leafs: " << nl);
 		for(auto leaf_it = leafs.begin(); leaf_it != leafs.end(); leaf_it++){
-			LOG("  " << *leaf_it << nl);
+			LOG3("  " << *leaf_it << nl);
 		}
 
 		for (auto it = method->begin(); it != method->end(); it++) {
@@ -233,12 +233,12 @@ private:
 			if (inst->get_BeginInst() != second || inst == second) continue;
 			
 			if(inst->is_floating()){
-				LOG("Moving floating instruction " << inst << " into " << first << nl);
+				LOG2("Moving floating instruction " << inst << " into " << first << nl);
 				inst->set_BeginInst(first);
 				continue;
 			}
 
-			LOG("Moving non-floating instruction " << inst << " into " << first << nl);
+			LOG2("Moving non-floating instruction " << inst << " into " << first << nl);
 			inst->begin = first;
 		}
 
@@ -253,10 +253,10 @@ private:
 			rdep_it = second->rdep_begin();
 		}
 
-		LOG("merging " << first << " with second: " << second << nl);
+		LOG3("merging " << first << " with second: " << second << nl);
 		for (auto it = new_end_inst->succ_begin(); it != new_end_inst->succ_end(); it++) {
 			auto succ = (*it).get();
-			LOG(" succ " << succ << nl);
+			LOG3(" succ " << succ << nl);
 			succ->replace_predecessor(second, first);
 		}
 		LOG("merged " << first << " with second: " << second << nl);
@@ -265,9 +265,9 @@ private:
 public:
 	void coalesce_if_possible(BeginInst* begin_inst)
 	{
-		LOG("coalesce_if_possible " << begin_inst << nl);
+		LOG3("coalesce_if_possible " << begin_inst << nl);
 		if (std::find(visited.begin(), visited.end(), begin_inst) != visited.end()) {
-			LOG(begin_inst << " already visited" << nl);
+			LOG2(begin_inst << " already visited" << nl);
 			return;
 		}
 
@@ -299,7 +299,7 @@ public:
 		}
 
 		visited.push_back(begin_inst);
-		LOG("invoking for successors for " << end_inst << nl);
+		LOG3("invoking for successors for " << end_inst << nl);
 		for (auto it = end_inst->succ_begin(); it != end_inst->succ_end(); it++) {
 			coalesce_if_possible(it->get());
 		}
@@ -315,7 +315,7 @@ void HIRManipulations::coalesce_basic_blocks(Method* M)
 
 void HIRManipulations::replace_value_without_source_states(Value* old_value, Value* new_value)
 {
-	LOG("HIRManipulations::replace_value_without_source_states(this=" << old_value << ",v="
+	LOG3("HIRManipulations::replace_value_without_source_states(this=" << old_value << ",v="
 	                                                                  << new_value << ")" << nl);
 	std::list<Value*> replace_for;
 	for (auto it = old_value->user_begin(); it != old_value->user_end(); it++) {
@@ -327,7 +327,7 @@ void HIRManipulations::replace_value_without_source_states(Value* old_value, Val
 	}
 	for (auto it = replace_for.begin(); it != replace_for.end(); it++) {
 		auto I = (*it)->to_Instruction();
-		LOG("replacing value " << old_value << " with " << new_value << " in " << I << nl);
+		LOG3("replacing value " << old_value << " with " << new_value << " in " << I << nl);
 		I->replace_op(old_value, new_value);
 	}
 }

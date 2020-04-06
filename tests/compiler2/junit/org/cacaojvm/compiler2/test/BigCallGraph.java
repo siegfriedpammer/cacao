@@ -6,6 +6,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 public class BigCallGraph extends Compiler2TestBase {
+    // The test crashes in combination with global value numbering, if too many call sites are inlined (e.g. EverythingPossibleHeuristic)
     @Test
     public void execute() throws Throwable{
         TimingResults tr = new TimingResults();

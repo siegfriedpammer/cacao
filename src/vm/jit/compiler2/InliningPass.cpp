@@ -133,7 +133,11 @@ private:
 	}
 
 protected:
-	Heuristic() {}
+	Method* M;
+
+	Heuristic(Method* method) : M(method)
+	{
+	}
 
 	bool can_inline(INVOKEInst* I)
 	{
@@ -150,27 +154,22 @@ protected:
 #endif
 
 		return (is_monomorphic_call || is_inlineable_polymorphic_call) &&
-		       I->get_Method()->size() < MAXIMUM_METHOD_SIZE;
+		       I->get_Method()->size() <= MAXIMUM_METHOD_SIZE;
 	}
 
-public:
-	virtual bool has_next() = 0;
-	virtual INVOKEInst* next() = 0;
-	virtual void on_new_instruction(Instruction* instruction) = 0;
-};
+	virtual bool should_inline(INVOKEInst* I) = 0;
 
-/*
- *	This Heuristic will inline all possible call sites. This should only be used in testing
- *scenarios.
- */
-class EverythingPossibleHeuristic : public Heuristic {
-private:
-	List<INVOKEInst*> work_list;
-	Method* M;
+	virtual size_t size() = 0;
+
+	virtual INVOKEInst* front() = 0;
+
+	virtual void pop() = 0;
+
+	virtual void add_inst(INVOKEInst* inst) = 0;
 
 public:
-	EverythingPossibleHeuristic(Method* method) : M(method)
-	{
+
+	void initialize(){
 		auto is_invoke = [&](Instruction* i) {
 			return i->to_INVOKEInst() != NULL && can_inline(i->to_INVOKEInst());
 		};
@@ -178,25 +177,75 @@ public:
 		auto i_end = boost::make_filter_iterator(is_invoke, M->end(), M->end());
 
 		for (; i_iter != i_end; i_iter++) {
-			work_list.push_back((INVOKEInst*)*i_iter);
+			add_inst((INVOKEInst*)*i_iter);
 		}
 	}
 
-	bool has_next() { return work_list.size() > 0; }
+	bool has_next()
+	{
+		auto found_instruction_within_budget = false;
+		while (size() > 0 && !found_instruction_within_budget) {
+			auto next = front();
+			if (should_inline(next)) {
+				found_instruction_within_budget = true;
+			}
+			else {
+				LOG("Heuristic: Skipping " << next << nl);
+				pop();
+			}
+		}
+		return size() > 0;
+	}
 
 	INVOKEInst* next()
 	{
-		auto result = work_list.front();
-		work_list.pop_front();
+		auto result = front();
+		pop();
 		return result;
 	}
 
 	void on_new_instruction(Instruction* instruction)
 	{
-		auto invoke_inst = instruction->to_INVOKEInst();
-		if (invoke_inst != NULL && can_inline(invoke_inst)) {
-			work_list.push_back(invoke_inst);
+		auto invoke = instruction->to_INVOKEInst();
+		if (invoke != NULL && can_inline(invoke) && should_inline(invoke)) {
+			add_inst((INVOKEInst*)instruction);
 		}
+	}
+};
+
+/*
+ *	This Heuristic will inline all possible call sites. This should only be used in testing
+ *  scenarios.
+ */
+class EverythingPossibleHeuristic : public Heuristic {
+private:
+	List<INVOKEInst*> work_list;
+
+protected:
+
+	virtual bool should_inline(INVOKEInst* I) {
+		return true;
+	}
+
+	virtual size_t size() {
+		return work_list.size();
+	};
+
+	virtual INVOKEInst* front() {
+		return work_list.front();
+	}
+
+	virtual void pop() {
+		work_list.pop_front();
+	};
+
+	virtual void add_inst(INVOKEInst* inst) {
+		work_list.push_back(inst);
+	};
+
+public:
+	EverythingPossibleHeuristic(Method* method) : Heuristic(method)
+	{
 	}
 };
 
@@ -207,70 +256,40 @@ public:
 class LimitedBreadthFirstHeuristic : public Heuristic {
 private:
 	List<INVOKEInst*> work_list;
-	Method* M;
-	int max_size;
-	int current_size;
+	size_t max_size;
 
 	bool is_within_budget(INVOKEInst* instruction)
 	{
 		// Only estimate size to limit the number of methods which need compiler2 compilation
 		int estimated_size = instruction->get_fmiref()->p.method->jcodelength;
-		return current_size + estimated_size <= max_size;
+		return M->size() + estimated_size <= max_size;
 	}
 
-	bool should_inline(Instruction* I)
-	{
-		auto invoke_inst = I->to_INVOKEInst();
-		return invoke_inst != NULL && can_inline(invoke_inst) && is_within_budget(invoke_inst);
+protected:
+
+	virtual bool should_inline(INVOKEInst* I) {
+		return is_within_budget(I);
 	}
+
+	virtual size_t size() {
+		return work_list.size();
+	};
+
+	virtual INVOKEInst* front() {
+		return work_list.front();
+	}
+
+	virtual void pop() {
+		work_list.pop_front();
+	};
+
+	virtual void add_inst(INVOKEInst* inst) {
+		work_list.push_back(inst);
+	};
 
 public:
-	LimitedBreadthFirstHeuristic(Method* method, int max_size) : M(method), max_size(max_size)
+	LimitedBreadthFirstHeuristic(Method* method, size_t max_size) : Heuristic(method), max_size(max_size)
 	{
-		current_size = M->size();
-		auto is_candidate = [&](Instruction* i) { return should_inline(i); };
-		auto i_iter = boost::make_filter_iterator(is_candidate, M->begin(), M->end());
-		auto i_end = boost::make_filter_iterator(is_candidate, M->end(), M->end());
-
-		LOG2("LimitedBreadthFirstHeuristic: Instruction in the heuristic work list (max: "
-		     << max_size << ")." << nl);
-		for (; i_iter != i_end; i_iter++) {
-			auto I = (INVOKEInst*)*i_iter;
-			LOG2("LimitedBreadthFirstHeuristic: Adding " << I << nl);
-			work_list.push_back(I);
-		}
-	}
-
-	bool has_next()
-	{
-		current_size = M->size();
-		auto found_instruction_within_budget = false;
-		while (work_list.size() > 0 && !found_instruction_within_budget) {
-			auto next = work_list.front();
-			if (is_within_budget(next)) {
-				found_instruction_within_budget = true;
-			}
-			else {
-				LOG("Skipping " << next << " as it does not fit in the budget (current: "
-				                << current_size << ", max: " << max_size << ")");
-				work_list.pop_front();
-			}
-		}
-		return work_list.size() > 0;
-	}
-
-	INVOKEInst* next()
-	{
-		auto result = work_list.front();
-		work_list.pop_front();
-		return result;
-	}
-
-	void on_new_instruction(Instruction* instruction)
-	{
-		if (should_inline(instruction)) {
-			work_list.push_back((INVOKEInst*)instruction);
-		}
 	}
 };
 
@@ -306,59 +325,31 @@ private:
 		return (offset + estimated_size) <= budget;
 	}
 
-	bool should_inline(Instruction* I)
-	{
-		auto invoke_inst = I->to_INVOKEInst();
-		return invoke_inst != NULL && can_inline(invoke_inst) && is_within_budget(invoke_inst);
+protected:
+
+	virtual bool should_inline(INVOKEInst* I) {
+		return is_within_budget(I);
 	}
 
-public:
-	KnapsackHeuristic(Method* method, int budget) : M(method), budget(budget)
-	{
-		auto is_candidate = [&](Instruction* i) { return should_inline(i); };
-		auto i_iter = boost::make_filter_iterator(is_candidate, M->begin(), M->end());
-		auto i_end = boost::make_filter_iterator(is_candidate, M->end(), M->end());
+	virtual size_t size() {
+		return work_queue.size();
+	};
 
-		LOG2("KnapSackHeuristic: Budget: " << budget << "." << nl);
-		for (; i_iter != i_end; i_iter++) {
-			auto I = (INVOKEInst*)*i_iter;
-			LOG2("KnapSackHeuristic: Adding " << I << nl);
-			work_queue.push(I);
-		}
+	virtual INVOKEInst* front() {
+		return work_queue.top();
 	}
 
-	bool has_next()
-	{
-		while (work_queue.size() > 0) {
-			auto next = work_queue.top();
-
-			if (is_within_budget(next)) {
-				return true;
-			}
-
-			LOG("KnapSackHeuristic: Skipping "
-			    << next << " as it does not fit within the remainin budget (" << budget << ")."
-			    << nl);
-			work_queue.pop();
-		}
-
-		return false;
-	}
-
-	INVOKEInst* next()
-	{
-		auto result = work_queue.top();
+	virtual void pop() {
 		work_queue.pop();
-		budget -= getCost(result);
-		return result;
-	}
+	};
 
-	void on_new_instruction(Instruction* instruction)
+	virtual void add_inst(INVOKEInst* inst) {
+		work_queue.push(inst);
+	};
+
+public: 
+	KnapsackHeuristic(Method* method, size_t budget) : Heuristic(method), budget(budget)
 	{
-		if (should_inline(instruction)) {
-			LOG("KnapSackHeuristic: Adding " << instruction << " to work list.");
-			work_queue.push((INVOKEInst*)instruction);
-		}
 	}
 };
 
@@ -385,7 +376,6 @@ private:
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
 			auto I = *it;
 			if (I->get_opcode() == Instruction::LOADInstID) {
-				auto load_inst = I->to_LOADInst();
 				auto index = (I->to_LOADInst())->get_index();
 				auto given_operand = call_site->get_operand(index);
 				LOG("InliningOperation: Replacing Load inst" << I << " with " << given_operand
@@ -694,11 +684,11 @@ bool InliningPass::run(JITData& JD)
 	LOG("Inlining for method: " << M->get_name_utf8() << nl);
 
 	std::unique_ptr<Heuristic> heuristic(create_heuristic(M));
+	heuristic->initialize();
 	List<INVOKEInst*> to_remove;
 	while (heuristic->has_next()) {
 		auto I = heuristic->next();
 		inline_instruction(I, heuristic.get());
-		auto op_code = I->get_opcode();
 		to_remove.push_back(I);
 		STATISTICS(inlined_method_invocations++);
 	}

@@ -24,9 +24,6 @@
 #ifndef _JIT_COMPILER2_HIRMANIPULATIONS
 #define _JIT_COMPILER2_HIRMANIPULATIONS
 
-#define DEBUG_NAME "compiler2/HIRManipulations"
-
-#include "toolbox/logging.hpp"
 #include "vm/jit/compiler2/Instructions.hpp"
 
 namespace cacao {
