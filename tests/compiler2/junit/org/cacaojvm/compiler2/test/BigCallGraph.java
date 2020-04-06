@@ -6,8 +6,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 public class BigCallGraph extends Compiler2TestBase {
-    // The test crashes in combination with global value numbering, if too many call sites are inlined (e.g. EverythingPossibleHeuristic)
-    @Test
+    @Test // The test crashes in combination with global value numbering, if too many call sites are inlined (e.g. EverythingPossibleHeuristic)
     public void execute() throws Throwable{
         TimingResults tr = new TimingResults();
 
@@ -60,14 +59,6 @@ public class BigCallGraph extends Compiler2TestBase {
         int absVal = abs(value);
         value = square(absVal);
         return Math.max(value, 1);
-    }
-
-    static int mediumMethod(int value){
-        for(int i = 0; i < 100; i++){
-            value -= 1;
-        }
-        int absVal = abs(value);
-        return value;
     }
 
     static boolean biggerThanTen(int value){

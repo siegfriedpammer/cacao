@@ -32,14 +32,6 @@ static int bigMethod(int value){
     return Math.max(value, 1);
 }
 
-static int mediumMethod(int value){
-    for(int i = 0; i < 100; i++){
-        value -= 1;
-    }
-    int absVal = abs(value);
-    return value;
-}
-
 static boolean biggerThanTen(int value){
     return isRealPositive(value) && abs(value) > 10;
 }
