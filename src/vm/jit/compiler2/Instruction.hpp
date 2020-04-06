@@ -192,21 +192,6 @@ public:
 			i_new->reverse_dep_list.push_back(this);
 		}
 	}
-	
-	Instruction* get_last_state_change() {
-		return *std::next(dep_list.begin(), 1);
-	}
-
-	void replace_state_change_dep(Instruction* i_new) {
-		assert(i_new);
-		auto state_change_it = std::next(dep_list.begin(), 1);
-		auto i_old = *state_change_it;
-		*state_change_it = i_new;
-		// Don't delete all occurences. Only one.
-		auto rdep_it = std::find(i_old->reverse_dep_list.begin(), i_old->reverse_dep_list.end(), this);
-		i_old->reverse_dep_list.erase(rdep_it);
-		i_new->reverse_dep_list.push_back(this);
-	}
 
 	/**
 	 * Check if the instruction is in a correct state.

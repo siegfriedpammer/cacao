@@ -65,17 +65,29 @@ namespace jit {
 namespace compiler2 {
 
 /*
-   IMPORTANT: The current implementation does not work with on-stack replacement. Therefore the
-   InliningPass should not be opted in, when testing or working with deoptimization and
-   on-stack replacement. The reason for this is, that the SourceStateInstructions are not handled
-   correctly.
-*/
+ *   IMPORTANT: The current implementation does not work with on-stack replacement. Therefore the
+ *   InliningPass should not be opted in, when testing or working with deoptimization and
+ *   on-stack replacement. The reason for this is, that the SourceStateInstructions are not handled
+ *   correctly.
+ *
+ *   TODO The following parts of the problem may require a correction of source states.
+ *   - GuardedCodeFactory
+ *   -- The then block could require changes
+ *   -- The else block definetely require changes, as only a workaround source_state is created
+ *   - InliningPass
+ *   -- Inlining any instruction could need changes (merge source states?)
+ *   -- Replacing a LoadInst could require changes
+ *   -- Adding a new phi node could require changes
+ *   -- Removing the invoke instructions could require changes
+ *   - Coalesce Basic Blocks
+ *   -- Merging two basic blocks could require cahnges
+ */
 SourceStateInst* create_work_around_source_state(Instruction* for_inst)
 {
-	LOG("Creating work around source state for " << for_inst << nl);
+	LOG2("Creating work around source state for " << for_inst << nl);
 	auto source_state = new SourceStateInst(123, for_inst);
 	for_inst->get_Method()->add_Instruction(source_state);
-	LOG("Work around source state created" << nl);
+	LOG2("Work around source state created" << nl);
 	return source_state;
 }
 
@@ -176,7 +188,7 @@ public:
 *	Iterates over all instructions in a FIFO fashion. Inlining stops when the max method size is
 *	exceeded.
 */
-class LimitedBreathFirstHeuristic : public Heuristic {
+class LimitedBreadthFirstHeuristic : public Heuristic {
 private:
 	List<INVOKEInst*> work_list;
 	Method* M;
@@ -197,18 +209,18 @@ private:
 	}
 
 public:
-	LimitedBreathFirstHeuristic(Method* method, int max_size) : M(method), max_size(max_size)
+	LimitedBreadthFirstHeuristic(Method* method, int max_size) : M(method), max_size(max_size)
 	{
 		current_size = M->size();
 		auto is_candidate = [&](Instruction* i) { return should_inline(i); };
 		auto i_iter = boost::make_filter_iterator(is_candidate, M->begin(), M->end());
 		auto i_end = boost::make_filter_iterator(is_candidate, M->end(), M->end());
 
-		LOG("LimitedBreathFirstHeuristic: Instruction in the heuristic work list (max: "
+		LOG2("LimitedBreadthFirstHeuristic: Instruction in the heuristic work list (max: "
 		    << max_size << ")." << nl);
 		for (; i_iter != i_end; i_iter++) {
 			auto I = (INVOKEInst*)*i_iter;
-			LOG("LimitedBreathFirstHeuristic: Adding " << I << nl);
+			LOG2("LimitedBreadthFirstHeuristic: Adding " << I << nl);
 			work_list.push_back(I);
 		}
 	}
@@ -291,10 +303,10 @@ public:
 		auto i_iter = boost::make_filter_iterator(is_candidate, M->begin(), M->end());
 		auto i_end = boost::make_filter_iterator(is_candidate, M->end(), M->end());
 
-		LOG("KnapSackHeuristic: Budget: " << budget << "." << nl);
+		LOG2("KnapSackHeuristic: Budget: " << budget << "." << nl);
 		for (; i_iter != i_end; i_iter++) {
 			auto I = (INVOKEInst*)*i_iter;
-			LOG("KnapSackHeuristic: Adding " << I << nl);
+			LOG2("KnapSackHeuristic: Adding " << I << nl);
 			work_queue.push(I);
 		}
 	}
@@ -352,7 +364,7 @@ private:
 
 	void replace_method_parameters()
 	{
-		LOG("InliningOperation: replace_method_parameters"<<nl);
+		LOG3("InliningOperation: replace_method_parameters"<<nl);
 		List<Instruction*> to_remove_after_replace;
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
 			auto I = *it;
@@ -381,7 +393,7 @@ private:
 
 	Instruction* transform_instruction(Instruction* I)
 	{
-		LOG("InliningOperation: Transforming " << I << nl);
+		LOG3("InliningOperation: Transforming " << I << nl);
 		switch (I->get_opcode()) {
 			case Instruction::RETURNInstID: {
 				auto return_inst = I->to_RETURNInst();
@@ -403,7 +415,7 @@ private:
 
 	void replace_invoke_with_result()
 	{
-		LOG("InliningOperation: replace_invoke_with_result for " << call_site << nl);
+		LOG3("InliningOperation: replace_invoke_with_result for " << call_site << nl);
 		// no phi needed, if there is only one return point
 		if (phi_operands.size() == 1) {
 			LOG("InliningOperation: Phi node not necessary" << nl);
@@ -424,7 +436,7 @@ private:
 
 		for (auto it = post_call_site_bb->pred_begin(); it != post_call_site_bb->pred_end(); it++) {
 			auto bb = *it;
-			LOG("InliningOperation: Searching for phi operand in " << bb << nl);
+			LOG2("InliningOperation: Searching for phi operand in " << bb << nl);
 			auto is_in_bb = [bb](Instruction* inst) { return inst->get_BeginInst() == bb; };
 			auto is_in_no_bb = [](Instruction* inst) { return inst->get_BeginInst() == NULL; };
 			auto next_op_it = std::find_if(phi_operands.begin(), phi_operands.end(), is_in_bb);
@@ -445,12 +457,12 @@ private:
 
 	void add_call_site_bbs()
 	{
-		LOG("InliningOperation: add_call_site_bbs " << callee_method->get_name_utf8() << nl);
+		LOG3("InliningOperation: add_call_site_bbs " << callee_method->get_name_utf8() << nl);
 		for (auto it = callee_method->begin(); it != callee_method->end(); it++) {
 			Instruction* I = *it;
-			LOG("InliningOperation: Adding to call site " << I << nl);
+			LOG2("InliningOperation: Adding to call site " << I << nl);
 			auto new_inst = transform_instruction(I);
-			LOG("InliningOperation: transformed inst " << new_inst << nl);
+			LOG3("InliningOperation: transformed inst " << new_inst << nl);
 			HIRManipulations::move_instruction_to_method(new_inst, caller_method);
 			on_inlined_inst(new_inst);
 		}
@@ -545,19 +557,21 @@ private:
 	BeginInst* create_guard(INVOKEInst* I)
 	{
 		auto then_branch = target_method->get_init_bb();
-		LOG("GuardedCodeFactory: Then branch" << then_branch << nl);
+		LOG3("GuardedCodeFactory: Then branch" << then_branch << nl);
 		auto else_branch = create_false_branch(I);
-		LOG("GuardedCodeFactory: Created else branch " << else_branch << nl);
+		LOG3("GuardedCodeFactory: Created else branch " << else_branch << nl);
 
 		/**
-		 * Currently Compiler2 does not support invoking native methods such as
+		 * TODO
+		 * Currently, Compiler2 does not support invoking native methods such as
 		 * java/lang/Object.getClass(). Therefore a "dummy" assertion (obj == obj) was introduced.
 		 * After implementing native methods in Compiler2, this should be fixed.
+		 * Alternatively another approach (e.g. new HIRInstruction) could be used.
 		 */
 		auto check_bb = new BeginInst();
-		LOG("GuardedCodeFactory: Created guard basic block " << check_bb << nl);
+		LOG2("GuardedCodeFactory: Created guard basic block " << check_bb << nl);
 		auto current_object = I->get_operand(0);
-		LOG("GuardedCodeFactory: Receiver " << current_object << nl);
+		LOG2("GuardedCodeFactory: Receiver " << current_object << nl);
 
 		auto if_inst = new IFInst(check_bb, current_object, current_object, Conditional::EQ,
 		                          then_branch, else_branch);
@@ -577,7 +591,7 @@ public:
 	JITData create_ssa(INVOKEInst* I)
 	{
 		auto JD = CodeFactory::create_ssa(I);
-		LOG ("GuardedCodeFactory: Retrieved code from base class." << nl);
+		LOG2 ("GuardedCodeFactory: Retrieved code from base class." << nl);
 		target_method = JD.get_Method();
 		auto new_init_bb = create_guard(I);
 		target_method->set_init_bb(new_init_bb);
@@ -595,7 +609,7 @@ void remove_call_site(INVOKEInst* call_site)
 	auto source_state_it = std::find_if(call_site->rdep_begin(), call_site->rdep_end(), is_source_state);
 	if (source_state_it != call_site->rdep_end()) {
 		auto source_state = *source_state_it;
-		LOG("Appending source state " << source_state << " to bb " << call_site->get_BeginInst()
+		LOG2("Appending source state " << source_state << " to bb " << call_site->get_BeginInst()
 		                              << nl);
 		source_state->to_SourceStateInst()->replace_dep(call_site, call_site->get_BeginInst());
 	}
@@ -626,7 +640,7 @@ void inline_instruction(INVOKEInst* I, Heuristic* heuristic)
 	std::unique_ptr<CodeFactory> code_factory(get_code_factory(I));
 	LOG("Inlining invoke instruction " << I << nl);
 	auto callee_method = code_factory->create_ssa(I);
-	LOG("Successfully retrieved SSA-Code for instruction " << nl);
+	LOG3("Successfully retrieved SSA-Code for instruction " << nl);
 	InliningOperation(I, callee_method.get_Method(), code_factory->do_not_inline(), heuristic).execute();
 }
 
@@ -654,8 +668,8 @@ bool InliningPass::run(JITData& JD)
 		remove_call_site(call_site);
 	}
 
-	LOG("Invoking coalescing." << nl);
-	HIRManipulations::coalesce_bbs(M);
+	LOG("Invoking coalesce_basic_blocks." << nl);
+	HIRManipulations::coalesce_basic_blocks(M);
 	LOG("End of inlining pass." << nl);
 	return true;
 }

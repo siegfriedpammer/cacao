@@ -33,25 +33,6 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-static bool is_state_change_for(Instruction* state_change, Instruction* I)
-{
-	auto op_code = I->get_opcode();
-	return op_code != Instruction::SourceStateInstID &&
-	       I->get_last_state_change() == state_change;
-}
-
-bool HIRUtils::is_state_change_for_other_instruction(Instruction* I)
-{
-	return get_depending_instruction(I) != NULL;
-}
-
-Instruction* HIRUtils::get_depending_instruction(Instruction* I)
-{
-	auto found_inst = std::find_if(I->rdep_begin(), I->rdep_end(), [&](Instruction* rdep){return is_state_change_for(I, rdep);});
-	auto result = found_inst == I->rdep_end() ? NULL : *found_inst;
-	return result;
-}
-
 bool HIRUtils::verify_all_instructions(Method* M){
 	LOG("Verifying all instructions" << nl);
 	for (auto it = M->begin(); it != M->end(); it++) {

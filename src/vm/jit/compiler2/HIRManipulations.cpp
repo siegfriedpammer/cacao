@@ -306,7 +306,7 @@ public:
 	}
 };
 
-void HIRManipulations::coalesce_bbs(Method* M)
+void HIRManipulations::coalesce_basic_blocks(Method* M)
 {
 	LOG("Coealescing Starting" << nl);
 	CoalesceBasicBlocksOperation().coalesce_if_possible(M->get_init_bb());

@@ -110,20 +110,21 @@ void PassRunner::runPassesUntil(JITData &JD, PassInfo::IDTy last_pass) {
 	if (option::dump_method_json) {
 		graphPrinter.initialize(JD);
 	}
-	
-	for (auto i = PS.schedule_begin(), e = PS.schedule_end(); i != e; ++i) {
+
+	auto run_until_it = std::find_if(PS.schedule_begin(), PS.schedule_end(), [last_pass](PassInfo::IDTy id) { return id == last_pass; });
+	for (auto i = PS.schedule_begin(); i <= run_until_it; ++i) {
 		PassInfo::IDTy id = *i;
 		auto& pa = PS.passusage_map[id];
 		std::for_each(pa.provides_begin(), pa.provides_end(), [&](auto artifact_id) {
 			result_ready[artifact_id] = false;
 		});
-		
+
 		auto&& P = get_Pass(id);
 		
 		#if ENABLE_RT_TIMING
 		PassTimerMap::iterator f = pass_timers.find(id);
 		assert(f != pass_timers.end());
-		RTTimer &timer = f->second;
+		RTTimer& timer = f->second;
 		timer.start();
 		#endif
 		

@@ -44,7 +44,15 @@ class JITData;
 class Method;
 
 /**
- * InliningPass
+ * InliningPass. 
+ * 
+ * The inliner tries to reduce the performance problems introduced
+ * by methods. This is done by copying the SSA-Graph of the callee
+ * to the caller. The goal is to reduce the overhead introduced
+ * by method invocation and offer more optimization
+ * possibilities to subsequent passes.
+ * 
+ * See @cite SchwarzingerBScThesis for further details.
  */
 class InliningPass : public Pass, public memory::ManagerMixin<InliningPass> {
 private: 

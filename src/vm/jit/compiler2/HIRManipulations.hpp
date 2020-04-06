@@ -56,13 +56,13 @@ public:
 	static void connect_with_jump(BeginInst* source, BeginInst* target);
     /**
      * Removes an instruction including all dependency relationships. Additionally the instruction
-     * will be delted from the containing method.
+     * will be deleted from the containing method.
      */
 	static void remove_instruction(Instruction* to_remove);
     /**
      * Coalesce basic blocks.
      */
-	static void coalesce_bbs(Method* M);
+	static void coalesce_basic_blocks(Method* M);
     /**
      * Replaces a value with another one in every user except source states.
      */

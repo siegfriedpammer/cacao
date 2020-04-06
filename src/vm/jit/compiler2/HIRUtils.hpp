@@ -36,18 +36,8 @@ namespace compiler2 {
 class HIRUtils {
 public:
     /**
-     * Indicates whether this instruction has another instruction depending on it, as last state changing instruction.
-     * This method should only return false, if the given instruction is the last state-changing instruction in the
-     * execution path.
-     * @returns true if there is another instruction using this instruction as last state change.
-     **/
-	static bool is_state_change_for_other_instruction(Instruction* I);
-    /**
-     * Gets the instruction which depends on the given instruction as last state change. See is_state_change_for_other_instruction
-     * for further details.
-     * @returns Instruction depending on the given instruction
-     **/
-	static Instruction* get_depending_instruction(Instruction* I);
+     * Verfifies all instructions in the given method.
+     */
     static bool verify_all_instructions(Method* M);
 };
 
