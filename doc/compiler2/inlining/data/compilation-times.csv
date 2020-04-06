@@ -1,0 +1,8 @@
+Benchmark,total,inliner,relative,compileTargets,compileTargetsRelative
+apply-to-array,68.579,25.134,37.135,5.155,20.261
+array-times-two,65.126,13.072,20.557,2.563,20.267
+big-call-graph,324.814,60.438,18.413,22.538,37.309
+bubble-sort,86.819,0.464,0.477,0.0,0.0
+categorize-points,296.484,98.16,33.306,50.275,52.669
+create-points,96.331,23.957,24.983,7.923,32.472
+fibonacci,299.623,72.639,24.433,21.243,29.387
