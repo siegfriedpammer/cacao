@@ -853,10 +853,12 @@ static u1 *jit_compile_intern(jitdata *jd)
 	//
 	// TODO: Remove this when deoptimization works and is not triggered
 	//       in 80% of the cases.
+#if defined(ENABLE_COMPILER2)
 	if (!cacao::jit::compiler2::can_possibly_compile(jd)) {
 		jd->flags &= ~JITDATA_FLAG_COUNTDOWN;
 		STATISTICS(count_heuristic_skip++);
 	}
+#endif
 
 	RT_TIMER_START(codegen_timer);
 

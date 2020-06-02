@@ -295,10 +295,12 @@ void trap_handle(int sig, void *xpc, void *context)
 			p = NULL;
 			codeinfo* caller = code_get_codeinfo_for_pv(sfi.pv);
 			entry = jit_compile_handle(m, sfi.pv, ra, (void*) val);
+#if defined(ENABLE_REPLACEMENT)
 			if (caller->optlevel > 1) {
 				codeinfo* callee = code_find_codeinfo_for_pc(entry);
 				replace_patch_baseline_in_second_stage((u1*)ra, caller, callee, &es);
 			}
+#endif
 			break;
 		}
 
