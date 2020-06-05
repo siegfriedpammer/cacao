@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/InstructionMetaPass.hpp - InstructionMetaPass
+/* tests/compiler2/catch/framework/tests-main.cpp - Main Catch 
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,37 +22,8 @@
 
 */
 
-#ifndef _JIT_COMPILER2_INSTRUCTIONMETAPASS
-#define _JIT_COMPILER2_INSTRUCTIONMETAPASS
-
-#include "vm/jit/compiler2/Pass.hpp"
-
-MM_MAKE_NAME(InstructionMetaPass)
-
-namespace cacao {
-namespace jit {
-namespace compiler2 {
-
-/**
- * InstructionMetaPass
- *
- * This is a meta pass to communicate Instruction changes to other passes.
- * If a pass depends on the Instructions then get_PassUsage() should contain PU.add_requires<InstructionMetaPass>().
- * Analogously, if a pass changes the Instructions PU.add_modifies<InstructionMetaPass>() should be present.
- */
-class InstructionMetaPass : public Pass, public memory::ManagerMixin<InstructionMetaPass> {
-public:
-	InstructionMetaPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
-};
-
-} // end namespace compiler2
-} // end namespace jit
-} // end namespace cacao
-
-#endif /* _JIT_COMPILER2_INSTRUCTIONMETAPASS */
-
+#define CATCH_CONFIG_MAIN
+#include "catch.hpp"
 
 /*
  * These are local overrides for various environment variables in Emacs.

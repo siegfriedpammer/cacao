@@ -1792,6 +1792,8 @@ int vm_destroy(JavaVM *vm)
 
 // 	_created = false;
 
+	write_logfiles();
+
 	/* Everything is ok. */
 
 	return 0;
@@ -1881,6 +1883,8 @@ void vm_shutdown(s4 status)
 	}
 #endif
 
+	write_logfiles();
+
 #if defined(ENABLE_THREADS)
 	finalizer_join_thread();
 #endif
@@ -1901,7 +1905,7 @@ void vm_shutdown(s4 status)
 *******************************************************************************/
 
 void vm_exit_handler(void)
-{
+{	
 #if !defined(NDEBUG)
 	if (showmethods)
 		class_showmethods(mainclass);
@@ -1938,6 +1942,7 @@ void vm_exit_handler(void)
 
 #endif /* defined(ENABLE_STATISTICS) */
 	}
+	
 	/* vm_print_profile(stderr);*/
 }
 
@@ -1961,6 +1966,7 @@ static void write_logfiles() {
 			cacao::RTGroup::print_csv_header(OS);
 			cacao::RTGroup::root().print_csv(OS);
 		}
+		OS << cacao::flush;
 	}
 #endif
 
@@ -1982,6 +1988,7 @@ static void write_logfiles() {
 			cacao::StatGroup::print_csv_header(OS);
 			cacao::StatGroup::root().print_csv(OS);
 		}
+		OS << cacao::flush;
 	}
 #endif
 

@@ -33,11 +33,13 @@ DIST_SUBDIRS = \
 	aarch64 \
 	alloc \
 	memory \
+	treescan \
 	x86_64
 
 SUBDIRS = \
 	alloc \
 	memory \
+	treescan \
 	$(ARCH_DIR)
 
 noinst_LTLIBRARIES = \
@@ -51,8 +53,6 @@ libcompiler2_la_SOURCES = \
 	BasicBlockSchedulingPass.hpp \
 	CFGConstructionPass.cpp \
 	CFGConstructionPass.hpp \
-	CFGMetaPass.cpp \
-	CFGMetaPass.hpp \
 	CodeGenPass.cpp \
 	CodeGenPass.hpp \
 	CodeMemory.cpp \
@@ -73,6 +73,7 @@ libcompiler2_la_SOURCES = \
 	DataSegment.hpp \
 	DominatorPass.cpp \
 	DominatorPass.hpp \
+	DominatorPassBase.hpp \
 	DomTreePrinterPass.cpp \
 	DomTreePrinterPass.hpp \
 	ExamplePass.cpp \
@@ -86,22 +87,16 @@ libcompiler2_la_SOURCES = \
 	ICMDPrinterPass.hpp \
 	Instruction.cpp \
 	Instruction.hpp \
-	InstructionMetaPass.cpp \
-	InstructionMetaPass.hpp \
 	InstructionSchedule.hpp \
 	InstructionVisitor.cpp \
 	InstructionVisitor.hpp \
 	Instructions.hpp \
+	JsonGraphPrinter.hpp \
+	JsonGraphPrinter.cpp \
 	JITData.cpp \
 	JITData.hpp \
-	LinearScanAllocatorPass.cpp \
-	LinearScanAllocatorPass.hpp \
 	ListSchedulingPass.cpp \
 	ListSchedulingPass.hpp \
-	LivetimeAnalysisPass.cpp \
-	LivetimeAnalysisPass.hpp \
-	LivetimeInterval.cpp \
-	LivetimeInterval.hpp \
 	Loop.cpp \
 	Loop.hpp \
 	LoopBase.hpp \
@@ -115,6 +110,8 @@ libcompiler2_la_SOURCES = \
 	MachineAddress.hpp \
 	MachineBasicBlock.cpp \
 	MachineBasicBlock.hpp \
+	MachineDominatorPass.cpp \
+	MachineDominatorPass.hpp \
 	MachineInstruction.cpp \
 	MachineInstruction.hpp \
 	MachineInstructionPrinterPass.cpp \
@@ -131,6 +128,10 @@ libcompiler2_la_SOURCES = \
 	MachineLoopPass.hpp \
 	MachineOperand.cpp \
 	MachineOperand.hpp \
+	MachineOperandSet.cpp \
+	MachineOperandSet.hpp \
+	MachineOperandFactory.cpp \
+	MachineOperandFactory.hpp \
 	MachineRegister.hpp \
 	Matcher.cpp \
 	Matcher.hpp \
@@ -151,9 +152,17 @@ libcompiler2_la_SOURCES = \
 	PassDependencyGraphPrinter.hpp \
 	PassManager.cpp \
 	PassManager.hpp \
+	PassScheduler.cpp \
+	PassScheduler.hpp \
 	PassUsage.hpp \
+	PhiCoalescingPass.cpp \
+	PhiCoalescingPass.hpp \
+	PhiLiftingPass.cpp \
+	PhiLiftingPass.hpp \
 	RegisterAllocatorPass.cpp \
 	RegisterAllocatorPass.hpp \
+	ReversePostOrderPass.cpp \
+	ReversePostOrderPass.hpp \
 	ScheduleClickPass.cpp \
 	ScheduleClickPass.hpp \
 	ScheduleEarlyPass.cpp \
@@ -166,6 +175,8 @@ libcompiler2_la_SOURCES = \
 	SourceStateAttachmentPass.hpp \
 	SSAConstructionPass.cpp \
 	SSAConstructionPass.hpp \
+	SSADeconstructionPass.cpp \
+	SSADeconstructionPass.hpp \
 	SSAPrinterPass.cpp \
 	SSAPrinterPass.hpp \
 	StackAnalysisPass.cpp \
@@ -189,6 +200,7 @@ libcompiler2_la_SOURCES = \
 
 libcompiler2_la_LIBADD = \
 	alloc/liballoc.la \
+	treescan/libtreescan.la \
 	memory/libmemory.la \
 	$(ARCH_DIR)/lib$(ARCH_DIR).la
 

@@ -78,6 +78,7 @@ public:
 		 ,scale(Scale1)
 		 ,base86_64(NULL)
 		 ,index86_64(NULL) {
+		assert(!base.op->is_Immediate());
 		embedded_operands.push_back(EmbeddedMachineOperand(base.op));
 	}
 	X86_64ModRMOperand(Type::TypeID type, const BaseOp &base, s4 disp)
@@ -86,6 +87,7 @@ public:
 		 ,scale(Scale1)
 		 ,base86_64(NULL)
 		 ,index86_64(NULL) {
+		assert(!base.op->is_Immediate());
 		embedded_operands.push_back(EmbeddedMachineOperand(base.op));
 	}
 	X86_64ModRMOperand(Type::TypeID type, const BaseOp &base, const IndexOp &index, ScaleFactor scale, s4 disp=0)
@@ -94,6 +96,7 @@ public:
 		 ,scale(scale)
 		 ,base86_64(NULL)
 		 ,index86_64(NULL) {
+		assert(!base.op->is_Immediate());
 		embedded_operands.push_back(EmbeddedMachineOperand(base.op));
 		if (index.op != NULL)
 			embedded_operands.push_back(EmbeddedMachineOperand(index.op));
@@ -104,6 +107,7 @@ public:
 		 ,scale(get_scale(scale_type))
 		 ,base86_64(NULL)
 		 ,index86_64(NULL) {
+		assert(!base.op->is_Immediate());
 		embedded_operands.push_back(EmbeddedMachineOperand(base.op));
 		if (index.op != NULL)
 			embedded_operands.push_back(EmbeddedMachineOperand(index.op));
@@ -114,6 +118,7 @@ public:
 		 ,scale(Scale1) 
 		 ,base86_64(NULL)
 		 ,index86_64(NULL) {
+		assert(!base.op->is_Immediate());
 		embedded_operands.push_back(EmbeddedMachineOperand(base.op));
 		if (index.op != NULL)
 			embedded_operands.push_back(EmbeddedMachineOperand(index.op));

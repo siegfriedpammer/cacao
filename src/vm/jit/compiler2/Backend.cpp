@@ -23,8 +23,10 @@
 */
 
 #include "vm/jit/compiler2/Backend.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
+#include "vm/jit/compiler2/MachineOperandFactory.hpp"
 
 # include "vm/jit/replace.hpp"
 
@@ -35,7 +37,7 @@ namespace jit {
 namespace compiler2 {
 
 Backend* Backend::factory(JITData *JD) {
-	return new BackendBase<Target>(JD);
+	return new BackendBase<Target>(JD, new RegisterInfoBase<Target>(JD));
 }
 
 void LoweringVisitorBase::visit(BeginInst* I, bool copyOperands) {
@@ -49,12 +51,14 @@ void LoweringVisitorBase::visit(GOTOInst* I, bool copyOperands) {
 	assert(I);
 	MachineInstruction *jump = backend->create_Jump(get(I->get_target().get()));
 	get_current()->push_back(jump);
+	get_current()->set_last_insertion_point(get_current()->mi_last());
 	set_op(I,jump->get_result().op);
 }
 
 void LoweringVisitorBase::visit(PHIInst* I, bool copyOperands) {
 	assert(I);
-	MachinePhiInst *phi = new MachinePhiInst(I->op_size(),I->get_type(),I);
+	MachinePhiInst *phi = new MachinePhiInst(I->op_size(),I->get_type(),I,backend->get_JITData()->get_MachineOperandFactory());
+	phi->set_block(get_current()); // TODO: This shoudl really happen in the MBB
 	//get_current()->push_back(phi);
 	get_current()->insert_phi(phi);
 	set_op(I,phi->get_result().op);
@@ -62,11 +66,17 @@ void LoweringVisitorBase::visit(PHIInst* I, bool copyOperands) {
 
 void LoweringVisitorBase::visit(CONSTInst* I, bool copyOperands) {
 	assert(I);
-	VirtualRegister *reg = new VirtualRegister(I->get_type());
+	// auto MOF = backend->get_JITData()->get_MachineOperandFactory();
+	// VirtualRegister *reg = MOF->CreateVirtualRegister(I->get_type());
 	Immediate *imm = new Immediate(I);
-	MachineInstruction *move = backend->create_Move(imm,reg);
-	get_current()->push_back(move);
-	set_op(I,move->get_result().op);
+	// MachineInstruction *move = backend->create_Move(imm,reg);
+	// get_current()->push_back(move);
+	// set_op(I,move->get_result().op);
+
+	// TODO: We do not mov immediates into registers upfront but let
+	//       each instruction decide on their own what to do with immediates.
+	//       This should later be reversed again and handled by the DAG matcher.
+	set_op(I, imm);
 }
 
 void LoweringVisitorBase::lower_source_state_dependencies(MachineReplacementPointInst *MI,
@@ -139,6 +149,18 @@ void LoweringVisitorBase::visit(ReplacementEntryInst* I, bool copyOperands) {
 
 MachineBasicBlock* LoweringVisitorBase::new_block() const {
 	return *schedule->insert_after(get_current()->self_iterator(),MBBBuilder());
+}
+
+VirtualRegister* LoweringVisitorBase::CreateVirtualRegister(Type::TypeID type) {
+	return backend->get_JITData()->get_MachineOperandFactory()->CreateVirtualRegister(type);
+}
+
+OperandSet RegisterInfo::get_AllCalleeSaved() const {
+	auto set = JD->get_Backend()->get_NativeFactory()->EmptySet();
+	for (const auto& clazz : classes) {
+		set |= clazz->get_CalleeSaved();
+	}
+	return set;
 }
 
 

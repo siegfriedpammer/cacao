@@ -26,34 +26,22 @@
 
 #include "vm/jit/compiler2/StackSlotManager.hpp"
 #include "vm/jit/compiler2/MachineOperand.hpp"
+#include "vm/jit/compiler2/MachineOperandFactory.hpp"
 #include "vm/jit/executionstate.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-StackSlotManager::~StackSlotManager() {
-	while (!slots.empty()) {
-		ManagedStackSlot *slot = slots.back();
-		slots.pop_back();
-		delete slot;
-	}
-
-	while (!argument_slots.empty()) {
-		ManagedStackSlot *slot = argument_slots.back();
-		argument_slots.pop_back();
-		delete slot;
-	}
-}
-
 ManagedStackSlot* StackSlotManager::create_slot(Type::TypeID type) {
-	slots.push_back(new ManagedStackSlot(this, type));
+	auto slot = MOF->CreateManagedStackSlot(this, type);
+	slots.push_back(slot);
 	return slots.back();
 }
 
 ManagedStackSlot* StackSlotManager::create_argument_slot(Type::TypeID type, u4 index) {
 	number_of_machine_argument_slots = std::max(number_of_machine_argument_slots, index + 1);
-	auto slot = new ManagedStackSlot(this, type);
+	auto slot = MOF->CreateManagedStackSlot(this, type);
 	slot->set_index(index);
 	argument_slots.push_back(slot);
 	return slot;

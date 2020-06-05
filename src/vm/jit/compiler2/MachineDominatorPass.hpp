@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/InstructionMetaPass.cpp - InstructionMetaPass
+/* src/vm/jit/compiler2/MachineDominatorPass.hpp - MachineDominatorPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,31 +22,26 @@
 
 */
 
-#include "vm/jit/compiler2/InstructionMetaPass.hpp"
-#include "vm/jit/compiler2/JITData.hpp"
-#include "vm/jit/compiler2/PassUsage.hpp"
-#include "vm/jit/compiler2/CFGMetaPass.hpp"
+#ifndef _JIT_COMPILER2_MACHINEDOMINATORPASS
+#define _JIT_COMPILER2_MACHINEDOMINATORPASS
+
+#include "vm/jit/compiler2/DominatorPassBase.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-bool InstructionMetaPass::run(JITData &JD) {
-	return true;
-}
+using MachineDominatorTree = DominatorTreeBase<MachineBasicBlock>;
+using MachineDominatorPass = DominatorPassBase<MachineBasicBlock, MachineInstruction::successor_iterator>;
 
-// pass usage
-PassUsage& InstructionMetaPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<CFGMetaPass>();
-	return PU;
-}
 
-// register pass
-static PassRegistry<InstructionMetaPass> X("InstructionMetaPass");
+MM_CLASS_NAME(MachineDominatorPass)
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
+
+#endif /* _JIT_COMPILER2_MACHINEDOMINATORPASS */
 
 
 /*

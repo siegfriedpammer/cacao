@@ -25,6 +25,7 @@
 #ifndef _JIT_COMPILER2_SCHEDULELATEPASS
 #define _JIT_COMPILER2_SCHEDULELATEPASS
 
+#include "vm/jit/compiler2/DominatorPass.hpp"
 #include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/Loop.hpp"
 #include "vm/jit/compiler2/GlobalSchedule.hpp"
@@ -38,7 +39,6 @@ namespace compiler2 {
 
 class Method;
 class Instruction;
-class DominatorTree;
 
 /**
  * ScheduleLatePass
@@ -54,8 +54,12 @@ private:
 public:
 	void schedule_late(Instruction *I);
 	ScheduleLatePass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
+
+	ScheduleLatePass* provide_Artifact(ArtifactInfo::IDTy) override {
+		return this;
+	}
 };
 
 } // end namespace compiler2

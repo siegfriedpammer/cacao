@@ -53,7 +53,6 @@ public class ArrayLength extends Compiler2TestBase {
 	}
 
 	@Test
-	@Ignore
 	public void test4() {
 		testResultEqual("testArrayLength", "([J)I", new Object[] { null });
 	}

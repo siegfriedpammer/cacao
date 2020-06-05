@@ -25,6 +25,8 @@
 #ifndef _JIT_COMPILER2_BACKEND
 #define _JIT_COMPILER2_BACKEND
 
+#include <memory>
+
 #include "vm/jit/compiler2/Instructions.hpp"
 #include "vm/jit/compiler2/MachineInstructions.hpp"
 #include "vm/jit/compiler2/InstructionVisitor.hpp"
@@ -39,25 +41,86 @@ namespace compiler2 {
 // forward declarations
 class StackSlotManager;
 class JITData;
-class RegisterFile;
 class MachineBasicBlock;
+class OperandSet;
+
+class RegisterClass {
+public:
+	virtual bool handles_type(Type::TypeID type) const = 0;
+	virtual Type::TypeID default_type() const = 0;
+
+	virtual unsigned count() const = 0;
+	virtual const OperandSet& get_All() const = 0;
+
+	virtual unsigned caller_saved_count() const = 0;
+	virtual const OperandSet& get_CallerSaved() const = 0;
+
+	virtual unsigned callee_saved_count() const = 0;
+	virtual const OperandSet& get_CalleeSaved() const = 0;
+
+	virtual ~RegisterClass() = default;
+};
+
+class RegisterInfo {
+public:
+	RegisterInfo(const RegisterInfo&) = delete;
+	RegisterInfo& operator=(const RegisterInfo&) = delete;
+
+	explicit RegisterInfo(JITData* JD) : JD(JD) {}
+
+	unsigned class_count() const { return classes.size(); };
+	const RegisterClass& get_class(unsigned idx) const {
+		assert(idx < classes.size() && "This RI does not have that many classes!");
+		return *classes[idx];
+	}
+	
+	/// Returns all callee saved registers from all register classes 
+	OperandSet get_AllCalleeSaved() const;
+
+protected:
+	JITData* JD;
+
+	using RegisterClassUPtrTy = std::unique_ptr<RegisterClass>;
+	std::vector<RegisterClassUPtrTy> classes;
+};
+
+template<typename Target>
+class RegisterInfoBase : public RegisterInfo {
+public:
+	RegisterInfoBase(JITData *JD) : RegisterInfo(JD) {}
+};
 
 class Backend : public memory::ManagerMixin<Backend>  {
 private:
 	JITData *JD;
+	RegisterInfo *RI;
 protected:
-	Backend(JITData *JD) : JD(JD) {}
+	Backend(JITData *JD, RegisterInfo *RI) : JD(JD), RI(RI) {}
 public:
 	static Backend* factory(JITData *JD);
-	JITData* get_JITData() const { return JD; };
+	JITData* get_JITData() const { return JD; }
+	RegisterInfo* get_RegisterInfo() const { return RI; }
 
-	//virtual RegisterFile* get_RegisterFile(Type::TypeID type) const = 0;
+	/// Do not confuse this factory with the one from JITData. The JITData factory
+	/// provides ALL non platform specific operands, the native factory only provides
+	/// the concrete platform dependent register operands
+	virtual MachineOperandFactory* get_NativeFactory() const = 0;
+
 	virtual OperandFile& get_OperandFile(OperandFile& OF,MachineOperand *MO) const = 0;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const = 0;
 	virtual MachineInstruction* create_Jump(MachineBasicBlock *target) const = 0;
-	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const = 0;
+	virtual MachineInstruction* create_Swap(MachineOperand *op1, MachineOperand *op2) const = 0;
+	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM, const OperandSet&) const = 0;
+	
+	/// Simple type that ties together a callee saved register with the stack slot it is
+	/// saved to
+	using CalleeSavedRegisters = std::vector<std::pair<MachineOperand*,MachineOperand*>>;
+	virtual void create_prolog(MachineBasicBlock*, const CalleeSavedRegisters&) const = 0;
+	virtual void create_epilog(MachineBasicBlock*, const CalleeSavedRegisters&) const = 0;
+
 	virtual const char* get_name() const = 0;
+	virtual ~Backend() = default;
 };
 /**
  * Machine Backend
@@ -67,13 +130,20 @@ public:
 template <typename Target>
 class BackendBase : public Backend {
 public:
-	BackendBase(JITData *JD) : Backend(JD) {}
-	//virtual RegisterFile* get_RegisterFile(Type::TypeID type) const;
+	BackendBase(JITData *JD, RegisterInfo *RI) : Backend(JD, RI) {}
+
+	virtual MachineOperandFactory* get_NativeFactory() const;
 	virtual OperandFile& get_OperandFile(OperandFile& OF,MachineOperand *MO) const;
 	virtual MachineInstruction* create_Move(MachineOperand *src,
 		MachineOperand* dst) const;
 	virtual MachineInstruction* create_Jump(MachineBasicBlock *target) const;
-	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM) const;
+	virtual MachineInstruction* create_Swap(MachineOperand *op1,
+		MachineOperand* op2) const;
+	virtual void create_frame(CodeMemory* CM, StackSlotManager *SSM, const OperandSet&) const;
+
+	virtual void create_prolog(MachineBasicBlock*, const CalleeSavedRegisters&) const;
+	virtual void create_epilog(MachineBasicBlock*, const CalleeSavedRegisters&) const;
+
 	virtual const char* get_name() const;
 };
 
@@ -108,6 +178,10 @@ protected:
 		assert(op);
 		inst_map[I] = op;
 	}
+
+	// Forward operand factory calls, less typing for lowering visitors
+	VirtualRegister* CreateVirtualRegister(Type::TypeID type);
+	
 public:
 	LoweringVisitorBase(Backend *backend,MachineBasicBlock* current,
 		MapTy &map, InstructionMapTy &inst_map, MachineInstructionSchedule *schedule)

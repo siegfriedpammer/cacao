@@ -41,10 +41,14 @@ check: build run
 build:
 	$(JAVACCMD) -Xbootclasspath/a:$(JUNIT_JAR) -d . $(srcdir)/org/cacaojvm/compiler2/test/*.java
 	$(JAVACCMD) -Xbootclasspath/a:$(JUNIT_JAR) -d . $(srcdir)/org/cacaojvm/compiler2/test/aarch64/*.java
+	$(JAVACCMD) -Xbootclasspath/a:$(JUNIT_JAR) -d . $(srcdir)/org/cacaojvm/compiler2/test/regalloc/*.java
+	
 	
 run:
 	$(JAVACMD) -Xbootclasspath/a:$(JUNIT_JAR):. -DTIMING=$(TIMING) org.cacaojvm.compiler2.test.CacaoJUnitCore org.cacaojvm.compiler2.test.All
 	$(JAVACMD) -Xbootclasspath/a:$(JUNIT_JAR):. -DTIMING=$(TIMING) org.cacaojvm.compiler2.test.CacaoJUnitCore org.cacaojvm.compiler2.test.aarch64.All
+	$(JAVACMD) -Xbootclasspath/a:$(JUNIT_JAR):. -DTIMING=$(TIMING) org.cacaojvm.compiler2.test.CacaoJUnitCore org.cacaojvm.compiler2.test.regalloc.All
+	
 
 ## Local variables:
 ## mode: Makefile

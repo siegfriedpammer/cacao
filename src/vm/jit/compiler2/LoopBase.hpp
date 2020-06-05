@@ -46,11 +46,18 @@ public:
 	typedef _T NodeType;
 	typedef typename alloc::unordered_set<LoopBase*>::type LoopSetTy;
 	typedef typename LoopSetTy::iterator loop_iterator;
+	typedef typename alloc::vector<NodeType*>::type NodeTypeListTy;
+	typedef typename NodeTypeListTy::iterator child_iterator;
 private:
 	NodeType *header;
 	NodeType *exit;
 	LoopBase      *parent;
 	LoopSetTy inner_loops;
+	NodeTypeListTy children;
+
+	/// Maximum register pressure for each register class inside this loop
+	std::vector<unsigned> register_pressures;
+
 public:
 	LoopBase(NodeType *header, NodeType *exit) : header(header), exit(exit), parent(NULL) {}
 	NodeType *get_header() const {
@@ -78,6 +85,17 @@ public:
 		if (outer_loop) {
 			outer_loop->add_inner_loop(this);
 		}
+	}
+	void add_child(NodeType* child) {
+		children.push_back(child);
+	}
+	child_iterator child_begin() { return children.begin(); }
+	child_iterator child_end() { return children.end(); }
+	const std::vector<unsigned> get_register_pressures() const {
+		return register_pressures;
+	}
+	void set_register_pressures(const std::vector<unsigned>& pressures) {
+		register_pressures = pressures;
 	}
 };
 

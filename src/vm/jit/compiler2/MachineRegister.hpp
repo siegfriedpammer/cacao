@@ -25,26 +25,29 @@
 #ifndef _JIT_COMPILER2_MACHINEREGISTER
 #define _JIT_COMPILER2_MACHINEREGISTER
 
-#include "vm/jit/compiler2/MachineOperand.hpp"
+#include <memory>
+
 #include "Target.hpp"
+#include "vm/jit/compiler2/MachineOperand.hpp"
 
 #include "toolbox/logging.hpp"
-
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+/**
+ * A MachineRegister is either a concrete low-level machine register
+ * that is subclassed by a specific backend, or its a TypedNativeRegister that
+ * ties a concrete low-level machine register and a type together, so it can be
+ * used for code emitting
+ */
 class MachineRegister : public Register {
-private:
-	const char *name;
+protected:
+	MachineRegister(Type::TypeID type) : Register(type) {}
+
 public:
-	MachineRegister(const char *name, Type::TypeID type)
-		: Register(type), name(name) {}
 	virtual MachineRegister* to_MachineRegister() { return this; }
-	virtual const char* get_name() const {
-		return name;
-	}
 	virtual NativeRegister* to_NativeRegister() = 0;
 	virtual ~MachineRegister() {}
 
@@ -52,12 +55,44 @@ public:
 	using MachineOperand::id_size;
 };
 
+/**
+ * This represents a machine register usage.
+ *
+ * It consists of a reference to the physical register and a type. This
+ * abstraction is needed because registers can be used several times
+ * with different types, e.g. DH vs. eDX vs. EDX vs. RDX.
+ *
+ * NativeRegister is just a typedef using the backend-specific register
+ * type as the template parameter.
+ */
+template <class T>
+class TypedNativeRegister : public MachineRegister {
+private:
+	T* reg;
+
+	TypedNativeRegister(Type::TypeID type, MachineOperand* reg)
+	    : MachineRegister(type), reg((T*)reg) {}
+
+public:
+	TypedNativeRegister<T>* to_NativeRegister() { return this; }
+	T* get_PlatformRegister() const { return reg; }
+
+	// The following methods are specialized by the specific backends, since
+	// we do not know the concrete type of T, only a forward declaration in Target.hpp
+
+	const char* get_name() const;
+	IdentifyTy id_base() const;
+	IdentifyOffsetTy id_offset() const;
+	IdentifySizeTy id_size() const;
+
+	friend class MachineOperandFactory;
+};
+
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
 #endif /* _JIT_COMPILER2_MACHINEREGISTER */
-
 
 /*
  * These are local overrides for various environment variables in Emacs.

@@ -82,6 +82,7 @@ Method::~Method() {
 void Method::add_Instruction(Instruction* I) {
 	assert(I);
 	I->set_Method(this);
+	I->set_line(current_line);
 	assert(std::find(inst_list.begin(), inst_list.end(),I) == inst_list.end());
 	inst_list.push_back(I);
 }

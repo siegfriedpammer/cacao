@@ -203,6 +203,8 @@ int      opt_RegallocSpillAll             = 0;
 #if defined(ENABLE_REPLACEMENT)
 char*    opt_ReplaceMethod                = NULL;
 char*    opt_OptimizeMethod               = NULL;
+char*    opt_OptimizeClass                = NULL;
+char*    opt_OptimizeSignature            = NULL;
 bool     opt_DisableCountdownTraps        = false;
 #endif
 int      opt_TraceBuiltinCalls            = 0;
@@ -279,7 +281,9 @@ enum {
 	OPT_ProfileMemoryUsageGNUPlot,
 	OPT_RegallocSpillAll,
 	OPT_ReplaceMethod,
+	OPT_OptimizeClass,
 	OPT_OptimizeMethod,
+	OPT_OptimizeSignature,
 	OPT_TestReplacement,
 	OPT_DisableCountdownTraps,
 	OPT_TraceBuiltinCalls,
@@ -355,9 +359,11 @@ option_t options_XX[] = {
 	{ "RegallocSpillAll",             OPT_RegallocSpillAll,             OPT_TYPE_BOOLEAN, "spill all variables to the stack" },
 #if defined(ENABLE_REPLACEMENT)
 	{ "ReplaceMethod",                OPT_ReplaceMethod,                OPT_TYPE_VALUE,   "perform on-stack replacement only for the specified method"},
-	{ "OptimizeMethod",               OPT_OptimizeMethod,               OPT_TYPE_VALUE,   ""},
+	{ "OptimizeClass",                OPT_OptimizeClass,                OPT_TYPE_VALUE,   "use with 'OptimizeMethod' to further restrict what method to optimize"},
+	{ "OptimizeMethod",               OPT_OptimizeMethod,               OPT_TYPE_VALUE,   "try compiler2 for methods with this name"},
+	{ "OptimizeSignature",            OPT_OptimizeSignature,            OPT_TYPE_VALUE,   "use with 'OptimizeMethod' to further restrict what method to optimize"},
 	{ "TestReplacement",              OPT_TestReplacement,              OPT_TYPE_BOOLEAN, "activate all replacement points during code generation" },
-	{ "DisableCountdownTraps",        OPT_DisableCountdownTraps,        OPT_TYPE_BOOLEAN, "" },
+	{ "DisableCountdownTraps",        OPT_DisableCountdownTraps,        OPT_TYPE_BOOLEAN, "don't emit countdown traps" },
 #endif
 	{ "TraceBuiltinCalls",            OPT_TraceBuiltinCalls,            OPT_TYPE_BOOLEAN, "trace calls to VM builtin functions" },
 	{ "TraceCompilerCalls",           OPT_TraceCompilerCalls,           OPT_TYPE_BOOLEAN, "trace JIT compiler calls" },
@@ -830,8 +836,16 @@ void options_xx(JavaVMInitArgs *vm_args)
 			opt_ReplaceMethod = value;
 			break;
 
+		case OPT_OptimizeClass:
+			opt_OptimizeClass = value;
+			break;
+
 		case OPT_OptimizeMethod:
 			opt_OptimizeMethod = value;
+			break;
+
+		case OPT_OptimizeSignature:
+			opt_OptimizeSignature = value;
 			break;
 
 		case OPT_DisableCountdownTraps:

@@ -25,111 +25,16 @@
 #ifndef _JIT_COMPILER2_DOMINATORPASS
 #define _JIT_COMPILER2_DOMINATORPASS
 
-#include "vm/jit/compiler2/Pass.hpp"
-#include "vm/jit/compiler2/JITData.hpp"
-
-#include "vm/jit/compiler2/alloc/set.hpp"
-#include "vm/jit/compiler2/alloc/map.hpp"
-#include "vm/jit/compiler2/alloc/vector.hpp"
-
-MM_MAKE_NAME(DominatorPass)
+#include "vm/jit/compiler2/DominatorPassBase.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-class DominatorTree {
-public:
-	typedef BeginInst NodeTy;
-	typedef alloc::map<NodeTy*, NodeTy*>::type EdgeMapTy;
-protected:
-	EdgeMapTy dom;
-public:
-	/**
-	 * True if a dominates b.
-	 */
-	bool dominates(NodeTy *a, NodeTy *b) const;
-	/**
-	 * True if b is dominated by b.
-	 */
-	inline bool is_dominated_by(NodeTy *b, NodeTy *a) const {
-		return dominates(a,b);
-	}
-
-	/**
-	 * Get the immediate dominator.
-	 *
-	 * @return the immediate dominator or NULL if it is the starting node of
-	 *         the dominator tree (and if a is not in the tree).
-	 */
-	inline NodeTy* get_idominator(NodeTy *a) const {
-		EdgeMapTy::const_iterator i = dom.find(a);
-		if (i == dom.end())
-			return NULL;
-		return i->second;
-	}
-
-	/**
-	 * Find the nearest common dominator.
-	 */
-	NodeTy* find_nearest_common_dom(NodeTy *a, NodeTy *b) const;
-
-	/**
-	 * Depth of a tree node.
-	 *
-	 * The depth is defined as the length of the path from the node to the
-	 * root. The depth of the root is 0.
-	 */
-	int depth(NodeTy *node) const {
-		int d = 0;
-		while ( (node = get_idominator(node)) != NULL) {
-			++d;
-		}
-		return d;
-	}
-};
-
-/**
- * Calculate the Dominator Tree.
- *
- * This Pass implements the algorithm proposed by Lengauer and Tarjan.
- * The variable and function are named accoring to the paper. Currently the
- * 'simple' version is implemented. The 'sophisticated' version is left
- * for future work.
- *
- * A Fast Algorithm for Finding Dominators in a Flowgraph, by Lengauer
- * and Tarjan, 1979 @cite Lengauer1979.
- */
-class DominatorPass : public Pass, public memory::ManagerMixin<DominatorPass> , public DominatorTree {
-private:
-	typedef BeginInst NodeTy;
-	typedef alloc::set<NodeTy *>::type NodeListTy;
-	typedef alloc::map<NodeTy *,NodeListTy>::type NodeListMapTy;
-	typedef alloc::vector<NodeTy *>::type NodeMapTy;
-	typedef alloc::map<NodeTy *,int>::type IndexMapTy;
-	typedef alloc::map<NodeTy *,NodeTy *>::type EdgeMapTy;
-
-	EdgeMapTy parent;
-	NodeListMapTy pred;
-	IndexMapTy semi;
-	NodeMapTy vertex;
-	NodeListMapTy bucket;
-	int n;
-
-	EdgeMapTy ancestor;
-	EdgeMapTy label;
-
-	NodeListTy& succ(NodeTy *v, NodeListTy &list);
-	void DFS(NodeTy * v);
-
-	void Link(NodeTy *v, NodeTy *w);
-	NodeTy* Eval(NodeTy *v);
-	void Compress(NodeTy *v);
-public:
-	DominatorPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
-};
+using DominatorTree = DominatorTreeBase<BeginInst>;
+using DominatorPass = DominatorPassBase<BeginInst, EndInst::succ_const_iterator>;
+	
+MM_CLASS_NAME(DominatorPass)
 
 } // end namespace compiler2
 } // end namespace jit

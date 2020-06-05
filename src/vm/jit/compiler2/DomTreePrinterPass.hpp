@@ -43,15 +43,11 @@ class DomTreePrinterPass : public Pass, public memory::ManagerMixin<DomTreePrint
 public:
 	static Option<bool> enabled;
 	DomTreePrinterPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
 
-    virtual bool is_enabled() const {
+    bool is_enabled() const override {
         return DomTreePrinterPass::enabled;
-    }
-
-    virtual bool force_scheduling() const {
-        return true;
     }
 };
 

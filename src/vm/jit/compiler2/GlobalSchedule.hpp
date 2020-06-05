@@ -27,6 +27,7 @@
 
 #include "vm/jit/compiler2/Instruction.hpp"
 #include "vm/jit/compiler2/MethodC2.hpp"
+#include "vm/jit/compiler2/Pass.hpp"
 #include "vm/jit/compiler2/alloc/unordered_set.hpp"
 #include "vm/jit/compiler2/alloc/unordered_map.hpp"
 
@@ -39,7 +40,7 @@ namespace compiler2 {
  * GlobalSchedule
  * TODO: more info
  */
-class GlobalSchedule {
+class GlobalSchedule : public Artifact {
 public:
 	typedef alloc::unordered_set<Instruction*>::type::const_iterator const_inst_iterator;
 protected:

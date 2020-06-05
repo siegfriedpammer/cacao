@@ -83,7 +83,8 @@ public:
 } // end anonymous namespace
 
 PassUsage& DomTreePrinterPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<DominatorPass>();
+	PU.requires<DominatorPass>();
+	PU.immediately_after<DominatorPass>();
 	return PU;
 }
 
@@ -122,7 +123,7 @@ std::string get_filename(methodinfo *m, jitdata *jd, std::string prefix, std::st
 // run pass
 bool DomTreePrinterPass::run(JITData &JD) {
 	// get dominator tree
-	DominatorTree *DT = get_Pass<DominatorPass>();
+	DominatorTree *DT = get_Artifact<DominatorPass>();
 	assert(DT);
 	std::string name = get_filename(JD.get_jitdata()->m,JD.get_jitdata(),"domtree_");
 	GraphPrinter<DomTreeGraph>::print(name.c_str(), DomTreeGraph(*(JD.get_Method()),*DT));

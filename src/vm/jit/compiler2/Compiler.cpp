@@ -30,6 +30,7 @@
 #include "vm/statistics.hpp"
 #include "vm/jit/cfg.hpp"
 #include "vm/jit/code.hpp"
+#include "vm/jit/ir/instruction.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/parse.hpp"
 #include "vm/jit/show.hpp"
@@ -49,7 +50,6 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 
 #include "vm/jit/compiler2/ICMDPrinterPass.hpp"
-#include "vm/jit/compiler2/InstructionMetaPass.hpp"
 #include "vm/jit/compiler2/ParserPass.hpp"
 #include "vm/jit/compiler2/StackAnalysisPass.hpp"
 # if defined(ENABLE_VERIFIER)
@@ -65,8 +65,7 @@
 #include "vm/jit/compiler2/DomTreePrinterPass.hpp"
 #include "vm/jit/compiler2/BasicBlockSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
-#include "vm/jit/compiler2/LivetimeAnalysisPass.hpp"
-#include "vm/jit/compiler2/LinearScanAllocatorPass.hpp"
+#include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/LoopPass.hpp"
 #include "vm/jit/compiler2/LoopTreePrinterPass.hpp"
 #include "vm/jit/compiler2/LoopSimplificationPass.hpp"
@@ -79,6 +78,8 @@
 #include "vm/jit/compiler2/DeadCodeEliminationPass.hpp"
 #include "vm/jit/compiler2/ConstantPropagationPass.hpp"
 #include "vm/jit/compiler2/GlobalValueNumberingPass.hpp"
+
+#include "vm/jit/compiler2/treescan/LivetimeAnalysisPass.hpp"
 
 #include "vm/jit/compiler2/JITData.hpp"
 
@@ -116,7 +117,7 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-#define DEBUG_NAME "compiler2"
+#define DEBUG_NAME "compiler2/Compiler"
 
 Option<bool> enabled("DebugCompiler2","compiler with compiler2",false,option::xx_root());
 
@@ -125,6 +126,12 @@ MachineCode* compile(methodinfo* m)
 
 	// reset instructions
 	Instruction::reset();
+
+	// Currently we do not handle synchronized methods, since the monitors are not
+	// emitted
+	if (m->flags & ACC_SYNCHRONIZED) {
+		throw std::runtime_error("Compiler.cpp: Method is flaged as synchronized, monitor enter/exit not implemented in c2!");
+	}
 
 	LOG(bold << bold << "Compiler Start: " << reset_color << *m << nl);
 
@@ -141,7 +148,7 @@ MachineCode* compile(methodinfo* m)
 	/* set the current optimization level to the previous one plus 1 */
 
 	u1 optlevel = (jd->m->code) ? jd->m->code->optlevel : 0;
-	jd->code->optlevel = optlevel + 1;
+	jd->code->optlevel = optlevel + 2;
 
 	/* now call internal compile function */
 
@@ -223,10 +230,6 @@ MachineCode* compile(methodinfo* m)
 /** prolog end jit_compile_intern **/
 /*****************************************************************************/
 
-	/* set the previous code version */
-
-	code->prev = m->code;
-
 	/* run the compiler2 passes */
 
 	PassRunner runner;
@@ -235,9 +238,8 @@ MachineCode* compile(methodinfo* m)
 	assert(code);
 	assert(code->entrypoint);
 
-
-	m->code = code;
 	u1 *entrypoint = JD.get_jitdata()->code->entrypoint;
+	
 /*****************************************************************************/
 /** epilog  start jit_compile **/
 /*****************************************************************************/
@@ -258,14 +260,129 @@ MachineCode* compile(methodinfo* m)
 		compilingtime_stop();
 #endif
 
+	code->prev = m->code;
+	m->code = code;
+
 	// Hook point just after code was generated.
 	Hook::jit_generated(m, m->code);
+
+	
 
 	LOG(bold << bold << "Compiler End: " << reset_color << *m << nl);
 
 	/* return pointer to the methods entry point */
-
 	return entrypoint;
+}
+
+bool can_possibly_compile(void* jd_ptr)
+{
+	jitdata *jd = (jitdata*) jd_ptr;
+	methodinfo *m = jd->m;
+
+	// Currently we do not handle synchronized methods, since the monitors are
+	// not emitted.
+	if (m->flags & ACC_SYNCHRONIZED) return false;
+
+	// Native methods are handled correctly anyway.
+	if (m->flags & ACC_NATIVE) return true;
+
+	// The method sun/nio/cs/StandardCharsets$Aliases.init
+	// is only called once and takes too long to compile with the second stage.
+	// So we skip it here :-)
+	if (m->clazz && m->clazz->name.equals("sun/nio/cs/StandardCharsets$Aliases")
+	    	&& m->name.equals("init"))
+		return false;
+
+	// This method has a bug during compilation, skip it.
+	if (m->clazz && m->clazz->name.equals("com/sun/tools/javac/util/Messages"))
+		return false;
+
+	basicblock *bb;
+	FOR_EACH_BASICBLOCK(jd,bb) {
+	
+	instruction *iptr;
+	FOR_EACH_INSTRUCTION(bb,iptr) {
+		switch (iptr->opc) {
+			case ICMD_CHECKNULL:
+			case ICMD_ISHL:
+			case ICMD_LSHL:
+			case ICMD_ISHR:
+			case ICMD_LSHR:
+			case ICMD_IUSHR:
+			case ICMD_LUSHR:
+			case ICMD_IMULPOW2:
+			case ICMD_IDIVPOW2:
+			case ICMD_IREMPOW2:
+			case ICMD_IANDCONST:
+			case ICMD_IORCONST:
+			case ICMD_IXORCONST:
+			case ICMD_ISHLCONST:
+			case ICMD_ISHRCONST:
+			case ICMD_IUSHRCONST:
+			case ICMD_LSHLCONST:
+			case ICMD_LSHRCONST:
+			case ICMD_LUSHRCONST:
+			case ICMD_RET:
+			case ICMD_CHECKCAST:
+			case ICMD_INSTANCEOF:
+			case ICMD_JSR:
+			case ICMD_ATHROW:
+			case ICMD_GETEXCEPTION:
+			case ICMD_LMULPOW2:
+			case ICMD_LDIVPOW2:
+			case ICMD_LREMPOW2:
+			case ICMD_LORCONST:
+			case ICMD_LXORCONST:
+				return false;
+
+			// Array loads/stores cause more bugs at the moment,
+			// so we disable them for now.
+			case ICMD_IALOAD:
+			case ICMD_SALOAD:
+			case ICMD_BALOAD:
+			case ICMD_CALOAD:
+			case ICMD_LALOAD:
+			case ICMD_DALOAD:
+			case ICMD_FALOAD:
+			case ICMD_AALOAD:
+			case ICMD_IASTORE:
+			case ICMD_SASTORE:
+			case ICMD_BASTORE:
+			case ICMD_CASTORE:
+			case ICMD_LASTORE:
+			case ICMD_DASTORE:
+			case ICMD_FASTORE:
+			case ICMD_AASTORE:
+			case ICMD_BASTORECONST:
+			case ICMD_CASTORECONST:
+			case ICMD_SASTORECONST:
+			case ICMD_AASTORECONST:
+			case ICMD_IASTORECONST:
+			case ICMD_LASTORECONST:
+				return false;
+
+			case ICMD_INVOKESPECIAL:
+			case ICMD_INVOKESTATIC:
+				{
+					// Only check if the instruction is resolved yet, otherwise
+					// we might still be able to compile.
+					if (INSTRUCTION_IS_RESOLVED(iptr)) {
+						constant_FMIref *fmiref = nullptr;
+						INSTRUCTION_GET_METHODREF(iptr, fmiref);
+
+						// Compiler2 can't invoke native methods.
+						if (fmiref && fmiref->p.method->flags & ACC_NATIVE) return false;
+					}
+				}
+			default: 
+				// Do nothing, we can handle this.
+				break;
+		}
+	}
+
+	}
+
+	return true;
 }
 
 } // end namespace cacao

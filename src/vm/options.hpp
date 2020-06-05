@@ -214,7 +214,9 @@ extern FILE    *opt_ProfileMemoryUsageGNUPlot;
 extern int      opt_RegallocSpillAll;
 #if defined(ENABLE_COMPILER2)
 extern char    *opt_ReplaceMethod;
+extern char    *opt_OptimizeClass;
 extern char    *opt_OptimizeMethod;
+extern char    *opt_OptimizeSignature;
 extern bool     opt_DisableCountdownTraps;
 #endif
 extern int      opt_TraceBuiltinCalls;

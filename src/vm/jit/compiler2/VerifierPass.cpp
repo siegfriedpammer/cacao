@@ -26,6 +26,7 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
+#include "vm/jit/compiler2/CFGConstructionPass.hpp"
 #include "vm/jit/compiler2/StackAnalysisPass.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/verify/typecheck.hpp"
@@ -51,7 +52,8 @@ bool VerifierPass::run(JITData &JD) {
 }
 
 PassUsage& VerifierPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<StackAnalysisPass>();
+	PU.after<StackAnalysisPass>();
+	PU.before<CFGConstructionPass>();
 	return PU;
 }
 

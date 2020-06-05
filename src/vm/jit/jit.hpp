@@ -30,6 +30,7 @@
 #include "arch.hpp"                     // for JIT_COMPILER_VIA_SIGNAL
 #include "config.h"                     // for ENABLE_SSA, ENABLE_INLINING, etc
 #include "vm/jit/ir/icmd.hpp"
+#include "vm/jit/executionstate.hpp"
 #include "vm/jit/optimizing/lsra.hpp"   // for lsradata
 #include "vm/jit/reg.hpp"               // for varinfo
 #include "vm/jit/stack.hpp"             // for PREALLOC
@@ -477,6 +478,8 @@ u1 *jit_recompile_for_deoptimization(methodinfo *m);
 void jit_invalidate_code(methodinfo *m);
 codeinfo *jit_get_current_code(methodinfo *m);
 void jit_request_optimization(methodinfo *m);
+
+u1 *jit_optimize_without_replace(u1* xpc, void *pv, void *ra, void *mptr);
 
 /* patch the method entrypoint */
 #if !defined(JIT_COMPILER_VIA_SIGNAL)

@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_MACHINEINSTRUCTIONS
 
 #include "vm/jit/compiler2/MachineInstruction.hpp"
+#include "vm/jit/compiler2/MachineOperandFactory.hpp"
 #include "vm/jit/compiler2/DataSegment.hpp"
 
 namespace cacao {
@@ -50,12 +51,13 @@ class MachinePhiInst : public MachineInstruction {
 private:
 	PHIInst *phi;
 public:
-	MachinePhiInst(unsigned num_operands, Type::TypeID type, PHIInst* phi)
-			: MachineInstruction("MPhi", new VirtualRegister(type),
+	MachinePhiInst(unsigned num_operands, Type::TypeID type, PHIInst* phi, MachineOperandFactory* MOF)
+			: MachineInstruction("MPhi", MOF->CreateVirtualRegister(type),
 			  num_operands), phi(phi) {
 		for(unsigned i = 0; i < num_operands; ++i) {
-			operands[i].op = new UnassignedReg(type);
+			operands[i].op = MOF->CreateUnassignedReg(type);
 		}
+		get_result().op->set_defining_instruction(this);
 	}
 
 	virtual bool is_phi() const {
@@ -71,6 +73,19 @@ public:
 		return phi;
 	}
 };
+
+/// Simple META instruction that can be used to define value.
+/// It does emit nothing.
+/// Currently used by TrapInstructions that do not have fixed
+/// register.
+class MachineDefInst : public MachineInstruction {
+public:
+	MachineDefInst(Type::TypeID type, MachineOperandFactory* MOF)
+		: MachineInstruction("MDef", MOF->CreateVirtualRegister(type), 0) {}
+	
+	virtual void emit(CodeMemory* CM) const {};
+};
+
 #if 0
 class MachineConstInst : public MachineInstruction {
 public:
@@ -293,7 +308,11 @@ public:
 class MachineDeoptInst : public MachineReplacementPointInst {
 public:
 	MachineDeoptInst(s4 source_id, std::size_t num_operands)
-		: MachineReplacementPointInst("MDeopt", source_id, num_operands) {}
+		: MachineReplacementPointInst("MDeopt", source_id, num_operands) {
+#if defined(ENABLE_COUNTDOWN_TRAPS)
+			throw std::runtime_error("No MachineDeoptInst supported!");
+#endif
+		}
 	virtual void emit(CodeMemory* CM) const {};
 	virtual void link(CodeFragment &CF) const {};
 

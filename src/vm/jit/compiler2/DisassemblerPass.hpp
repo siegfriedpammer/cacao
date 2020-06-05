@@ -43,10 +43,10 @@ class DisassemblerPass : public Pass, public memory::ManagerMixin<DisassemblerPa
 public:
 	static Option<bool> enabled;
 	DisassemblerPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
 
-    virtual bool is_enabled() const {
+    bool is_enabled() const override {
         return DisassemblerPass::enabled || opt_showdisassemble;
     }
 

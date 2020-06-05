@@ -56,6 +56,7 @@ class CONSTInst;
 
 class MachineOperandDesc;
 class MachineOperand;
+class MachineInstruction;
 
 class EmbeddedMachineOperand : public memory::ManagerMixin<EmbeddedMachineOperand> {
 public:
@@ -85,11 +86,16 @@ public:
 	typedef alloc::vector<EmbeddedMachineOperand>::type embedded_operand_list;
 	typedef embedded_operand_list::iterator operand_iterator;
 	typedef embedded_operand_list::const_iterator const_operand_iterator;
+
+	friend class MachineOperandFactory;
+
 private:
 	static std::size_t id_counter;
 	std::size_t id;
 	OperandID op_id;
 	Type::TypeID type;
+	MachineInstruction* defining_instruction; ///< Only used by MachinePhiInsts (needed in SpillPhase)
+	void set_id(std::size_t new_id) { id = new_id; } ///< Used by the factory to assign IDs
 protected:
 	/**
 	 * TODO describe
@@ -98,14 +104,17 @@ protected:
 	virtual IdentifyTy id_base()         const { return static_cast<IdentifyTy>(this); }
 	virtual IdentifyOffsetTy id_offset() const { return 0; }
 	virtual IdentifySizeTy id_size()     const { return 1; }
-public:
-	std::size_t get_id() const { return id; }
 
 	explicit MachineOperand(OperandID op_id, Type::TypeID type)
 		: id(id_counter++), op_id(op_id), type(type), embedded_operands() {}
 
+public:
+	static std::size_t get_id_counter() { return id_counter; }
+	std::size_t get_id() const { return id; }
+
 	OperandID get_OperandID() const { return op_id; }
 	Type::TypeID get_type() const { return type; }
+	void set_type(Type::TypeID newt) { type = newt; }
 
 	virtual const char* get_name() const  = 0;
 
@@ -197,6 +206,13 @@ public:
 	virtual OStream& print(OStream &OS) const {
 		return OS << get_name() /* << " (" << get_type() << ")" */;
 	}
+
+	MachineInstruction* get_defining_instruction() {
+		return defining_instruction;
+	}
+	void set_defining_instruction(MachineInstruction* instruction) {
+		defining_instruction = instruction;
+	}
 };
 
 class VoidOperand : public MachineOperand {
@@ -214,8 +230,10 @@ class MachineRegister;
 class MachineAddress;
 
 class Register : public MachineOperand {
-public:
+protected:
 	Register(Type::TypeID type) : MachineOperand(RegisterID, type) {}
+
+public:
 	virtual const char* get_name() const {
 		return "Register";
 	}
@@ -229,50 +247,59 @@ public:
 
 
 class UnassignedReg : public Register {
-public:
+private:
 	UnassignedReg(Type::TypeID type) : Register(type) {}
+
+public:
 	virtual const char* get_name() const {
 		return "UnassignedReg";
 	}
 	virtual UnassignedReg* to_UnassignedReg()     { return this; }
+
+	friend class MachineOperandFactory;
 };
 
 class VirtualRegister : public Register {
 private:
 	static unsigned vreg_counter;
 	const unsigned vreg;
-public:
+
 	VirtualRegister(Type::TypeID type) : Register(type),
 		vreg(vreg_counter++) {}
-
+public:
 	virtual VirtualRegister* to_VirtualRegister() { return this; }
 	virtual const char* get_name() const {
 		return "vreg";
 	}
 	virtual OStream& print(OStream &OS) const {
-		return MachineOperand::print(OS) << get_id();
+		return MachineOperand::print(OS) << vreg;
 	}
 	virtual bool is_virtual() const { return true; }
-	unsigned get_id() const { return vreg; }
+	// unsigned get_id() const { return vreg; }
+	friend class MachineOperandFactory;
 };
 
 class StackSlot : public MachineOperand {
 private:
 	int index; ///< index of the stackslot
-public:
+	bool leaf; ///< the emitter needs to know if its a leaf stack frame
 	/**
 	 * @param index  index of the stackslot
 	 */
-	StackSlot(int index, Type::TypeID type)
-		: MachineOperand(StackSlotID, type), index(index) {}
+	StackSlot(int index, Type::TypeID type, bool is_leaf = false)
+	: MachineOperand(StackSlotID, type), index(index), leaf(is_leaf) {}
+public:
 	virtual StackSlot* to_StackSlot() { return this; }
 	int get_index() const { return index; }
+	bool is_leaf() const { return leaf; }
 	virtual const char* get_name() const {
 		return "StackSlot";
 	}
 	virtual OStream& print(OStream &OS) const {
 		return MachineOperand::print(OS) << get_index();
 	}
+
+	friend class MachineOperandFactory;
 };
 
 /**
@@ -358,7 +385,7 @@ public:
 		return MachineOperand::print(OS) << get_id();
 	}
 
-	friend class StackSlotManager;
+	friend class MachineOperandFactory;
 };
 
 class Immediate : public MachineOperand {
@@ -506,6 +533,17 @@ struct MachineOperandComp : public std::binary_function<MachineOperand*,MachineO
 
 typedef alloc::list<MachineOperand*>::type OperandFile;
 
+class MachineRegisterRequirement {
+public:
+	MachineRegisterRequirement(MachineOperand* required_reg) : required(required_reg) {}
+
+	virtual MachineOperand* get_required() { return required; }
+	virtual ~MachineRegisterRequirement() = default;
+	
+private:
+	MachineOperand* required;
+};
+using MachineRegisterRequirementUPtrTy = std::unique_ptr<MachineRegisterRequirement>;
 
 } // end namespace compiler2
 } // end namespace jit

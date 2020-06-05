@@ -49,9 +49,13 @@ private:
 	Method *M;
 public:
 	ScheduleClickPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
-	virtual bool verify() const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
+	bool verify() const override;
+
+	ScheduleClickPass* provide_Artifact(ArtifactInfo::IDTy) override {
+		return this;
+	}
 };
 
 } // end namespace compiler2

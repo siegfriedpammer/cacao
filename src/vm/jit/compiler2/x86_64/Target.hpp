@@ -35,17 +35,29 @@ namespace compiler2 {
 namespace x86_64 {
 
 // forward declarations
-class NativeRegister;
+// class NativeRegister;
 class NativeAddress;
 class X86_64LoweringVisitor;
+class X86_64Register;
 
 } // end namespace x86_64
 
+template<class T> class TypedNativeRegister;
+
 // typedefs
 typedef x86_64::X86_64 Target;
-typedef x86_64::NativeRegister NativeRegister;
+typedef TypedNativeRegister<x86_64::X86_64Register> NativeRegister;
 typedef x86_64::NativeAddress NativeAddress;
 typedef x86_64::X86_64LoweringVisitor LoweringVisitor;
+
+// We need to put the template specialization here, because
+// Backend.cpp needs to see this.
+// The constructor implementation can be found in X86_64Register.cpp
+template<>
+class RegisterInfoBase<Target> : public RegisterInfo {
+public:
+	explicit RegisterInfoBase(JITData* JD);
+};
 
 } // end namespace compiler2
 } // end namespace jit

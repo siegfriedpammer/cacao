@@ -42,8 +42,8 @@ namespace compiler2 {
 class StackAnalysisPass : public Pass, public memory::ManagerMixin<StackAnalysisPass> {
 public:
 	StackAnalysisPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
 };
 
 } // end namespace compiler2

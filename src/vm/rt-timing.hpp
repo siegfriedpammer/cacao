@@ -198,17 +198,16 @@
 
 #if defined(ENABLE_RT_TIMING)
 
-#include <ctime>
+#include <chrono>
 #include <cstdlib>
 #include <cerrno>
-
-#include "vm/types.hpp"
+#include <vector>
+#include <deque>
 
 #include "mm/memory.hpp"
-
-#include "vm/global.hpp"
-
 #include "toolbox/logging.hpp"
+#include "vm/global.hpp"
+#include "vm/types.hpp"
 
 // debugging macro
 // @note: LOG* can not be used because opt_DebugName is not initialized
@@ -218,154 +217,12 @@
 #define _RT_LOG(expr)
 #endif
 
-//namespace {
-#ifdef __DARWIN__
-#include <mach/mach.h>
-#include <mach/mach_time.h>
-#endif
-#if 0
-/**
- * @note: http://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
- */
-inline timespec operator-(const timespec &a, timespec b) {
-	timespec result;
-	/* Perform the carry for the later subtraction by updating b. */
-	if (a.tv_nsec < b.tv_nsec) {
-		int xsec = (b.tv_nsec - a.tv_nsec) / 1000000000L + 1;
-		b.tv_nsec -= 1000000000L * xsec;
-		b.tv_sec += xsec;
-	}
-	if (a.tv_nsec - b.tv_nsec > 1000000000L) {
-		int xsec = (a.tv_nsec - b.tv_nsec) / 1000000000L;
-		b.tv_nsec += 1000000000L * xsec;
-		b.tv_sec -= xsec;
-	}
-
-	/* Compute the time remaining to wait. tv_usec is certainly positive. */
-	result.tv_sec = a.tv_sec - b.tv_sec;
-	result.tv_nsec = a.tv_nsec - b.tv_nsec;
-
-	return result;
-}
-
-inline timespec operator+(const timespec a, const timespec &b) {
-	timespec result;
-	result.tv_sec = a.tv_sec + b.tv_sec;
-	result.tv_nsec = a.tv_nsec + b.tv_nsec;
-	if (result.tv_nsec > 1000000000L) {
-		result.tv_nsec -= 1000000000L;
-		result.tv_sec ++;
-	}
-
-	return result;
-}
-#endif
-
-inline void operator+=(timespec &result, const timespec &b) {
-	result.tv_sec += b.tv_sec;
-	result.tv_nsec += b.tv_nsec;
-	if (result.tv_nsec > 1000000000L) {
-		result.tv_nsec -= 1000000000L;
-		result.tv_sec ++;
-	}
-}
-
-inline timespec operator/(const timespec &a, const int b) {
-	long int r; // remainder
-	timespec result;
-
-	if (b==0) {
-		result.tv_sec = -1;
-		result.tv_nsec = -1;
-		return result;
-	}
-
-	r = a.tv_sec % b;
-	result.tv_sec = a.tv_sec / b;
-	result.tv_nsec = r * 1000000000L / b;
-	result.tv_nsec += a.tv_nsec / b;
-
-	return result;
-}
-
-/**
- * @note: this is not accurate
- */
-inline long int operator/(const timespec &a, const timespec &b) {
-	if (a.tv_sec != 0) {
-		if (b.tv_sec == 0) {
-			return -1;
-		} else {
-			return a.tv_sec / b.tv_sec;
-		}
-	} else {
-		if (b.tv_nsec == 0) {
-			return -1;
-		} else {
-			return a.tv_nsec / b.tv_nsec;
-		}
-	}
-}
-
-inline bool operator==(const timespec &a, const timespec &b) {
-	return (a.tv_sec == b.tv_sec) && (a.tv_nsec == b.tv_nsec);
-}
-//} // end anonymous namespace
-
 namespace cacao {
-namespace {
-inline OStream& operator<<(OStream &ostr, timespec ts) {
-	const char *unit;
-	if (ts.tv_sec >= 10) {
-		// display seconds if at least 10 sec
-		ostr << ts.tv_sec;
-		unit = "sec";
-	} else {
-		ts.tv_nsec += ts.tv_sec * 1000000000L;
-		if (ts.tv_nsec >= 100000000) {
-			// display milliseconds if at least 100ms
-			ostr << ts.tv_nsec/1000000;
-			unit = "msec";
-		} else {
-			// otherwise display microseconds
-			ostr << ts.tv_nsec/1000;
-			unit = "usec";
-		}
-	}
-	ostr << setw(5) << unit;
-	return ostr;
-}
 
-#ifndef __DARWIN__
-inline void rt_timing_gettime_inline(timespec &ts) {
-	if (clock_gettime(CLOCK_THREAD_CPUTIME_ID,&ts) != 0) {
-		fprintf(stderr,"could not get time by clock_gettime: %s\n",strerror(errno));
-		abort();
-	}
-}
-#endif
+using DurationTy = std::chrono::nanoseconds;
 
-inline long rt_timing_diff_usec_inline(const timespec &a, const timespec &b)
-{
-	long diff;
-	time_t atime;
+OStream& operator<<(OStream &ostr, DurationTy ts);
 
-	diff = (b.tv_nsec - a.tv_nsec) / 1000;
-	atime = a.tv_sec;
-	while (atime < b.tv_sec) {
-		atime++;
-		diff += 1000000;
-	}
-	return diff;
-}
-
-} // end anonymous namespace
-} // end namespace cacao
-
-#include <vector>
-#include <deque>
-
-namespace cacao {
 
 /**
  * @addtogroup rt-timing
@@ -384,21 +241,17 @@ protected:
 
 	typedef std::deque<const RTEntry*> RtStack;
 
-	void print_csv_entry(OStream &O,RtStack &s,timespec ts) const {
+	void print_csv_entry(OStream &O,RtStack &s, DurationTy ts) const {
 		for(RtStack::const_iterator i = s.begin(), e = s.end() ; i != e; ++i) {
 			O << (*i)->name << '.';
 		}
 		O << name << ';' << description << ';';
-		if (ts.tv_sec) {
-			O << ts.tv_sec << cacao::setz(9) << ts.tv_nsec;
-		}
-		else {
-			O << ts.tv_nsec;
-		}
+		O << ts;
 		O << cacao::nl;
 	}
+
 public:
-	static timespec invalid_ts;   //< invalid time stamp
+
 	/**
 	 * Constructor.
 	 */
@@ -417,7 +270,7 @@ public:
 	 * @param[in]     ref   time reference. Used to calculate percentage .
 	 *	Normally the time of the parent.
 	 */
-	virtual void print(OStream &O,timespec ref) const = 0;
+	virtual void print(OStream &O, DurationTy ref) const = 0;
 	void print_csv(OStream &O) const {
 		RtStack s;
 		print_csv_intern(O,s);
@@ -430,8 +283,7 @@ public:
 	/**
 	 * Get the elapsed time of a RTEntry.
 	 */
-	virtual timespec time() const = 0;
-
+	virtual DurationTy time() const = 0;
 };
 
 /**
@@ -477,8 +329,8 @@ public:
 		members.push_back(re);
 	}
 
-	virtual timespec time() const {
-		timespec time = {0,0};
+	virtual DurationTy time() const override {
+		DurationTy time(0);
 		for(RTEntryList::const_iterator i = members.begin(), e = members.end(); i != e; ++i) {
 			RTEntry* re = *i;
 			time += re->time();
@@ -486,10 +338,12 @@ public:
 		return time;
 	}
 
-	virtual void print(OStream &O,timespec ref = invalid_ts) const {
-		timespec duration = time();
-		if (ref == invalid_ts)
+	virtual void print(OStream &O,DurationTy ref = DurationTy::zero()) const override {
+		auto duration = time();
+		if (ref == DurationTy::zero()) {
 			ref = duration;
+		}
+
 		// O << setw(10) << left << name << right <<"   " << description << nl;
 		//O << indent;
 		for(RTEntryList::const_iterator i = members.begin(), e = members.end(); i != e; ++i) {
@@ -505,7 +359,7 @@ public:
 		  << reset_color
 		  << nl<< nl;
 	}
-	virtual void print_csv_intern(OStream &O,RtStack &s) const {
+	virtual void print_csv_intern(OStream &O,RtStack &s) const override {
 		s.push_back(this);
 		for(RTEntryList::const_iterator i = members.begin(), e = members.end(); i != e; ++i) {
 			RTEntry* re = *i;
@@ -523,12 +377,8 @@ public:
  */
 class RTTimer : public RTEntry {
 private:
-#ifdef __DARWIN__
-	uint64_t startstamp;
-#else
-	timespec startstamp;  //< start timestamp
-#endif
-	long int duration;    //< time in usec
+	std::chrono::time_point<std::chrono::steady_clock> startstamp;  //< start timestamp
+	DurationTy duration;    //< time in nanosec
 public:
 	/// dummy constructor
 	RTTimer() : RTEntry() {}
@@ -556,11 +406,7 @@ public:
 	 * @see stop()
 	 */
 	inline void start() {
-#ifdef __DARWIN__
-		startstamp = mach_absolute_time();
-#else
-		rt_timing_gettime_inline(startstamp);
-#endif
+		startstamp = std::chrono::steady_clock::now();
 	}
 
 	/**
@@ -569,48 +415,32 @@ public:
 	 * @see start()
 	 */
 	inline void stop() {
-#ifdef __DARWIN__
-		static mach_timebase_info_data_t sTimebaseInfo;
-		uint64_t elapsed, nano;
-
-		if ( sTimebaseInfo.denom == 0 ) {
-        	(void) mach_timebase_info(&sTimebaseInfo);
-    	}
-
-		elapsed = mach_absolute_time() - startstamp;
-		nano = elapsed * sTimebaseInfo.numer / sTimebaseInfo.denom;
-		duration += (nano / 1000);
-#else
-		timespec stopstamp;
-		rt_timing_gettime_inline(stopstamp);
-		duration += rt_timing_diff_usec_inline(startstamp,stopstamp);
-#endif
+		auto stopstamp = std::chrono::steady_clock::now();
+		duration += (stopstamp - startstamp);
 	}
 
-	virtual timespec time() const {
-		timespec ts;
-		int sec = duration/1000000;
-		ts.tv_sec = sec;
-		ts.tv_nsec = (duration - sec * 1000000) * 1000;
-		return ts;
+	DurationTy time() const override {
+		return duration;
 	}
 
-	virtual void print(OStream &O,timespec ref = invalid_ts) const {
-		timespec ts = time();
+	void print(OStream &O, DurationTy ref = DurationTy::zero()) const override {
 		int percent;
 
-		if (ref == invalid_ts) {
+		if (ref == DurationTy::zero()) {
 			percent = -1;
 		} else {
-			percent = ts / (ref / 100);
+			percent = duration / (ref / 100);
 		}
 
-		O << setw(10) << ts.tv_nsec/1000 << " usec "
+		std::chrono::microseconds micro = std::chrono::duration_cast<std::chrono::microseconds>(duration);
+
+		O << setw(10) << micro.count() << " usec "
 		  << setw(4) << percent << "% "
 		  << setw(20) << name << ": " << description << nl;
 	}
-	virtual void print_csv_intern(OStream &O,RtStack &s) const {
-		print_csv_entry(O,s,time());
+	
+	void print_csv_intern(OStream &O, RtStack &s) const override {
+		print_csv_entry(O, s, duration);
 	}
 };
 

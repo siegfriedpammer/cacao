@@ -116,7 +116,7 @@ bool LoopSimplificationPass::run(JITData &JD) {
 
 	M = JD.get_Method();
 	assert(M);
-	LT = get_Pass<LoopPass>();
+	LT = get_Artifact<LoopPass>();
 	assert(LT);
 
 	for (Loop::loop_iterator i = LT->loop_begin(), e = LT->loop_end();

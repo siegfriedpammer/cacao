@@ -23,6 +23,7 @@
 */
 
 #include <cassert>                         // for assert
+#include <cstdio>						   // for fopen
 #include <stdint.h>                        // for uintptr_t
 #include "config.h"                        // for ENABLE_JIT, etc
 #include "md.hpp"                          // for md_cacheflush
@@ -141,6 +142,14 @@ STAT_REGISTER_SUM_GROUP(spill_read_stat,"spills read","Number of Spills (read fr
 STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_read_ila,0,"spill read i/l/a","Int, Long, Array Spills (read from memory)",spill_read_stat)
 STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_read_flt,0,"spill read float","Float Spills (read from memory)",spill_read_stat)
 STAT_REGISTER_GROUP_VAR_EXTERN(int,count_spills_read_dbl,0,"spill read double","Double Spills (read from memory)",spill_read_stat)
+
+STAT_DECLARE_GROUP(compiler2_stat)
+STAT_REGISTER_SUBGROUP(compiler2_jit_stat, "Compiler 2 JIT","General compiler2 JIT statistics", compiler2_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t, count_c2_calls, 0, "total compiler2 calls", "Number of optimizing compiler2 calls", compiler2_jit_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t, count_c2_success, 0, "successfull optimizations", "Number of successfully optimized methods", compiler2_jit_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t, count_baseline_recompile, 0, "failed optimizations", "Number of methods re-compiled with the baseline", compiler2_jit_stat)
+STAT_REGISTER_GROUP_VAR(std::size_t, count_heuristic_skip, 0, "skipped methods", "Number of methods skipped, due to heuristic", compiler2_jit_stat)
+
 
 /* jit_init ********************************************************************
 
@@ -365,7 +374,7 @@ u1 *jit_compile(methodinfo *m)
 
 #if defined(ENABLE_COMPILER2)
 	if (!opt_DisableCountdownTraps && (opt_ReplaceMethod == NULL || method_matches(m, opt_ReplaceMethod)))
-		jd->flags |= JITDATA_FLAG_COUNTDOWN;
+		jd->flags |= JITDATA_FLAG_COUNTDOWN;	
 #endif
 
 #if defined(ENABLE_JIT)
@@ -595,6 +604,7 @@ RT_REGISTER_GROUP_TIMER(checks_timer,        "compiler","checks at beginning",  
 RT_REGISTER_GROUP_TIMER(parse_timer,         "compiler","parse",                        compiler_group)
 RT_REGISTER_GROUP_TIMER(stack_timer,         "compiler","analyse_stack",                compiler_group)
 RT_REGISTER_GROUP_TIMER(typechecker_timer,   "compiler","typecheck",                    compiler_group)
+RT_REGISTER_GROUP_TIMER(cfg_timer,           "compiler","build cfg",                    compiler_group)
 RT_REGISTER_GROUP_TIMER(loop_timer,          "compiler","loop",                         compiler_group)
 RT_REGISTER_GROUP_TIMER(ifconversion_timer,  "compiler","if conversion",                compiler_group)
 RT_REGISTER_GROUP_TIMER(ra_timer,            "compiler","register allocation",          compiler_group)
@@ -725,7 +735,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 			DEBUG_JIT_COMPILEVERBOSE("Typechecking done: ");
 		}
 #endif
-		RT_TIMER_STOPSTART(typechecker_timer,loop_timer);
+		RT_TIMER_STOPSTART(typechecker_timer,ifconversion_timer);
 
 #if defined(ENABLE_IFCONV)
 		if (JITDATA_HAS_FLAG_IFCONV(jd)) {
@@ -734,7 +744,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 			jit_renumber_basicblocks(jd);
 		}
 #endif
-		RT_TIMER_STOPSTART(ifconversion_timer,ra_timer);
+		RT_TIMER_STOP(ifconversion_timer);
 
 		/* inlining */
 
@@ -754,21 +764,28 @@ static u1 *jit_compile_intern(jitdata *jd)
 		/* Build the CFG.  This has to be done after stack_analyse, as
 		   there happens the JSR elimination. */
 
+		RT_TIMER_START(cfg_timer);
+
 		if (!cfg_build(jd))
 			return NULL;
+
+		RT_TIMER_STOP(cfg_timer);
 
 #if defined(ENABLE_LOOP)
 		if (opt_loops)
 		{
+			RT_TIMER_START(loop_timer);
+
 			removeArrayBoundChecks(jd);
 			jit_renumber_basicblocks(jd);
 			
 			cfg_clear(jd);
 			if (!cfg_build(jd))
 				return NULL;
+
+			RT_TIMER_STOP(loop_timer);
 		}
 #endif
-		RT_TIMER_STOPSTART(ra_timer,loop_timer);
 
 #if defined(ENABLE_PROFILING)
 		/* Basic block reordering.  I think this should be done after
@@ -781,6 +798,7 @@ static u1 *jit_compile_intern(jitdata *jd)
 			jit_renumber_basicblocks(jd);
 		}
 #endif
+		RT_TIMER_START(ra_timer);
 
 #if defined(ENABLE_PM_HACKS)
 #include "vm/jit/jit_pm_2.inc"
@@ -829,6 +847,19 @@ static u1 *jit_compile_intern(jitdata *jd)
 	}
 # endif
 #endif /* defined(ENABLE_JIT) */
+
+	// Only enable countdown trap if the heuristic has high confidence
+	// that the compiler2 is able to actually able to compile the method.
+	//
+	// TODO: Remove this when deoptimization works and is not triggered
+	//       in 80% of the cases.
+#if defined(ENABLE_COMPILER2)
+	if (!cacao::jit::compiler2::can_possibly_compile(jd)) {
+		jd->flags &= ~JITDATA_FLAG_COUNTDOWN;
+		STATISTICS(count_heuristic_skip++);
+	}
+#endif
+
 	RT_TIMER_START(codegen_timer);
 
 #if defined(ENABLE_PROFILING)
@@ -945,12 +976,11 @@ void jit_invalidate_code(methodinfo *m)
 	/* activate mappable replacement points */
 
 #if defined(ENABLE_COMPILER2)
-	replace_activate_replacement_points(code, true);
+	// replace_activate_replacement_points(code, true);
 #else
 	vm_abort("invalidating code only works with ENABLE_COMPILER2");
 #endif
 }
-
 
 /* jit_request_optimization ****************************************************
 
@@ -969,7 +999,7 @@ void jit_request_optimization(methodinfo *m)
 	codeinfo *code;
 
 	code = m->code;
-
+	
 	if (code && code->optlevel == 0)
 		jit_invalidate_code(m);
 }
@@ -989,20 +1019,82 @@ void jit_request_optimization(methodinfo *m)
 
 *******************************************************************************/
 
+#if defined(ENABLE_COMPILER2)
+namespace option {
+#if defined(ENABLE_DISASSEMBLER)
+	cacao::Option<bool> compare_disassembly("CompareDisassembly", "compiler2: dumps baseline and optimized version next to each other",false,::cacao::option::xx_root());
+#endif
+	cacao::Option<bool> dump_machinecode("DumpMachineCode", "compiler2: Dumps both baseline and compiler2 machine code for further comparison by disassemblers",false,::cacao::option::xx_root());
+}
+
+static void dump_machinecode_to_file(codeinfo* code)
+{
+	FILE *file = std::fopen("mc-dump.dat", "a");
+	u4 data_len = code->entrypoint - code->mcode;
+	u4 code_len = code->mcodelength - data_len;
+	assert_msg(data_len + code_len == code->mcodelength, "Error in length calculation!");
+
+	std::fwrite(&data_len, 1, 4, file);
+	std::fwrite(&code_len, 1, 4, file);
+	std::fwrite(code->mcode, 1, code->mcodelength, file);
+
+	std::fclose(file);
+}
+#endif
+
 codeinfo *jit_get_current_code(methodinfo *m)
 {
 	assert(m);
 
 	/* if we have valid code, return it */
 
-	if (m->code && !code_is_invalid(m->code))
+	if (m->code && !code_is_invalid(m->code)) {
+		assert(m->code->entrypoint);
 		return m->code;
+	}
 
 	/* otherwise: recompile */
-
 #if defined(ENABLE_COMPILER2)
-	if (!cacao::jit::compiler2::compile(m))
-		return NULL;
+	try {
+		STATISTICS(count_c2_calls++);
+		if (!cacao::jit::compiler2::compile(m))
+			throw std::runtime_error("copmiler2 failed somewhere (see logs)");
+		STATISTICS(count_c2_success++);
+
+		LOG(cacao::BoldGreen << "Successfully optimized " << *m
+		                     << cacao::reset_color << cacao::nl);
+
+#if defined(ENABLE_DISASSEMBLER)
+		if (option::compare_disassembly) {
+			u1* start = m->code->prev->entrypoint;
+			u1* end = m->code->prev->mcode + m->code->prev->mcodelength;
+
+			cacao::out() << cacao::Green << "Baseline version: " << *m << "\n" << cacao::reset_color;
+			disassemble(start, end);
+
+			start = m->code->entrypoint;
+			end = m->code->mcode + m->code->mcodelength;
+
+			cacao::out() << cacao::Green << "Optimized version: " << *m << "\n" << cacao::reset_color;
+			disassemble(start, end);
+		}
+#endif
+
+		// First dump baseline version, then compiler2 version
+		// Disassembler tool will have to handle this
+		if (option::dump_machinecode) {
+			dump_machinecode_to_file(m->code->prev);
+			dump_machinecode_to_file(m->code);
+		}
+	} catch (std::runtime_error err) {
+		LOG1(cacao::Red << "Exception: " << err.what() << cacao::reset_color << cacao::nl);
+		LOG1(cacao::BoldRed << "Failed to compile " << *m 
+			                << cacao::reset_color << cacao::nl);
+		jit_recompile_for_deoptimization(m);
+		m->code->optlevel = 1; // Set optlevel to 1, so we dont do this again
+		STATISTICS(count_baseline_recompile++);
+	}
+
 #else
 	if (!jit_recompile(m))
 		return NULL;
@@ -1095,7 +1187,7 @@ void *jit_compile_handle(methodinfo *m, void *pv, void *ra, void *mptr)
 
 	bool compile_optimized = false;
 #if defined(ENABLE_COMPILER2)
-	compile_optimized = method_matches(m,opt_OptimizeMethod);
+	compile_optimized = method_matches(m,opt_OptimizeMethod,opt_OptimizeClass,opt_OptimizeSignature);
 #endif
 
 	if (compile_optimized) {
@@ -1110,6 +1202,13 @@ void *jit_compile_handle(methodinfo *m, void *pv, void *ra, void *mptr)
 
 	if (newpv == NULL)
 		return NULL;
+
+	// Only patch method address if caller was compiled by baseline
+	// If the caller was compiled by the second stage, we use
+	// an implementation in the replacement module to patch the callsite
+	codeinfo* caller = code_find_codeinfo_for_pc(ra);
+	if (caller->optlevel > 1)
+		return newpv;
 
 	/* Get the method patch address. */
 

@@ -39,6 +39,28 @@ namespace compiler2 {
 class PassUsage;
 class JITData;
 
+class Artifact {
+private:
+	static ArtifactInfo::IDTy aid_counter;
+
+	PassRunner *pm;
+
+public:
+	Artifact() : pm(nullptr) {}
+
+	void set_PassRunner(PassRunner *pr) {
+		pm = pr;
+	}
+
+	template<class T>
+	static ArtifactInfo::IDTy AID() {
+		static ArtifactInfo::IDTy ID = aid_counter++;
+		return ID;
+	}
+
+	virtual ~Artifact() {}
+};
+
 /**
  * Pass superclass
  * All compiler passes should inheritate this class.
@@ -49,7 +71,7 @@ private:
 	static PassInfo::IDTy id_counter;
 
 	PassRunner *pm;
-	bool allowed_to_use_result(const PassInfo::IDTy &id) const;
+	bool allowed_to_use_artifact(const ArtifactInfo::IDTy &id) const;
 public:
 	Pass() : pm(NULL) {}
 
@@ -70,30 +92,24 @@ public:
 	}
 
 	/**
-	 * Get the result of a previous compiler pass
-	 *
-	 * Can only be used if ResultType is added to required in get_PassUsage().
+	 * Get artifact provided by other compiler passes
+	 * 
+	 * Can only be used if the type is in the "requires" list
 	 */
-	template<class _PassClass>
-	_PassClass *get_Pass() const {
-		if (!allowed_to_use_result(_PassClass::template ID<_PassClass>())) {
-			assert(0 && "Not allowed to get result (not declared in get_PassUsage())");
-			return NULL;
-		}
-		return pm->get_Pass_result<_PassClass>();
+	template<typename ArtifactClass>
+	ArtifactClass* get_Artifact() const {
+		assert_msg(allowed_to_use_artifact(ArtifactClass::template AID<ArtifactClass>()),
+				   "Not allowed to get result (not declared in get_PassUsage())");
+		return pm->get_Artifact<ArtifactClass>();
 	}
 
 	/**
-	 * Get the result of a previous compiler pass
-	 *
-	 * Can only be used if ResultType is added to required in get_PassUsage().
+	 * Needs to be implemented by any pass that provides artifacts
 	 */
-	template<class _PassClass>
-	_PassClass *get_Pass_if_available() const {
-		if (!pm->result_ready[_PassClass::template ID<_PassClass>()])
-			return NULL;
-		return pm->get_Pass_result<_PassClass>();
+	virtual Artifact* provide_Artifact(ArtifactInfo::IDTy id) {
+		assert_msg(false, "Called provide_Artifact on base class. Override and implement it!");
 	}
+
 	/**
 	 * Set the requirements for the pass
 	 */
@@ -107,19 +123,6 @@ public:
 	 */
 	virtual bool is_enabled() const {
 		return true;
-	}
-
-	/**
-	 * Passes need to set this to true if they are not required by any other passes,
-	 * and if they do not specify a scheduling dependency themselves using add_run_before
-	 * or add_schedule_before.
-	 *
-	 * This is usually the case for debug/printer passes.
-	 *
-	 * The enable/disable flag supercedes this flag, it is only used for enabled passes.
-	 */
-	virtual bool force_scheduling() const {
-		return false;
 	}
 
 	/**

@@ -31,6 +31,7 @@
 #ifndef _JIT_COMPILER2_INSTRUCTION
 #define _JIT_COMPILER2_INSTRUCTION
 
+#include "vm/types.hpp"
 #include "vm/jit/compiler2/Value.hpp"
 #include "vm/jit/compiler2/MethodC2.hpp"
 
@@ -89,6 +90,11 @@ public:
 
 		NoInstID
 	};
+
+	static void reset() {
+		id_counter = 0;
+	}
+
 private:
 	OperandListTy op_list;
 	DepListTy dep_list;
@@ -99,9 +105,6 @@ private:
 	/**
 	 * Reset static infos (run by Compiler)
 	 */
-	static void reset() {
-		id_counter = 0;
-	}
 	friend MachineCode* compile(methodinfo*);
 
 protected:
@@ -110,7 +113,9 @@ protected:
 	const int id;
 	BeginInst* begin;
 
-	explicit Instruction() : Value(Type::VoidTypeID), opcode(NoInstID), id(-1), begin(NULL) {
+	u2 line = 0; //< Line number of the Java code for this instruction.
+
+	explicit Instruction() : Value(Type::VoidTypeID), opcode(NoInstID), id(-1), begin(NULL), line(0) {
 	}
 
 	void append_op(Value* v) {
@@ -127,7 +132,7 @@ protected:
 
 public:
 	explicit Instruction(InstID opcode, Type::TypeID type, BeginInst* begin = NULL)
-			: Value(type), opcode(opcode), id(id_counter++), begin(begin) {
+			: Value(type), opcode(opcode), id(id_counter++), begin(begin), line(0) {
 	}
 
 	virtual ~Instruction();
@@ -153,6 +158,9 @@ public:
 		}
 		return -1;
 	}
+
+	u2 get_line() const { return line; }
+	void set_line(u2 value) { line = value; }
 
 	void append_dep(Instruction* I) {
 		assert(I);

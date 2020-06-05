@@ -121,10 +121,10 @@ private:
 public:
 	static Option<bool> enabled;
 	GlobalValueNumberingPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
 
-	virtual bool is_enabled() const {
+	bool is_enabled() const override {
 		return GlobalValueNumberingPass::enabled;
 	}
 };

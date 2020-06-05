@@ -29,6 +29,7 @@
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 
 #include <memory>
+#include <vector>
 
 MM_MAKE_NAME(MachineInstructionSchedulingPass)
 
@@ -36,6 +37,14 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
+class MachineOperandFactory;
+class MachineInstructionSchedulingPass;
+
+struct MISBaseArtifact : public Artifact {
+	MachineInstructionSchedulingPass* MIS;
+};
+struct LIRControlFlowGraphArtifact : public MISBaseArtifact {};
+struct LIRInstructionScheduleArtifact : public MISBaseArtifact {};
 
 /**
  * MachineInstructionSchedulingPass
@@ -44,10 +53,21 @@ namespace compiler2 {
 class MachineInstructionSchedulingPass : public Pass, public memory::ManagerMixin<MachineInstructionSchedulingPass>, public MachineInstructionSchedule {
 public:
 	MachineInstructionSchedulingPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual bool verify() const;
-	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
+	bool run(JITData &JD) override;
+	bool verify() const override;
+	PassUsage& get_PassUsage(PassUsage &PA) const override;
+
+	MISBaseArtifact* provide_Artifact(ArtifactInfo::IDTy aid) override {
+		artifact.MIS = this;
+		return &artifact;
+	}
+
+private:
+	MachineOperandFactory* MOF;
+	MISBaseArtifact artifact;
 };
+
+
 
 } // end namespace compiler2
 } // end namespace jit

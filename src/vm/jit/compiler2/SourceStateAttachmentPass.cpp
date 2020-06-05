@@ -29,7 +29,7 @@
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/MethodC2.hpp"
-#include "vm/jit/compiler2/InstructionMetaPass.hpp"
+#include "vm/jit/compiler2/SSAConstructionPass.hpp"
 #include "vm/jit/compiler2/ListSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
@@ -71,7 +71,13 @@ SourceStateInst *SourceStateAttachmentPass::process_block(BeginInst *begin,
 		latest_source_state = get_associated_source_state(begin);
 	}
 
-	assert(latest_source_state);
+	// TODO: java/util/WeakHashMap.expungeStaleEntries()V
+	//       triggers this alert here. Investigate and fix bug, for now we just stop
+	//       the optimizing compiler run
+	// assert(latest_source_state);
+	if (!latest_source_state) {
+		throw std::runtime_error("SourceStateAttachementPass: no latest source state found!");
+	}
 
 	for (auto i = IS->inst_begin(begin); i != IS->inst_end(begin); i++) {
 		Instruction *I = *i;
@@ -95,7 +101,7 @@ SourceStateInst *SourceStateAttachmentPass::process_block(BeginInst *begin,
 
 bool SourceStateAttachmentPass::run(JITData &JD) {
 	M = JD.get_Method();
-	IS = get_Pass<ListSchedulingPass>();
+	IS = get_Artifact<ListSchedulingPass>();
 
 	// The blocks that have not yet been processed.
 	alloc::queue<BeginInst*>::type blocks_to_process;
@@ -140,9 +146,9 @@ bool SourceStateAttachmentPass::run(JITData &JD) {
 
 // pass usage
 PassUsage& SourceStateAttachmentPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<InstructionMetaPass>();
-	PU.add_requires<ListSchedulingPass>();
-	PU.add_schedule_before<MachineInstructionSchedulingPass>();
+	PU.requires<HIRInstructionsArtifact>();
+	PU.requires<ListSchedulingPass>();
+	PU.before<MachineInstructionSchedulingPass>();
 	return PU;
 }
 

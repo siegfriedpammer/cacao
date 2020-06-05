@@ -56,6 +56,11 @@ public:
 	MBBIterator(MachineInstructionSchedule *parent, const iterator &it)
 		: parent(parent), it(it) {}
 	MBBIterator(const MBBIterator& other) : parent(other.parent), it(other.it) {}
+	MBBIterator& operator=(const MBBIterator& other) {
+		parent = other.parent;
+		it = other.it;
+		return *this;
+	}
 	MBBIterator& operator++() {
 		++it;
 		return *this;
@@ -86,7 +91,7 @@ public:
 	bool operator!=(const MBBIterator& rhs) const { return !(*this == rhs); }
 	bool operator>( const MBBIterator& rhs) const { return rhs < *this; }
 	reference       operator*()        { return *it; }
-	const reference operator*()  const { return *it; }
+	reference 	    operator*()  const { return *it; }
 	pointer         operator->()       { return &*it; }
 	const pointer   operator->() const { return &*it; }
 
@@ -144,7 +149,7 @@ public:
 	bool operator!=(const const_MBBIterator& rhs) const { return !(*this == rhs); }
 	bool operator>( const const_MBBIterator& rhs) const { return rhs < *this; }
 	reference       operator*()        { return *it; }
-	const reference operator*()  const { return *it; }
+	reference       operator*()  const { return *it; }
 	pointer         operator->()       { return &*it; }
 	const pointer   operator->() const { return &*it; }
 

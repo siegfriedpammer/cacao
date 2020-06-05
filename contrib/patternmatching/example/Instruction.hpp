@@ -148,7 +148,7 @@ public:
 	UserListTy::const_iterator user_end()   const { return user_list.end(); }
 
 	/// check if the instruction is in a correct state
-	//virtual bool verify() const;
+	//bool verify() const override;
 
 	const_dep_iterator dep_begin() const { return dep_list.begin(); }
 	const_dep_iterator dep_end()   const { return dep_list.end(); }

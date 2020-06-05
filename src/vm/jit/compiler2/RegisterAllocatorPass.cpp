@@ -26,7 +26,7 @@
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/PassUsage.hpp"
-#include "vm/jit/compiler2/LinearScanAllocatorPass.hpp"
+#include "vm/jit/compiler2/treescan/RegisterAssignmentPass.hpp"
 
 namespace cacao {
 namespace jit {
@@ -38,7 +38,6 @@ bool RegisterAllocatorPass::run(JITData &JD) {
 
 // pass usage
 PassUsage& RegisterAllocatorPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<LinearScanAllocatorPass>();
 	return PU;
 }
 

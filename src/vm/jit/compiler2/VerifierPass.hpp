@@ -43,8 +43,16 @@ namespace compiler2 {
 class VerifierPass : public Pass, public memory::ManagerMixin<VerifierPass> {
 public:
 	VerifierPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
+
+	bool is_enabled() const override {
+		#if ENABLE_VERIFIER
+		return true;
+		#else
+		return false;
+		#endif
+	}
 };
 
 } // end namespace compiler2

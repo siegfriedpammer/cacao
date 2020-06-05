@@ -43,15 +43,11 @@ class ObjectFileWriterPass : public Pass, public memory::ManagerMixin<ObjectFile
 public:
 	static Option<bool> enabled;
 	ObjectFileWriterPass() : Pass() {}
-	virtual bool run(JITData &JD);
+	bool run(JITData &JD) override;
 	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
 
-    virtual bool is_enabled() const {
+    bool is_enabled() const override {
         return ObjectFileWriterPass::enabled;
-    }
-
-    virtual bool force_scheduling() const {
-        return true;
     }
 };
 

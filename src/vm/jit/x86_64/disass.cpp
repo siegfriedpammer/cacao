@@ -62,6 +62,7 @@ u1 *disassinstr(u1 *code)
 		/* setting the struct members must be done after
 		   INIT_DISASSEMBLE_INFO */
 
+		info.arch             = bfd_arch_i386;
 		info.mach             = bfd_mach_x86_64;
 		info.read_memory_func = &disass_buffer_read_memory;
 

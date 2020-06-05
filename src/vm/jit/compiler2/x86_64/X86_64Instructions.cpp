@@ -29,9 +29,12 @@
 #include "vm/jit/compiler2/CodeMemory.hpp"
 #include "vm/jit/PatcherNew.hpp"
 
+
 #include "vm/jit/compiler2/alloc/deque.hpp"
 
 #include "toolbox/logging.hpp"
+
+#include <stdexcept>
 
 #define DEBUG_NAME "compiler2/x86_64"
 
@@ -177,7 +180,7 @@ GPInstruction::OperandSize get_operand_size_from_Type(Type::TypeID type) {
 }
 
 void ALUInstruction::emit(CodeMemory* CM) const {
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 	MachineOperand *src1 = operands[0].op; 
 	MachineOperand *src2 = operands[1].op; 
 	MachineOperand *src;
@@ -186,7 +189,7 @@ void ALUInstruction::emit(CodeMemory* CM) const {
 		dst = src1;
 		src = src2;
 	}
-	else if (dst == src1) {
+	else if (dst->aquivalent(*src1)) {
 		src = src2;	
 	}
 	else {
@@ -356,8 +359,15 @@ void BreakInst::emit(CodeMemory* CM) const {
 }
 
 void RetInst::emit(CodeMemory* CM) const {
-	CodeFragment code = CM->get_CodeFragment(1);
-	code[0] = 0xc3;
+	if (!emit_leave) {
+		CodeFragment code = CM->get_CodeFragment(1);
+		code[0] = 0xc3;
+		return;
+	}
+	
+	CodeFragment code = CM->get_CodeFragment(2);
+	code[0] = 0xc9;
+	code[1] = 0xc3;
 }
 
 void NegInst::emit(CodeMemory* CM) const {
@@ -379,16 +389,23 @@ void NegInst::emit(CodeMemory* CM) const {
 }
 
 void CallInst::emit(CodeMemory* CM) const {
-	CodeFragment code = CM->get_CodeFragment(2);
 	X86_64Register *reg_src = cast_to<X86_64Register>(operands[0].op);
-	//code[0] = get_rex(reg_src);
-	code[0] = 0xff;
-	code[1] = get_modrm_1reg(2, reg_src);
+	CodeSegmentBuilder code;
+	
+	u1 rex = get_rex(nullptr, reg_src, false);
+	if (rex != 0x40) {
+		code += rex;
+	}
+
+	code += 0xff;
+	code += get_modrm_1reg(2, reg_src);
+
+	add_CodeSegmentBuilder(CM, code);
 }
 
 void MovInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	GPInstruction::OpEncoding openc = get_OpEncoding(dst,src,get_op_size());
 	u1 opcode = 0x06; //invalid
@@ -434,14 +451,41 @@ void MovInst::emit(CodeMemory* CM) const {
 	case GPInstruction::MemImm64:
 		opcode = 0xc7;
 		break;
-	default: 
-		ABORT_MSG(this << ": Operand(s) not supported",
-			"dst: " << dst << " src: " << src << " op_size: "
-			<< get_op_size() * 8 << "bit");
+	default:
+		// TODO: Re-enable error message somehow. 
+		// ERROR_MSG(this << ": Operand(s) not supported",
+		// 	"dst: " << dst << " src: " << src << " op_size: "
+		//	<< get_op_size() * 8 << "bit");
+		throw std::runtime_error("Unsupported operands");
 		break;
 	}
 
 	InstructionEncoding::emit(CM,opcode,get_op_size(),src,dst,0,0,0,false,encode_dst);
+}
+
+void SwapInst::emit(CodeMemory *CM) const {
+	MachineOperand *src1 = operands[0].op;
+	MachineOperand *src2 = operands[1].op;
+
+	GPInstruction::OpEncoding openc = get_OpEncoding(src1,src2,get_op_size());
+	u1 opcode = 0x06; //invalid
+	switch (openc) {
+	case GPInstruction::RegReg8:
+	case GPInstruction::RegReg16:
+	case GPInstruction::RegReg32:
+	case GPInstruction::RegReg64:
+	{
+		opcode = 0x87;
+		break;
+	}
+	default: 
+	ABORT_MSG(this << ": Operand(s) not supported",
+		"src1: " << src1 << " src2: " << src2 << " op_size: "
+		<< get_op_size() * 8 << "bit");
+	break;
+	}
+
+	InstructionEncoding::emit(CM, opcode, get_op_size(), src1, src2, 0, 0, 0, false, false);
 }
 
 inline u1 get_rex(X86_64Register *reg, const ModRMOperandDesc &modrm, bool opsize64) {
@@ -465,7 +509,7 @@ void LEAInst::emit(CodeMemory* CM) const {
 
 void MovSXInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 	X86_64Register *src_reg = cast_to<X86_64Register>(src);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
 
@@ -522,7 +566,7 @@ void MovSXInst::emit(CodeMemory* CM) const {
 }
 
 void MovDSEGInst::emit(CodeMemory* CM) const {
-	X86_64Register *dst = cast_to<X86_64Register>(result.op);
+	X86_64Register *dst = cast_to<X86_64Register>(get_result().op);
 	switch (get_op_size()) {
 	case OS_8:
 	case OS_16:
@@ -587,8 +631,12 @@ OStream& CondJumpInst::print_successor_label(OStream &OS,std::size_t index) cons
 }
 
 void TrapInst::emit(CodeMemory* CM) const {
+#if defined(ENABLE_COUNTDOWN_TRAPS)
+	if (trap == 15)	// using hardcoded number because includes would pull in too much baseline stuff
+		throw std::runtime_error("TrapInst: We do not support deoptimize traps!");
+#endif
 	// TODO Understand, clean up, and unify with CondTrapInst::emit if possible.
-
+	
 	CodeFragment code = CM->get_CodeFragment(8);
 	// XXX make more readable
 	X86_64Register *src_reg = cast_to<X86_64Register>(operands[0].op);
@@ -606,6 +654,10 @@ void TrapInst::emit(CodeMemory* CM) const {
 }
 
 void CondTrapInst::emit(CodeMemory* CM) const {
+#if defined(ENABLE_COUNTDOWN_TRAPS)
+	if (trap == 15) // using hardcoded number because includes would pull in too much baseline stuff
+		throw std::runtime_error("CondTrapInst: We do not support deoptimize traps!");
+#endif
 	CodeFragment code = CM->get_CodeFragment(8);
 	// XXX make more readable
 	X86_64Register *src_reg = cast_to<X86_64Register>(operands[0].op);
@@ -662,7 +714,9 @@ void CondJumpInst::emit(CodeMemory* CM) const {
 	s4 offset = CM->get_offset(idx);
 	if (offset == 0) {
 		// XXX fix me! remove empty blocks?
-		ABORT_MSG("x86_64 ERROR","CondJump offset 0 oO!");
+		// TODO Re-enable abort message or fix this.
+		// ABORT_MSG("x86_64 ERROR","CondJump offset 0 oO!");
+		throw std::runtime_error("x86_64 error, CondJump offset is zero!");
 		//return;
 	}
 	LOG2("found offset of " << *MBB << ": " << offset << nl);
@@ -684,7 +738,7 @@ void CondJumpInst::link(CodeFragment &CF) const {
 
 void IMulInst::emit(CodeMemory* CM) const {
 	X86_64Register *src_reg = cast_to<X86_64Register>(operands[1].op);
-	X86_64Register *dst_reg = cast_to<X86_64Register>(result.op);
+	X86_64Register *dst_reg = cast_to<X86_64Register>(get_result().op);
 
 	InstructionEncoding::reg2reg<u2>(CM, 0x0faf, dst_reg, src_reg);
 	// imm Byte = 6B, sonst 69
@@ -694,7 +748,7 @@ void IMulInst::emit(CodeMemory* CM) const {
 }
 
 void IMulImmInst::emit(CodeMemory* CM) const {
-	X86_64Register *dst_reg = cast_to<X86_64Register>(result.op);
+	X86_64Register *dst_reg = cast_to<X86_64Register>(get_result().op);
 	X86_64Register *src_reg = cast_to<X86_64Register>(operands[0].op);
 	Immediate *imm = cast_to<Immediate>(operands[1].op);
 
@@ -708,10 +762,24 @@ void IMulImmInst::emit(CodeMemory* CM) const {
 }
 
 void IDivInst::emit(CodeMemory *CM) const {
-	CodeFragment code = CM->get_CodeFragment(2);
-	X86_64Register *divisor = cast_to<X86_64Register>(operands[1].op);
-	code[0] = 0xf7;
-	code[1] = get_modrm_1reg(7, divisor);
+	X86_64Register *divisor = cast_to<X86_64Register>(operands[0].op);
+
+	// TODO: Write tests that make sure that this will also work correctly
+	//       for Long types.
+	// If the register is extended we need the REX byte.
+	const u1 code_size = divisor->extented ? 3 : 2;
+	CodeFragment code = CM->get_CodeFragment(code_size);
+	
+	const u1 modrm = get_modrm_1reg(7, divisor);
+
+	if (divisor->extented) {
+		code[0] = 0x41;
+		code[1] = 0xf7;
+		code[2] = modrm;
+	} else {
+		code[0] = 0xf7;
+		code[1] = modrm;
+	}
 }
 
 void CDQInst::emit(CodeMemory *CM) const {
@@ -806,31 +874,17 @@ void XORPInst::emit(CodeMemory* CM) const {
 
 void SSEAluInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[1].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	switch (get_OpEncoding(dst,src,get_op_size())) {
 	case GPInstruction::RegReg64:
 	{
-		X86_64Register *src_reg = cast_to<X86_64Register>(src);
-		X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
-
-		CodeFragment code = CM->get_CodeFragment(4);
-		code[0] = 0xf2;
-		code[1] = 0x0f;
-		code[2] = opcode;
-		code[3] = get_modrm_reg2reg(dst_reg,src_reg);
+		InstructionEncoding::emit (CM, opcode, get_op_size(), src, dst, 0, 0, 0xf2, true, true, false, GPInstruction::OS_64); 
 		return;
 	}
 	case GPInstruction::RegReg32:
 	{
-		X86_64Register *src_reg = cast_to<X86_64Register>(src);
-		X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
-
-		CodeFragment code = CM->get_CodeFragment(4);
-		code[0] = 0xf3;
-		code[1] = 0x0f;
-		code[2] = opcode;
-		code[3] = get_modrm_reg2reg(dst_reg,src_reg);
+		InstructionEncoding::emit (CM, opcode, get_op_size(), src, dst, 0, 0, 0xf3, true); 
 		return;
 	}
 	default: break;
@@ -842,7 +896,8 @@ void SSEAluInst::emit(CodeMemory* CM) const {
 
 void MovSDInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
+	
 	if (src->aquivalent(*dst)) return;
 
 	u1 opcode = 0x06; //invalid
@@ -865,12 +920,12 @@ void MovSDInst::emit(CodeMemory* CM) const {
 		break;
 	}
 
-	InstructionEncoding::emit (CM, opcode, get_op_size(), src, dst, 0, 0, 0xf2, true); 
+	InstructionEncoding::emit (CM, opcode, get_op_size(), src, dst, 0, 0, 0xf2, true, true, false, GPInstruction::OS_64); 
 }
 
 void MovSSInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 	if (src->aquivalent(*dst)) return;
 
 	u1 opcode = 0x06; //invalid
@@ -887,9 +942,11 @@ void MovSSInst::emit(CodeMemory* CM) const {
 		break;
 	}
 	default: 
-		ABORT_MSG(this << ": Operand(s) not supported",
-			"dst: " << dst << " src: " << src << " op_size: "
-			<< get_op_size() * 8 << "bit");
+		// TODO: Re-enable error message + abort when is fixed.
+		// ABORT_MSG(this << ": Operand(s) not supported",
+		// 	"dst: " << dst << " src: " << src << " op_size: "
+		// 	<< get_op_size() * 8 << "bit");
+		throw std::runtime_error("Operands not supported (MovSSInst)");
 		break;
 	}
 
@@ -905,7 +962,7 @@ void FPRemInst::emit(CodeMemory* CM) const {
 
 void MovImmSInst::emit(CodeMemory* CM) const {
 	Immediate *imm = cast_to<Immediate>(operands[0].op);
-	X86_64Register *dst = cast_to<X86_64Register>(result.op);
+	X86_64Register *dst = cast_to<X86_64Register>(get_result().op);
 
 	CodeFragment code = CM->get_CodeFragment(dst->extented ? 9 : 8);
 	if (dst->extented) {
@@ -991,7 +1048,7 @@ void MovImmSInst::link(CodeFragment &CF) const {
 
 	assert(offset != 0);
 	int i = 4;
-	if (cast_to<X86_64Register>(result.op)->extented)
+	if (cast_to<X86_64Register>(get_result().op)->extented)
 		i = 5;
 	CF[i++] = u1(0xff & (offset >>  0));
 	CF[i++] = u1(0xff & (offset >>  8));
@@ -1005,7 +1062,7 @@ void MovImmSInst::link(CodeFragment &CF) const {
 // TODO: refactor
 void CVTSI2SDInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	X86_64Register *src_reg = cast_to<X86_64Register>(src);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
@@ -1040,7 +1097,7 @@ void CVTSI2SDInst::emit(CodeMemory* CM) const {
 // TODO: refactor
 void CVTSI2SSInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	X86_64Register *src_reg = cast_to<X86_64Register>(src);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
@@ -1075,7 +1132,7 @@ void CVTSI2SSInst::emit(CodeMemory* CM) const {
 
 void CVTTSS2SIInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	X86_64Register *src_reg = cast_to<X86_64Register>(src);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
@@ -1110,7 +1167,7 @@ void CVTTSS2SIInst::emit(CodeMemory* CM) const {
 
 void CVTTSD2SIInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	X86_64Register *src_reg = cast_to<X86_64Register>(src);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
@@ -1145,7 +1202,7 @@ void CVTTSD2SIInst::emit(CodeMemory* CM) const {
 
 void CVTSS2SDInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	X86_64Register *src_reg = cast_to<X86_64Register>(src);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
@@ -1160,7 +1217,7 @@ void CVTSS2SDInst::emit(CodeMemory* CM) const {
 
 void CVTSD2SSInst::emit(CodeMemory* CM) const {
 	MachineOperand *src = operands[0].op;
-	MachineOperand *dst = result.op;
+	MachineOperand *dst = get_result().op;
 
 	X86_64Register *src_reg = cast_to<X86_64Register>(src);
 	X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
@@ -1195,7 +1252,7 @@ void FLDInst::emit(CodeMemory *CM) const {
 	}
 
 	// modmr + imm
-	s4 index = get_stack_position(result.op);
+	s4 index = get_stack_position(get_result().op);
 	if (fits_into<s1>(index)) {
 		code += get_modrm_u1(0x1,0,RBP.get_index());
 		code += (u1) 0xff & (index >> 0x00);
@@ -1231,7 +1288,7 @@ void FSTPInst::emit(CodeMemory *CM) const {
 	}
 
 	// modmr + imm
-	s4 index = get_stack_position(result.op);
+	s4 index = get_stack_position(get_result().op);
 	if (fits_into<s1>(index)) {
 		code += get_modrm_u1(0x1,3,RBP.get_index());
 		code += (u1) 0xff & (index >> 0x00);

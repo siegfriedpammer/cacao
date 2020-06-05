@@ -80,8 +80,9 @@ private:
 public:
 
 	NullCheckEliminationPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
+	bool is_enabled() const override { return false; }
 };
 
 } // end namespace compiler2

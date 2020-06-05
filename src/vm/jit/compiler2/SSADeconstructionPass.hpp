@@ -1,4 +1,4 @@
-/* src/vm/jit/compiler2/CFGMetaPass.hpp - CFGMetaPass
+/* src/vm/jit/compiler2/SSADeconstructionPass.hpp - SSADeconstructionPass
 
    Copyright (C) 2013
    CACAOVM - Verein zur Foerderung der freien virtuellen Maschine CACAO
@@ -22,37 +22,71 @@
 
 */
 
-#ifndef _JIT_COMPILER2_CFGMETAPASS
-#define _JIT_COMPILER2_CFGMETAPASS
+#ifndef _JIT_COMPILER2_SSADECONSTRUCTIONPASS
+#define _JIT_COMPILER2_SSADECONSTRUCTIONPASS
+
+#include <list>
+#include <set>
 
 #include "vm/jit/compiler2/Pass.hpp"
 
-MM_MAKE_NAME(CFGMetaPass)
+MM_MAKE_NAME(SSADeconstructionPass)
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-/**
- * CFGMetaPass
- *
- * This is a meta pass to communicate CFG changes to other passes.
- * If a pass depends on the CFG then get_PassUsage() should contain PU.add_requires<CFGMetaPass>().
- * Analogously, if a pass changes the CFG PU.add_modifies<CFGMetaPass>() should be present.
- */
-class CFGMetaPass : public Pass, public memory::ManagerMixin<CFGMetaPass> {
+class MachineBasicBlock;
+class MachineInstruction;
+class MachineOperand;
+
+class ParallelCopyImpl {
 public:
-	CFGMetaPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	ParallelCopyImpl(JITData& JD) : JD(JD) {}
+
+	void add(MachineOperand* src_op, MachineOperand* dst_op) {
+		src.push_back(src_op);
+		dst.push_back(dst_op);
+	}
+
+	void calculate();
+
+	std::vector<MachineInstruction*>& get_operations() {
+		return operations;
+	}
+
+private:
+	JITData& JD;
+
+	std::vector<MachineOperand*> src;
+	std::vector<MachineOperand*> dst;
+
+	std::vector<MachineInstruction*> operations;
+
+	void find_safe_operations(std::set<unsigned>&);
+	void implement_safe_operations(std::set<unsigned>&);
+	void implement_swaps();
+	bool swap_registers();
+};
+
+class SSADeconstructionPass : public Pass, public Artifact, public memory::ManagerMixin<SSADeconstructionPass> {
+public:
+	SSADeconstructionPass() : Pass() {}
+	virtual bool run(JITData& JD);
+	virtual PassUsage& get_PassUsage(PassUsage& PU) const;
+
+private:
+	JITData* JD;
+
+	void process_block(MachineBasicBlock*);
+	void insert_transfer_at_end(MachineBasicBlock*, MachineBasicBlock*, unsigned);
 };
 
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
 
-#endif /* _JIT_COMPILER2_CFGMETAPASS */
-
+#endif /* _JIT_COMPILER2_SSADECONSTRUCTIONPASS */
 
 /*
  * These are local overrides for various environment variables in Emacs.

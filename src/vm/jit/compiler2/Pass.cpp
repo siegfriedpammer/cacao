@@ -30,9 +30,10 @@ namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-uint32_t Pass::id_counter = 0;
+PassInfo::IDTy Pass::id_counter = 0;
+ArtifactInfo::IDTy Artifact::aid_counter = 0;
 
-bool Pass::allowed_to_use_result(const PassInfo::IDTy &id) const {
+bool Pass::allowed_to_use_artifact(const ArtifactInfo::IDTy &id) const {
 	PassUsage PU;
 	return get_PassUsage(PU).is_required(id);
 }

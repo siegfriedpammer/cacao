@@ -54,7 +54,8 @@ bool DisassemblerPass::run(JITData &JD) {
 
 	disassemble(start, end);
 #else
-	CodeGenPass *CG = get_Pass<CodeGenPass>();
+	dbg() << BoldYellow << "Disassembling " << *JD.get_Method() << nl << reset_color;
+	CodeGenPass *CG = get_Artifact<CodeGenPass>();
 	for (CodeGenPass::BasicBlockMap::const_iterator i = CG->begin(), e = CG->end(); i != e ; ++i) {
 		u1 *end = start + i->second;
 		dbg() << BoldWhite << *i->first << " " << reset_color;
@@ -71,7 +72,8 @@ bool DisassemblerPass::run(JITData &JD) {
 }
 
 PassUsage& DisassemblerPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<CodeGenPass>();
+	PU.requires<CodeGenPass>();
+	PU.immediately_after<CodeGenPass>();
 	return PU;
 }
 

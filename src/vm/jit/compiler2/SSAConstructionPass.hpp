@@ -103,7 +103,7 @@ private:
 	/// for the rest of this block.
 	///
 	/// @param bbindex The corresponding basicblock index.
-	void deoptimize(int bbindex);
+	void deoptimize(int bbindex, const char*);
 
 	void install_javalocal_dependencies(SourceStateInst *source_state,
 			s4 *javalocals, basicblock *bb);
@@ -122,13 +122,17 @@ private:
 	/// @return The new CONSTInst.
 	CONSTInst *parse_s2_constant(instruction *iptr, Type::TypeID type);
 
+	friend class InVarPhis;
 public:
 	Value* read_variable(size_t varindex, size_t bb);
 	SSAConstructionPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual bool verify() const;
-	virtual PassUsage& get_PassUsage(PassUsage &PU) const;
+	bool run(JITData &JD) override;
+	bool verify() const override;
+	PassUsage& get_PassUsage(PassUsage &PU) const override;
 };
+
+class HIRControlFlowGraphArtifact : public Artifact {};
+class HIRInstructionsArtifact : public Artifact {};
 
 } // end namespace cacao
 } // end namespace jit

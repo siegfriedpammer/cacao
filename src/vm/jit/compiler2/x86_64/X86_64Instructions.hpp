@@ -29,7 +29,9 @@
 #include "vm/jit/compiler2/x86_64/X86_64Cond.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64Register.hpp"
 #include "vm/jit/compiler2/x86_64/X86_64ModRMOperand.hpp"
+#include "vm/jit/compiler2/x86_64/X86_64MachineMethodDescriptor.hpp"
 #include "vm/jit/compiler2/MachineInstruction.hpp"
+#include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/compiler2/DataSegment.hpp"
 #include "vm/types.hpp"
 
@@ -293,11 +295,19 @@ public:
 	};
 private:
 	OperandSize op_size;
+
 public:
 	GPInstruction(const char * name, MachineOperand* result,
-		OperandSize op_size, std::size_t num_operands) :
+		OperandSize op_size, std::size_t num_operands, bool is_two_address_mode = false) :
 			X86_64Instruction(name, result, num_operands),
-			op_size(op_size) {}
+			op_size(op_size) {
+		if (is_two_address_mode) {
+			assert(num_operands >= 1 && "Two-Address mode for no operands??");
+
+			MachineRegisterRequirementUPtrTy requirement = std::make_unique<MachineRegisterTwoAddressRequirement>(&operands[0]);
+			get_result().set_MachineRegisterRequirement(requirement);
+		}
+	}
 
 	OperandSize get_op_size() const { return op_size; }
 };
@@ -322,6 +332,35 @@ public:
 };
 
 GPInstruction::OperandSize get_OperandSize_from_Type(const Type::TypeID type);
+
+// Just a "meta" instruction that produces a result for each register parameter
+// that is bound to the correct machine register
+class ParamInst : public GPInstruction {
+public:
+	ParamInst(MachineOperand* dst, MachineOperand* required_operand)
+		: GPInstruction("X86_64Parameter", dst,
+		  get_operand_size_from_Type(dst->get_type()), 0) {
+
+		if (required_operand->is_Register()) {
+			auto machine_reg = cast_to<X86_64Register>(required_operand);
+			auto requirement = std::make_unique<MachineRegisterRequirement>(machine_reg);
+			get_result().set_MachineRegisterRequirement(requirement);
+		}		
+	}
+
+	void add_result(MachineOperand* dst, MachineOperand* required_operand) {
+		MachineInstruction::add_result(dst);
+
+		if (required_operand->is_Register()) {
+			auto machine_reg = cast_to<X86_64Register>(required_operand);
+			auto requirement = std::make_unique<MachineRegisterRequirement>(machine_reg);
+			results.back().set_MachineRegisterRequirement(requirement);
+		}
+	}
+	
+	virtual void emit(CodeMemory* CM) const {}
+};
+
 
 /**
  * This abstract class represents a x86_64 ALU instruction.
@@ -357,7 +396,7 @@ public:
 	 */
 	ALUInstruction(const char * name, const DstSrc1Op &dstsrc1,
 			const Src2Op &src2, OperandSize op_size, u1 alu_id)
-			: GPInstruction(name, dstsrc1.op, op_size, 2) , alu_id(alu_id) {
+			: GPInstruction(name, dstsrc1.op, op_size, 2, true) , alu_id(alu_id) {
 		assert(alu_id < 8);
 		set_operand(0,dstsrc1.op);
 		set_operand(1,src2.op);
@@ -365,12 +404,21 @@ public:
 	}
 	ALUInstruction(const char * name, const Src1Op &src1,
 			const Src2Op &src2, OperandSize op_size, u1 alu_id)
-			: GPInstruction(name, &NoOperand, op_size, 2) , alu_id(alu_id) {
+			: GPInstruction(name, &NoOperand, op_size, 2, true) , alu_id(alu_id) {
 		assert(alu_id < 8);
 		set_operand(0,src1.op);
 		set_operand(1,src2.op);
 		finalize_operands();
 	}
+	ALUInstruction(const char * name, const DstOp& dst, const Src1Op& src1,
+			const Src2Op& src2, OperandSize op_size, u1 alu_id)
+			: GPInstruction(name, dst.op, op_size, 2, true), alu_id(alu_id) {
+		assert(alu_id < 8);
+		set_operand(0, src1.op);
+		set_operand(1, src2.op);
+		finalize_operands();
+	}
+
 	/**
 	 * This must be implemented by subclasses.
 	 */
@@ -397,6 +445,10 @@ public:
 		OperandSize op_size)
 			: ALUInstruction("X86_64AddInst", dstsrc1, src2, op_size, 0) {
 	}
+	AddInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst,
+		OperandSize op_size)
+			: ALUInstruction("X86_64AddInst", dst, src1, src2, op_size, 0) {
+	}
 };
 class OrInst : public ALUInstruction {
 public:
@@ -421,9 +473,9 @@ public:
 };
 class AndInst : public ALUInstruction {
 public:
-	AndInst(const Src2Op &src2, const DstSrc1Op &dstsrc1,
+	AndInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst,
 		OperandSize op_size)
-			: ALUInstruction("X86_64AndInst", dstsrc1, src2, op_size, 4) {
+			: ALUInstruction("X86_64AndInst", dst, src1, src2, op_size, 4) {
 	}
 };
 class SubInst : public ALUInstruction {
@@ -432,6 +484,9 @@ public:
 		OperandSize op_size)
 			: ALUInstruction("X86_64SubInst", dstsrc1, src2, op_size, 5) {
 	}
+	SubInst(const DstOp& dst, const Src1Op& src1, const Src2Op& src2, 
+		OperandSize op_size)
+			:ALUInstruction("X86_64SubInst", dst, src1, src2, op_size, 5) {}
 };
 class XorInst : public ALUInstruction {
 public:
@@ -492,11 +547,19 @@ class IMulInst : public GPInstruction {
 public:
 	IMulInst(const Src2Op &src2, const DstSrc1Op &dstsrc1,
 		OperandSize op_size)
-			: GPInstruction("X86_64IMulInst", dstsrc1.op, op_size, 2) {
+			: GPInstruction("X86_64IMulInst", dstsrc1.op, op_size, 2, true) {
 		set_operand(0,dstsrc1.op);
 		set_operand(1,src2.op);
 		finalize_operands();
 	}
+	IMulInst(const DstOp& dst, const Src1Op& src1, const Src2Op& src2,
+		OperandSize op_size)
+			: GPInstruction("X86_64IMulInst", dst.op, op_size, 2, true) {
+		set_operand(0, src1.op);
+		set_operand(1, src2.op);
+		finalize_operands();
+	}
+
 	virtual void emit(CodeMemory* CM) const;
 };
 
@@ -519,11 +582,25 @@ public:
 	 * the register allocator. The user must ensure that the values
 	 * are moved to the desired destination registers afterwards (e.g. by inserting a move)
 	 */
-	IDivInst(const Src2Op &src2, const DstSrc1Op &dstsrc1, const DstSrc2Op &dst2, OperandSize op_size) :
-			GPInstruction("X86_64IDivInst", dstsrc1.op, op_size, 3) {
-		operands[0].op = dstsrc1.op;
+	IDivInst(const Src1Op &src1, const Src2Op &src2, const Src2Op &src3, const DstOp &dst1, const DstOp &dst2, OperandSize op_size) :
+			GPInstruction("X86_64IDivInst", dst1.op, op_size, 3) {
+		operands[0].op = src1.op;
 		operands[1].op = src2.op;
-		operands[2].op = dst2.op;
+		operands[2].op = src3.op;
+
+		add_result(dst2.op);
+
+		auto op1_requirement = std::make_unique<MachineRegisterRequirement>(&RDX);
+		operands[1].set_MachineRegisterRequirement(op1_requirement);
+
+		auto op2_requirement = std::make_unique<MachineRegisterRequirement>(&RAX);
+		operands[2].set_MachineRegisterRequirement(op2_requirement);
+
+		auto res0_requirement = std::make_unique<MachineRegisterRequirement>(&RAX);
+		results[0].set_MachineRegisterRequirement(res0_requirement);
+
+		auto res1_requirement = std::make_unique<MachineRegisterRequirement>(&RDX);
+		results[1].set_MachineRegisterRequirement(res1_requirement);
 
 	}
 	virtual void emit(CodeMemory* CM) const;
@@ -531,15 +608,27 @@ public:
 
 class CDQInst : public GPInstruction {
 public:
-	CDQInst(const DstSrc1Op &src1, const DstSrc2Op &src2, OperandSize op_size) : GPInstruction("X86_64CDQInst", &NoOperand, NO_SIZE, 2) {
-		operands[0].op = src1.op;
-		operands[1].op = src2.op;
+	CDQInst(const SrcOp &src, const DstOp &dst1, const DstOp &dst2, OperandSize op_size) : GPInstruction("X86_64CDQInst", dst1.op, NO_SIZE, 1) {
+		operands[0].op = src.op;
+
+		add_result(dst2.op);
+
+		auto op1_requirement = std::make_unique<MachineRegisterRequirement>(&RAX);
+		operands[0].set_MachineRegisterRequirement(op1_requirement);
+
+		auto res1_requirement = std::make_unique<MachineRegisterRequirement>(&RDX);
+		results[0].set_MachineRegisterRequirement(res1_requirement);
+
+		auto res2_requirement = std::make_unique<MachineRegisterRequirement>(&RAX);
+		results[1].set_MachineRegisterRequirement(res2_requirement);		
 	}
 
 	virtual void emit(CodeMemory* CM) const;
 };
 
 class RetInst : public GPInstruction {
+private:
+	bool emit_leave = false;
 public:
 	/// void return
 	RetInst() : GPInstruction("X86_64RetInst", &NoOperand, NO_SIZE, 0) {}
@@ -552,7 +641,17 @@ public:
 	RetInst(OperandSize op_size, const SrcOp &src)
 			: GPInstruction("X86_64RetInst", &NoOperand, op_size, 1) {
 		operands[0].op = src.op;
+		
+		X86_64Register* result_reg = nullptr;
+		if (src.op->get_type() == Type::FloatTypeID || src.op->get_type() == Type::DoubleTypeID)
+			result_reg = &XMM0;
+		else
+			result_reg = &RAX;
+
+		auto requirement = std::make_unique<MachineRegisterRequirement>(result_reg);
+		operands[0].set_MachineRegisterRequirement(requirement);
 	}
+	void set_emit_leave(bool emit) { emit_leave = emit; }
 	virtual bool is_end() const { return true; }
 	virtual void emit(CodeMemory* CM) const;
 };
@@ -560,18 +659,74 @@ public:
 
 class NegInst : public GPInstruction {
 public:
-	NegInst(const DstSrcOp &dstsrc, OperandSize op_size)
-			: GPInstruction("X86_64NegInst", dstsrc.op, op_size, 1) {
-		operands[0].op = dstsrc.op;
+	NegInst(const SrcOp &src, const DstOp &dst, OperandSize op_size)
+			: GPInstruction("X86_64NegInst", dst.op, op_size, 1, true) {
+		operands[0].op = src.op;
 	}
 	virtual void emit(CodeMemory* CM) const;
 };
 
 class CallInst : public GPInstruction {
 public:
-	CallInst(const SrcOp &src, const DstOp &dst, std::size_t argc)
+	CallInst(const SrcOp &src, const DstOp &dst, std::size_t argc, const MachineMethodDescriptor& MMD, Backend* backend)
 			: GPInstruction("X86_64CallInst", dst.op, OS_64, 1 + argc) {
+		auto MOF = backend->get_JITData()->get_MachineOperandFactory();
 		operands[0].op = src.op;
+		
+		// For void type, use a temporary new vreg, that can be discarded
+		if (dst.op->get_type() == Type::VoidTypeID) {
+			get_result().op = MOF->CreateVirtualRegister(Type::LongTypeID);
+		}
+
+		X86_64Register* result_reg = nullptr;
+		X86_64Register* aux_reg = nullptr;
+
+		if (dst.op->get_type() != Type::FloatTypeID && dst.op->get_type() != Type::DoubleTypeID) {
+			result_reg = &RAX;
+			aux_reg = &XMM0;
+		} else {
+			result_reg = &XMM0;
+			aux_reg = &RAX;
+		}
+
+		// Result must be in result_reg, but aux_reg should also be caller saved
+		auto result_requirement = std::make_unique<MachineRegisterRequirement>(result_reg);
+		get_result().set_MachineRegisterRequirement(result_requirement);
+
+		add_result(MOF->CreateVirtualRegister(Type::DoubleTypeID));
+		auto result2_requirement = std::make_unique<MachineRegisterRequirement>(aux_reg);
+		results[1].set_MachineRegisterRequirement(result2_requirement);
+
+		// Set argument requirements
+		for (unsigned i = 1; i <= argc; ++i) {
+			if (MMD[i-1]->is_StackSlot())
+				continue;
+			auto op_requirement = std::make_unique<MachineRegisterRequirement>(cast_to<X86_64Register>(MMD[i-1]));
+			operands[i].set_MachineRegisterRequirement(op_requirement);
+		}
+
+		// TODO: Adding virtual registers as results and binding them to
+		//       their respective caller saved machine registers is the same for
+		//       ALL call instructions. We can probably do better here
+
+		// Add all caller saved registers as results of the call
+		// Start at 1 since RAX is the first register and it is already bound
+		for (unsigned i = 1; i < IntegerCallerSavedRegistersSize ; ++i) {
+			add_result(MOF->CreateVirtualRegister(Type::LongTypeID));
+			
+			auto native_reg = IntegerCallerSavedRegisters[i];
+			auto requirement = std::make_unique<MachineRegisterRequirement>(native_reg);
+			results[i + 1].set_MachineRegisterRequirement(requirement);
+		}
+
+		auto base = IntegerCallerSavedRegistersSize;
+		for (unsigned i = 1; i < FloatCallerSavedRegistersSize; ++i) {
+			add_result(MOF->CreateVirtualRegister(Type::DoubleTypeID));
+
+			auto native_reg = FloatCallerSavedRegisters[i];
+			auto requirement = std::make_unique<MachineRegisterRequirement>(native_reg);
+			results[base + i].set_MachineRegisterRequirement(requirement);
+		}
 	}
 	virtual void emit(CodeMemory* CM) const;
 };
@@ -588,6 +743,18 @@ public:
 	virtual bool accepts_immediate(std::size_t i, Immediate *imm) const {
 		return true;
 	}
+	virtual void emit(CodeMemory* CM) const;
+};
+
+/// Swaps 2 registers, or one memory location with a register using 'xchg'
+class SwapInst : public GPInstruction {
+public:
+	SwapInst(const Src1Op& src1, const Src2Op& src2, GPInstruction::OperandSize op_size)
+		: GPInstruction("X86_64SwapInst", &NoOperand, op_size, 2) {
+		operands[0].op = src1.op;
+		operands[1].op = src2.op;
+	}
+
 	virtual void emit(CodeMemory* CM) const;
 };
 
@@ -736,7 +903,7 @@ public:
 		operands[0].op = index.op;
 	}
 
-	virtual bool is_end() const { return true; }
+	virtual bool is_trap() const { return true; }
 	virtual void emit(CodeMemory* CM) const;
 };
 
@@ -749,6 +916,7 @@ public:
 			: X86_64Instruction("X86_64CondTrapInst", &NoOperand, 1), cond(cond), trap(trap) {
 		operands[0].op = index.op;
 	}
+	virtual bool is_trap() const { return true; }
 	virtual void emit(CodeMemory* CM) const;
 };
 
@@ -756,9 +924,9 @@ class CMovInst : public GPInstruction {
 private:
 	Cond::COND cond;
 public:
-	CMovInst(Cond::COND cond, const DstSrc1Op &dstsrc1, const Src2Op &src2, GPInstruction::OperandSize op_size)
-			: GPInstruction("X86_64CMovInst", dstsrc1.op, op_size, 2), cond(cond) {
-		operands[0].op = dstsrc1.op;
+	CMovInst(Cond::COND cond, const Src1Op &src1, const Src2Op &src2, const DstOp &dst, GPInstruction::OperandSize op_size)
+			: GPInstruction("X86_64CMovInst", dst.op, op_size, 2, true), cond(cond) {
+		operands[0].op = src1.op;
 		operands[1].op = src2.op;
 	}
 	virtual void emit(CodeMemory* CM) const;
@@ -916,10 +1084,11 @@ public:
 // XORP
 class XORPInst : public GPInstruction {
 protected:
-	XORPInst(const char* name, const Src2Op &src2, const DstSrc1Op &dstsrc1,
+	XORPInst(const char* name, const Src1Op &src1, const Src2Op &src2, const DstOp &dst,
 			GPInstruction::OperandSize op_size)
-			: GPInstruction(name, dstsrc1.op, op_size, 2) {
-		operands[0].op = dstsrc1.op;
+			: GPInstruction(name, dst.op, op_size, 2, true)
+	{
+		operands[0].op = src1.op;
 		operands[1].op = src2.op;
 	}
 public:
@@ -928,13 +1097,13 @@ public:
 
 class XORPSInst : public XORPInst{
 public:
-	XORPSInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-		: XORPInst("X86_64XORPSInst",src2,dstsrc1,GPInstruction::OS_32) {}
+	XORPSInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst)
+		: XORPInst("X86_64XORPSInst",src1,src2,dst,GPInstruction::OS_32) {}
 };
 class XORPDInst : public XORPInst{
 public:
-	XORPDInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-		: XORPInst("X86_64XORPDInst",src2,dstsrc1,GPInstruction::OS_64) {}
+	XORPDInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst)
+		: XORPInst("X86_64XORPDInst",src1,src2,dst,GPInstruction::OS_64) {}
 };
 
 
@@ -943,10 +1112,10 @@ class SSEAluInst : public GPInstruction {
 private:
 	u1 opcode;
 protected:
-	SSEAluInst(const char* name, const Src2Op &src2, const DstSrc1Op &dstsrc1,
+	SSEAluInst(const char* name, const Src1Op &src1, const Src2Op &src2, const DstOp &dst,
 			u1 opcode, GPInstruction::OperandSize op_size)
-			: GPInstruction(name, dstsrc1.op, op_size, 2), opcode(opcode) {
-		operands[0].op = dstsrc1.op;
+			: GPInstruction(name, dst.op, op_size, 2, true), opcode(opcode) {
+		operands[0].op = src1.op;
 		operands[1].op = src2.op;
 	}
 public:
@@ -954,17 +1123,17 @@ public:
 };
 /// SSE Alu Instruction (Double-Precision)
 class SSEAluSDInst : public SSEAluInst {
-protected:
-	SSEAluSDInst(const char* name, const Src2Op &src2, const DstSrc1Op &dstsrc1,
-		u1 opcode)
-			: SSEAluInst(name, src2, dstsrc1, opcode, GPInstruction::OS_64) {}
+protected:	
+	SSEAluSDInst(const char* name, const Src1Op &src1, const Src2Op &src2, 
+		const DstOp &dst, u1 opcode)
+			: SSEAluInst(name, src1, src2, dst, opcode, GPInstruction::OS_64) {}
 };
 /// SSE Alu Instruction (Single-Precision)
 class SSEAluSSInst : public SSEAluInst {
-protected:
-	SSEAluSSInst(const char* name, const Src2Op &src2, const DstSrc1Op &dstsrc1,
-		u1 opcode)
-			: SSEAluInst(name, src2, dstsrc1, opcode, GPInstruction::OS_32) {}
+protected:	
+	SSEAluSSInst(const char* name, const Src1Op &src1, const Src2Op &src2, 
+		const DstOp &dst, u1 opcode)
+			: SSEAluInst(name, src1, src2, dst, opcode, GPInstruction::OS_32) {}
 };
 
 // Double-Precision
@@ -972,26 +1141,26 @@ protected:
 /// Add Scalar Double-Precision Floating-Point Values
 class AddSDInst : public SSEAluSDInst {
 public:
-	AddSDInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-		: SSEAluSDInst("X86_64AddSDInst", src2, dstsrc1, 0x58) {}
+	AddSDInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst)
+		: SSEAluSDInst("X86_64AddSDInst", src1, src2, dst, 0x58) {}
 };
 /// Multiply Scalar Double-Precision Floating-Point Values
 class MulSDInst : public SSEAluSDInst {
 public:
-	MulSDInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-		: SSEAluSDInst("X86_64MulSDInst", src2, dstsrc1, 0x59) {}
+	MulSDInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst)
+		: SSEAluSDInst("X86_64MulSDInst", src1, src2, dst, 0x59) {}
 };
 /// Subtract Scalar Double-Precision Floating-Point Values
 class SubSDInst : public SSEAluSDInst {
 public:
-	SubSDInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-		: SSEAluSDInst("X86_64SubSDInst", src2, dstsrc1, 0x5c) {}
+	SubSDInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst)
+		: SSEAluSDInst("X86_64SubSDInst", src1, src2, dst, 0x5c) {}
 };
 /// Divide Scalar Double-Precision Floating-Point Values
 class DivSDInst : public SSEAluSDInst {
 public:
-	DivSDInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-		: SSEAluSDInst("X86_64DivSDInst", src2, dstsrc1, 0x5e) {}
+	DivSDInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst)
+		: SSEAluSDInst("X86_64DivSDInst", src1, src2, dst, 0x5e) {}
 };
 
 class FPRemInst: public GPInstruction {
@@ -1015,26 +1184,26 @@ public:
 /// Add Scalar Single-Precision Floating-Point Values
 class AddSSInst : public SSEAluSSInst {
 public:
-	AddSSInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-		: SSEAluSSInst("X86_64AddSSInst", src2, dstsrc1, 0x58) {}
+	AddSSInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst)
+		: SSEAluSSInst("X86_64AddSSInst", src1, src2, dst, 0x58) {}
 };
 /// Multiply Scalar Single-Precision Floating-Point Values
 class MulSSInst : public SSEAluSSInst {
 public:
-	MulSSInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-		: SSEAluSSInst("X86_64MulSSInst", src2, dstsrc1, 0x59) {}
+	MulSSInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst)
+		: SSEAluSSInst("X86_64MulSSInst", src1, src2, dst, 0x59) {}
 };
 /// Subtract Scalar Single-Precision Floating-Point Values
 class SubSSInst : public SSEAluSSInst {
 public:
-	SubSSInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-		: SSEAluSSInst("X86_64SubSSInst", src2, dstsrc1, 0x5c) {}
+	SubSSInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst)
+		: SSEAluSSInst("X86_64SubSSInst", src1, src2, dst, 0x5c) {}
 };
 /// Divide Scalar Single-Precision Floating-Point Values
 class DivSSInst : public SSEAluSSInst {
 public:
-	DivSSInst(const Src2Op &src2, const DstSrc1Op &dstsrc1)
-		: SSEAluSSInst("X86_64DivSSInst", src2, dstsrc1, 0x5e) {}
+	DivSSInst(const Src1Op &src1, const Src2Op &src2, const DstOp &dst)
+		: SSEAluSSInst("X86_64DivSSInst", src1, src2, dst, 0x5e) {}
 };
 // SQRTSS Compute Square Root of Scalar Single-Precision Floating-Point Value 0x51
 // MINSS Return Minimum Scalar Single-Precision Floating-Point Value 0x5d

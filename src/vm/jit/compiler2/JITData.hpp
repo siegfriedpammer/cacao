@@ -29,6 +29,7 @@
 #include "vm/jit/compiler2/Backend.hpp"
 #include "vm/jit/compiler2/StackSlotManager.hpp"
 #include "vm/jit/compiler2/CodeMemory.hpp"
+#include "vm/jit/compiler2/MachineOperandFactory.hpp"
 
 #include <memory>
 
@@ -46,6 +47,7 @@ private:
 	std::unique_ptr<Backend> BE;
 	StackSlotManager SSM;
 	CodeMemory cm;
+	MachineOperandFactory MOF;
 public:
 	JITData(jitdata *jd);
 	jitdata *get_jitdata() const {
@@ -55,6 +57,7 @@ public:
 	Backend* get_Backend() { return BE.get(); }
 	StackSlotManager* get_StackSlotManager() { return &SSM; }
 	CodeMemory* get_CodeMemory() { return &cm; }
+	MachineOperandFactory* get_MachineOperandFactory() { return &MOF; }
 };
 
 } // end namespace compiler2

@@ -139,6 +139,11 @@ void nativevm_preinit(void)
 		log_println("nativevm_preinit: Current time in milliseconds is negative, please check your time!");
 #  endif
 
+#if defined(ENABLE_COMPILER2)
+	_Jv_org_cacaojvm_compiler2_test_Compiler2Test_init();
+#endif
+
+
 # else
 #  error unknown classpath configuration
 # endif
@@ -195,8 +200,10 @@ bool nativevm_init(void)
 
 	(void) vm_call_method(m, NULL);
 
-	if (exceptions_get_exception() != NULL)
+	if (exceptions_get_exception() != NULL) {
+		exceptions_print_stacktrace();
 		return false;
+	}
 
 # else
 #  error unknown classpath configuration

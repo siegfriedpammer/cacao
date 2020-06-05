@@ -93,7 +93,8 @@ public:
 } // end anonymous namespace
 
 PassUsage& LoopTreePrinterPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<LoopPass>();
+	PU.requires<LoopPass>();
+	PU.immediately_after<LoopPass>();
 	return PU;
 }
 
@@ -132,7 +133,7 @@ std::string get_filename(methodinfo *m, jitdata *jd, std::string prefix, std::st
 // run pass
 bool LoopTreePrinterPass::run(JITData &JD) {
 	// get dominator tree
-	LoopTree *LT = get_Pass<LoopPass>();
+	LoopTree *LT = get_Artifact<LoopPass>();
 	assert(LT);
 	std::string name = get_filename(JD.get_jitdata()->m,JD.get_jitdata(),"looptree_");
 	GraphPrinter<LoopTreeGraph>::print(name.c_str(), LoopTreeGraph(*(JD.get_Method()),LT));

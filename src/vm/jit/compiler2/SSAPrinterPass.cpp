@@ -246,8 +246,8 @@ inline OStream& SSAGraph::getEdgeAttributes(OStream& OS, const SSAGraph::EdgeTyp
 // BEGIN SSAPrinterPass
 
 PassUsage& SSAPrinterPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<SSAConstructionPass>();
-	PU.add_schedule_before<ScheduleEarlyPass>();
+	PU.requires<HIRInstructionsArtifact>();
+	PU.immediately_after<SSAConstructionPass>();
 	return PU;
 }
 
@@ -269,7 +269,8 @@ bool SSAPrinterPass::run(JITData &JD) {
 // BEGIN BasicBlockPrinterPass
 
 PassUsage& BasicBlockPrinterPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<SSAConstructionPass>();
+	PU.requires<HIRInstructionsArtifact>();
+	PU.immediately_after<SSAConstructionPass>();
 	return PU;
 }
 
@@ -292,7 +293,8 @@ bool BasicBlockPrinterPass::run(JITData &JD) {
 
 template <class _T>
 PassUsage& GlobalSchedulePrinterPass<_T>::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<_T>();
+	PU.requires<_T>();
+	PU.immediately_after<_T>();
 	return PU;
 }
 
@@ -303,7 +305,7 @@ bool GlobalSchedulePrinterPass<_T>::run(JITData &JD) {
 	std::string name = get_filename(JD.get_jitdata()->m,JD.get_jitdata(),"","");
 	std::string filename = "bb_sched_";
 
-	GlobalSchedule* sched = get_Pass<_T>();
+	GlobalSchedule* sched = get_Artifact<_T>();
 
 	filename += GlobalSchedulePrinterPass<_T>::name;
 	filename += "_" + name + ".dot";

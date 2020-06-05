@@ -83,7 +83,7 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 #if defined(ENABLE_DISASSEMBLER)
 	RT_TIMER_START(obj_writter_timer);
 	Method *M = JD.get_Method();
-	//CodeGenPass *CG = get_Pass<CodeGenPass>();
+	//CodeGenPass *CG = get_Artifact<CodeGenPass>();
 	codeinfo*     code = JD.get_jitdata()->code;
 
 	const char* bfd_arch = "i386:x86-64";
@@ -242,7 +242,8 @@ bool ObjectFileWriterPass::run(JITData &JD) {
 
 // pass usage
 PassUsage& ObjectFileWriterPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<CodeGenPass>();
+	PU.requires<CodeGenPass>();
+	PU.immediately_after<CodeGenPass>();
 	return PU;
 }
 

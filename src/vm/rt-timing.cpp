@@ -25,21 +25,36 @@
 
 #include "config.h"
 
-#include <assert.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <time.h>
-
-#include "vm/types.hpp"
-
-#include "mm/memory.hpp"
-
-#include "vm/global.hpp"
 #include "vm/rt-timing.hpp"
 
 namespace cacao {
 
-timespec RTEntry::invalid_ts = {-1,-1};
+OStream& operator<<(OStream &ostr, DurationTy duration) {
+	const char *unit;
+
+	auto dur_sec = std::chrono::duration_cast<std::chrono::seconds>(duration);
+
+	if (dur_sec.count() >= 10) {
+		// display seconds if at least 10 sec
+		ostr << dur_sec.count();
+		unit = "sec";
+	} else {
+		auto dur_milli = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+		auto dur_micro = std::chrono::duration_cast<std::chrono::microseconds>(duration);
+
+		if (dur_milli.count() >= 100) {
+			// display milliseconds if at least 100ms
+			ostr << dur_milli.count();
+			unit = "msec";
+		} else {
+			// otherwise display microseconds
+			ostr << dur_micro.count();
+			unit = "usec";
+		}
+	}
+	ostr << setw(5) << unit;
+	return ostr;
+}
 
 }
 

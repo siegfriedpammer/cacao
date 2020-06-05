@@ -44,7 +44,7 @@ bool ScheduleClickPass::run(JITData &JD) {
 	// late. This might change if we run passes on instruction rather
 	// then on global scope. Therefor this is kept as a placeholder.
 	M = JD.get_Method();
-	late = get_Pass<ScheduleLatePass>();
+	late = get_Artifact<ScheduleLatePass>();
 	for (Method::InstructionListTy::const_iterator i = M->begin(),
 			e = M->end() ; i != e ; ++i) {
 		Instruction *I = *i;
@@ -70,12 +70,14 @@ bool ScheduleClickPass::verify() const {
 	return true;
 }
 PassUsage& ScheduleClickPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<ScheduleLatePass>();
+	PU.provides<ScheduleClickPass>();
+	PU.requires<ScheduleLatePass>();
 	return PU;
 }
 
 // registrate Pass
 static PassRegistry<ScheduleClickPass> X("ScheduleClickPass");
+static ArtifactRegistry<ScheduleClickPass> Y("ScheduleClickPass");
 
 } // end namespace compiler2
 } // end namespace jit

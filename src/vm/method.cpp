@@ -85,6 +85,19 @@ STAT_REGISTER_GROUP_VAR_EXTERN(int,count_linenumbertable,0,"count linenumbertabl
 STAT_REGISTER_GROUP_VAR_EXTERN(int,size_patchref,0,"patchref","patcher references",table_stat)
 
 STAT_DECLARE_VAR(int,count_vmcode_len,0)
+
+#if defined(ENABLE_COMPILER2)
+namespace cacao {
+namespace option {
+	namespace {
+		constexpr unsigned int kInitialHitCount = 1000;
+	}
+	cacao::Option<unsigned int> hit_count("InitialHitCount", "compiler2: number of method calls before optimizing compiler is invoked", kInitialHitCount,::cacao::option::xx_root());
+}
+}
+#endif
+
+
 /* global variables ***********************************************************/
 
 methodinfo *method_java_lang_reflect_Method_invoke;
@@ -590,7 +603,7 @@ bool method_load(ClassBuffer& cb, methodinfo *m, DescriptorPool& descpool)
 #if defined(ENABLE_COMPILER2)
 	/* initialize the hit countdown field */
 
-	m->hitcountdown = METHOD_INITIAL_HIT_COUNTDOWN;
+	m->hitcountdown = option::hit_count.get();
 #endif
 
 	/* everything was ok */
@@ -1268,10 +1281,23 @@ void method_methodref_println(constant_FMIref *mr)
 }
 #endif /* !defined(NDEBUG) */
 
-bool method_matches(methodinfo *m, const char* name) {
+bool method_matches(methodinfo *m, const char* name, const char* clazz, const char* descriptor) {
 	if (!m || !name)
 		return false;
-	return m->name == Utf8String::from_utf8(name);
+
+	if (!m->clazz)
+		return false;
+
+	// If either a class name or a signature was provided, check them first,
+	// the name is the last thing we check.
+
+	if (clazz && !m->clazz->name.equals(clazz))
+		return false;
+
+	if (descriptor && !m->descriptor.equals(descriptor))
+		return false;
+
+	return m->name.equals(name);
 }
 
 namespace cacao {

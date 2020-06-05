@@ -51,7 +51,7 @@ import org.junit.runners.Suite;
 	ArrayStore.class,
 	ArrayLoadFloat.class,
 	DoubleArrayStore.class,
-	MatAdd.class,
+    MatAdd.class,
 	MatMult.class,
 	GetField.class,
 	PutField.class,

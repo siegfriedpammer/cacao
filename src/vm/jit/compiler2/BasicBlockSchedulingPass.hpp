@@ -46,12 +46,16 @@ private:
 	Method *M;
 public:
 	BasicBlockSchedulingPass() : Pass() {}
-	virtual bool run(JITData &JD);
-	virtual PassUsage& get_PassUsage(PassUsage &PA) const;
-	virtual void initialize() {
+	bool run(JITData &JD) override;
+	PassUsage& get_PassUsage(PassUsage &PA) const override;
+	void initialize() override {
 		clear();
 	}
-	virtual bool verify() const;
+	bool verify() const override;
+
+	BasicBlockSchedule* provide_Artifact(ArtifactInfo::IDTy) override {
+		return this;
+	}
 };
 
 } // end namespace compiler2

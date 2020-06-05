@@ -41,23 +41,26 @@ namespace x86_64 {
 class MachineMethodDescriptor {
 private:
 	const MethodDescriptor &MD;
+	MachineOperandFactory* MOF;
 	alloc::vector<MachineOperand*>::type parameter;
 public:
-	MachineMethodDescriptor(const MethodDescriptor &MD) : MD(MD), parameter(MD.size()) {
+	MachineMethodDescriptor(const MethodDescriptor &MD, MachineOperandFactory* MOF, bool is_leaf) : MD(MD), MOF(MOF), parameter(MD.size()) {
 		unsigned int_argument_counter = 0;
 		unsigned float_argument_counter = 0;
-		int stackslot_index = 2;
+		int stackslot_index = 0;
 		for (unsigned i = 0, e = MD.size(); i < e; ++i) {
 			Type::TypeID type = MD[i];
 			switch (type) {
+			case Type::CharTypeID:
+			case Type::ShortTypeID:
 			case Type::IntTypeID:
 			case Type::LongTypeID:
 			case Type::ReferenceTypeID:
 				if (int_argument_counter < IntegerArgumentRegisterSize) {
-					parameter[i]= new NativeRegister(type,
+					parameter[i]= MOF->CreateNativeRegister<NativeRegister>(type,
 						IntegerArgumentRegisters[int_argument_counter]);
 				} else {
-					parameter[i]= new StackSlot(stackslot_index,type);
+					parameter[i]= MOF->CreateStackSlot(stackslot_index,type,is_leaf);
 					stackslot_index++;
 				}
 				int_argument_counter++;
@@ -65,17 +68,18 @@ public:
 			case Type::FloatTypeID:
 			case Type::DoubleTypeID:
 				if (float_argument_counter < FloatArgumentRegisterSize) {
-					parameter[i]= new NativeRegister(type,
+					parameter[i]= MOF->CreateNativeRegister<NativeRegister>(type,
 						FloatArgumentRegisters[float_argument_counter]);
 				} else {
-					parameter[i]= new StackSlot(stackslot_index,type);
+					parameter[i]= MOF->CreateStackSlot(stackslot_index,type,is_leaf);
 					stackslot_index++;
 				}
 				float_argument_counter++;
 				break;
 			default:
-				ABORT_MSG("x86_64 MachineMethodDescriptor: Type not yet "
-					"supported!", "Type: " << type);
+				//ABORT_MSG("x86_64 MachineMethodDescriptor: Type not yet "
+				//	"supported!", "Type: " << type);
+				throw std::runtime_error("x86_64 MachineMethodDescriptor: Type not yet supported!");
 			}
 		}
 	}

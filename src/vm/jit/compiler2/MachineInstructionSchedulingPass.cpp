@@ -22,6 +22,9 @@
 
 */
 
+#include <algorithm>
+#include <iterator>
+
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/PassManager.hpp"
 #include "vm/jit/compiler2/JITData.hpp"
@@ -71,11 +74,13 @@ struct UpdatePhiOperand : public std::unary_function<MachinePhiInst*,void> {
 } // end anonymous namespace
 
 bool MachineInstructionSchedulingPass::run(JITData &JD) {
-	BasicBlockSchedule *BS = get_Pass<BasicBlockSchedulingPass>();
+	MOF = JD.get_MachineOperandFactory();
+
+	BasicBlockSchedule *BS = get_Artifact<BasicBlockSchedule>();
 #if !PATTERN_MATCHING
-	ListSchedulingPass* IS = get_Pass<ListSchedulingPass>();
+	ListSchedulingPass* IS = get_Artifact<ListSchedulingPass>();
 #else
-	GlobalSchedule* GS = get_Pass<ScheduleClickPass>();
+	GlobalSchedule* GS = get_Artifact<ScheduleClickPass>();
 #endif
 
 	alloc::map<BeginInst*,MachineBasicBlock*>::type map;
@@ -105,9 +110,19 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 		LOG2("lowering for BB using list sched " << BI << nl);
 		for (InstructionSchedule<Instruction>::const_inst_iterator i = IS->inst_begin(BI),
 				e = IS->inst_end(BI); i != e; ++i) {
+			// Save the current size, we need to set the correct line number
+			// for all the new MachineInstructions from [size, MBB->size()).
+			auto next = std::max<u2>(0, MBB->size() - 1);
+			
 			Instruction *I = *i;
 			LOG2("lower: " << *I << nl);
 			I->accept(LV, true);
+
+			auto j = MBB->begin();
+			std::advance(j, next);
+			for (auto je = MBB->end(); j != je; ++j) {
+				(*j)->set_line(I->get_line());
+			}
 		}
 #else
 		LOG2("Lowering with Pattern Matching " << BI << nl);
@@ -147,6 +162,31 @@ bool MachineInstructionSchedulingPass::run(JITData &JD) {
 			}
 		}
 	}
+
+	// Split critical edges
+	// TODO: Decide whether this should be its own pass or not
+	LOG1(Cyan << "\nSplitting critical edges" << reset_color << nl);
+	for (auto& block : *this) {
+		auto num_successors = block->back()->successor_size();
+		if (num_successors < 2) {
+			LOG2("\t" << *block << " has " << num_successors << " successors (skipping)\n");
+			continue;
+		}
+
+		for (auto i = block->back()->successor_begin(), 
+			 e = block->back()->successor_end(); i != e; ++i) {
+			auto successor = *i;
+			auto num_predecessors = successor->pred_size();
+			if (num_predecessors < 2) {
+				LOG2("\t" << *successor << " has " << num_predecessors << " predecessors (skipping)\n");
+				continue;
+			}
+
+			LOG1("\tFound critical edge " << *block << " -> " << *successor << nl);
+			get_edge_block(block, successor, JD.get_Backend());
+		}
+	}
+
 	return true;
 }
 
@@ -169,7 +209,7 @@ bool MachineInstructionSchedulingPass::verify() const {
 		}
 		MachineInstruction *back = MBB->back();
 		// check for end
-		if(!back->is_end()) {
+		if(!(back->is_end() || back->is_trap() || back->is_jump())) {
 			ERROR_MSG("verification failed", "last Instruction ("
 				<< *back << ") not a control flow transfer instruction");
 			return false;
@@ -197,19 +237,49 @@ bool MachineInstructionSchedulingPass::verify() const {
 			}
 		}
 	}
-	return true;
+
+	// Partly verifying SSA by making sure each operand is only defined once
+	auto operands = MOF->EmptySet();
+	bool success = true;
+
+	auto def_lambda = [&](const auto& descriptor) {
+		auto operand = descriptor.op;
+		if (operand->is_virtual()) {
+			if (operands.contains(operand)) {
+				LOG(BoldRed << "LIR not in SSA form\n" << 
+					"Operand " << operand << " is defined multiple times\n" << reset_color);
+				success = false;
+			}
+			operands.add(operand);
+		}
+	};
+
+	auto instr_lambda = [&](const auto instr) {
+		std::for_each(instr->results_begin(), instr->results_end(), def_lambda);
+	};
+
+	for (const auto MBB : *this) {
+		std::for_each(MBB->phi_begin(), MBB->phi_end(), instr_lambda);
+		std::for_each(MBB->begin(), MBB->end(), instr_lambda);
+	}
+	
+	return success;
 }
 
 // pass usage
 PassUsage& MachineInstructionSchedulingPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<BasicBlockSchedulingPass>();
-	PU.add_requires<ScheduleClickPass>();
-	PU.add_requires<ListSchedulingPass>();
+	PU.provides<LIRControlFlowGraphArtifact>();
+	PU.provides<LIRInstructionScheduleArtifact>();
+	PU.requires<BasicBlockSchedule>();
+	PU.requires<ScheduleClickPass>();
+	PU.requires<ListSchedulingPass>();
 	return PU;
 }
 
 // register pass
 static PassRegistry<MachineInstructionSchedulingPass> X("MachineInstructionSchedulingPass");
+static ArtifactRegistry<LIRControlFlowGraphArtifact> Y("LIRControlFlowGraphArtifact");
+static ArtifactRegistry<LIRInstructionScheduleArtifact> Z("LIRInstructionScheduleArtifact");
 
 // LIST SCHEDULING PART MOVED HERE
 

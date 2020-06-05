@@ -40,6 +40,13 @@ public class NullDereference extends Compiler2TestBase {
 		public void foo() {}
 	}
 
+	// We do this so the class and field are resolved.
+	private static Foo randomFoo;
+	static {
+		randomFoo = new Foo();
+		randomFoo.field = 20l;
+	}
+
 	static void invokeVirtual() {
 		Foo f = null;
 		f.foo();

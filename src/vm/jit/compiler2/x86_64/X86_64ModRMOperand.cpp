@@ -167,6 +167,7 @@ X86_64ModRMOperand::ScaleFactor X86_64ModRMOperand::get_scale(Type::TypeID type)
 	switch (type) {
 	case Type::ByteTypeID:
 		return Scale1;
+	case Type::CharTypeID:
 	case Type::ShortTypeID:
 		return Scale2;
 	case Type::IntTypeID:

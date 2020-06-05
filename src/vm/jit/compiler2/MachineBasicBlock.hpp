@@ -30,6 +30,7 @@
 #include "vm/jit/compiler2/MachineInstructionSchedule.hpp"
 #include "vm/jit/compiler2/memory/Manager.hpp"
 #include "vm/jit/compiler2/alloc/ordered_list.hpp"
+#include "toolbox/logging.hpp"
 
 MM_MAKE_NAME(MachineBasicBlock)
 
@@ -108,7 +109,7 @@ public:
 	bool operator!=(const MIIterator& rhs) const { return !(*this == rhs); }
 	bool operator>( const MIIterator& rhs) const { return rhs < *this; }
 	reference       operator*()        { return *it; }
-	const reference operator*()  const { return *it; }
+	reference       operator*()  const { return *it; }
 	pointer         operator->()       { return &*it; }
 	const pointer   operator->() const { return &*it; }
 
@@ -153,7 +154,7 @@ public:
 	typedef Container::reverse_iterator reverse_iterator;
 	typedef Container::const_reverse_iterator const_reverse_iterator;
 
-	typedef alloc::list<MachinePhiInst*>::type PhiListTy;
+	typedef alloc::vector<MachinePhiInst*>::type PhiListTy;
 	typedef PhiListTy::const_iterator const_phi_iterator;
 
 	typedef alloc::vector<MachineBasicBlock*>::type PredListTy;
@@ -162,7 +163,7 @@ public:
 
 	/// construct an empty MachineBasicBlock
 	MachineBasicBlock(const MBBIterator &my_it)
-		: id(id_counter++),  my_it(my_it) {};
+		: id(id_counter++),  my_it(my_it), processed(false), last_insertion_point(my_it) {};
 	/// checks if the basic block has no elements.
 	bool empty() const;
 	/// returns the number of elements
@@ -225,6 +226,11 @@ public:
 	std::size_t phi_size() const;
 	/// removes all phi nodes
 	void phi_clear();
+	/// erase phis in the range
+	template<typename Iter>
+	auto phi_erase(Iter iter) {
+		return phi.erase(iter);
+	}
 
 	/**
 	 * Appends the given element value to the list of predecessors.
@@ -249,6 +255,7 @@ public:
 	 */
 	std::size_t get_predecessor_index(MachineBasicBlock* MBB) const;
 
+
 	/// get a MIIterator form a iterator
 	MIIterator convert(iterator pos);
 	/// get a MIIterator form a iterator
@@ -257,6 +264,13 @@ public:
 	MIIterator mi_first();
 	/// returns an MIIterator to the last element (included)
 	MIIterator mi_last();
+
+	MIIterator mi_last_insertion_point() { 
+		assert_msg(last_insertion_point != mi_first(), "Last insertion point not set for block " << this->get_id());
+		return last_insertion_point; 
+	}
+	void set_last_insertion_point(MIIterator point) { last_insertion_point = point; }
+
 	/// get self iterator
 	MBBIterator self_iterator() const;
 	/// get parent
@@ -268,6 +282,21 @@ public:
 
 	/// get a iterator form a MIIterator
 	static iterator convert(MIIterator pos);
+
+	std::size_t get_id() const { return id; }
+
+	/// returns wether this BasicBlock is processed during Liveness Analysis
+	bool is_processed() const { return processed; }
+
+	/// Sets processed to 'true'
+	void mark_processed() { processed = true; }
+	/// Sets processed to 'false'
+	void mark_unprocessed() { processed = false; }
+
+	/// Sets distance to a high value to mark this block as a loop exit
+	void mark_loop_exit() { distance = 100000; }
+	unsigned get_distance() const { return distance; }
+	
 private:
 	/// update instruction block
 	void update(MachineInstruction *MI);
@@ -276,10 +305,19 @@ private:
 	std::size_t id;
 	MBBIterator my_it;
 	/// empty constructor
-	MachineBasicBlock() : id(id_counter++) {}
+	MachineBasicBlock() : id(id_counter++), last_insertion_point(my_it) {}
 	Container list;
 	PhiListTy phi;
 	PredListTy predecessors;
+
+	/// Used by liveness analysis
+	bool processed;
+
+	/// Used by NextUse analysis / SpillPass since loop exits blocks get a higher distance
+	unsigned distance = 0;
+
+	/// Points to the point where instructions at the end of this block can be inserted
+	MIIterator last_insertion_point;
 
 	friend class MBBBuilder;
 	friend class MachineInstructionSchedule;
@@ -556,6 +594,17 @@ MIIterator insert_after(MIIterator pos, MachineInstruction* value);
 } // end namespace compiler2
 } // end namespace jit
 } // end namespace cacao
+
+namespace std {
+	
+template<>
+struct hash<cacao::jit::compiler2::MachineBasicBlock*> {
+	std::size_t operator()(cacao::jit::compiler2::MachineBasicBlock *b) const {
+		return b->get_id();
+	}
+};
+
+} // end namespace std
 
 #endif /* _JIT_COMPILER2_MACHINEBASICBLOCK */
 

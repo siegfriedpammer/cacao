@@ -57,7 +57,9 @@ public class Compiler2TestBase extends Compiler2Test {
 		}
 
 		if (exceptionBaseline != null) {
-			assertEquals(exceptionCompiler2, exceptionBaseline);
+			// We cannot compare the exceptions directly since the stack trace will be different.
+			// (runBaseline/runCompiler2 will be in there).
+			assertThrowableEquals(exceptionCompiler2, exceptionBaseline);
 		} else {
 			assertEquals(resultCompiler2, resultBaseline);
 		}
@@ -129,7 +131,9 @@ public class Compiler2TestBase extends Compiler2Test {
 		}
 
 		if (exceptionBaseline != null) {
-			assertEquals(exceptionCompiler2, exceptionBaseline);
+			// We cannot compare the exceptions directly since the stack trace will be different.
+			// (runBaseline/runCompiler2 will be in there).
+			assertThrowableEquals(exceptionCompiler2, exceptionBaseline);
 		} else {
 			assertEquals(resultCompiler2, resultBaseline);
 		}
@@ -200,5 +204,27 @@ public class Compiler2TestBase extends Compiler2Test {
 			return;
 		}
 		assertTrue("Both objects are equal: " + first, !first.equals(second));
+	}
+
+	// Compares that two throwables thrown by either runBaseline or runCompiler2
+	// are equal up to "runBaseline" or "runCompiler2".
+	static void assertThrowableEquals(Throwable first, Throwable second) {
+		assertEquals(first.getClass(), second.getClass());
+		assertEquals(first.getStackTrace().length, second.getStackTrace().length);
+
+		for (int i = 0; i < first.getStackTrace().length; ++i) {
+			StackTraceElement firstElem = first.getStackTrace()[i];
+			StackTraceElement secondElem = second.getStackTrace()[i];
+			
+			if (firstElem.getMethodName().contains("runCompiler2")) {
+				assertTrue(secondElem.getMethodName().contains("runBaseline"));
+				break;
+			} else if (firstElem.getMethodName().contains("runBaseline")) {
+				assertTrue(secondElem.getMethodName().contains("runCompiler2"));
+				break;
+			}
+
+			assertEquals(firstElem, secondElem);
+		}
 	}
 }

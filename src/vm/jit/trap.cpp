@@ -178,16 +178,15 @@ void trap_handle(int sig, void *xpc, void *context)
 	// implicit exception (i.e. NullPointerException,
 	// ArrayIndexOutOfBoundsException, or ArithmeticException) we deoptimize
 	// instead of throwing the exception.
-#if defined(ENABLE_COMPILER2)
-	if (type == TRAP_NullPointerException
-			|| type == TRAP_ArrayIndexOutOfBoundsException
-			|| type == TRAP_ArithmeticException) {
-		void *xpv = md_codegen_get_pv_from_pc(xpc);
-		codeinfo *code = code_get_codeinfo_for_pv(xpv);
-		if (code->optlevel > 0) {
-			type = TRAP_DEOPTIMIZE;
-		}
-	}
+#if defined(ENABLE_COMPILER2) && !defined(ENABLE_COUNTDOWN_TRAPS)
+	// if (type == TRAP_ArrayIndexOutOfBoundsException
+	// 		|| type == TRAP_ArithmeticException) {
+	// 	void *xpv = md_codegen_get_pv_from_pc(xpc);
+	// 	codeinfo *code = code_get_codeinfo_for_pv(xpv);
+	// 	if (code->optlevel > 0) {
+	// 		type = TRAP_DEOPTIMIZE;
+	// 	}
+	// }
 #endif
 
 	switch (type) {
@@ -284,26 +283,38 @@ void trap_handle(int sig, void *xpc, void *context)
 	case TRAP_PATCHER:
 		p = NULL;
 #if defined(ENABLE_REPLACEMENT)
-		was_replaced = replace_handle_replacement_trap((uint8_t*) xpc, &es);
-		if (was_replaced)
-			break;
+		//was_replaced = replace_handle_replacement_trap((uint8_t*) xpc, &es);
+		//if (was_replaced)
+		//	break;
 #endif
 		was_patched = patcher_handler((uint8_t*) xpc);
 		break;
 
 	case TRAP_COMPILER:
-		p = NULL;
-		entry = jit_compile_handle(m, sfi.pv, ra, (void*) val);
-		break;
+		{
+			p = NULL;
+			codeinfo* caller = code_get_codeinfo_for_pv(sfi.pv);
+			entry = jit_compile_handle(m, sfi.pv, ra, (void*) val);
+#if defined(ENABLE_REPLACEMENT)
+			if (caller->optlevel > 1) {
+				codeinfo* callee = code_find_codeinfo_for_pc(entry);
+				replace_patch_baseline_in_second_stage((u1*)ra, caller, callee, &es);
+			}
+#endif
+			break;
+		}
 
 #if (defined(__AARCH64__) || defined(__X86_64__)) && defined(ENABLE_COMPILER2)
 	case TRAP_COUNTDOWN:
 		p = NULL;
-		replace_handle_countdown_trap((uint8_t*) xpc, &es);
+		replace_handle_countdown_trap_simple((uint8_t*) xpc, &es);
 		break;
 
 	case TRAP_DEOPTIMIZE:
 		p = NULL;
+#if defined(ENABLE_COUNTDOWN_TRAPS)
+		ABORT_MSG("TRAP_DEOPTIMIZE", "For now we do not handle deoptimization!");
+#endif
 		replace_handle_deoptimization_trap((uint8_t*) xpc, &es);
 		break;
 #endif

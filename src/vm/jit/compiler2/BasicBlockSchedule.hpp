@@ -26,6 +26,7 @@
 #define _JIT_COMPILER2_BASICBLOCKSCHEDULE
 
 #include "vm/jit/compiler2/alloc/vector.hpp"
+#include "vm/jit/compiler2/Pass.hpp"
 
 namespace cacao {
 namespace jit {
@@ -37,7 +38,7 @@ class BeginInst;
  * BasicBlockSchedule
  * TODO: more info
  */
-class BasicBlockSchedule {
+class BasicBlockSchedule : public Artifact {
 public:
 	typedef alloc::vector<BeginInst*>::type BasicBlockListTy;
 	typedef BasicBlockListTy::iterator bb_iterator;

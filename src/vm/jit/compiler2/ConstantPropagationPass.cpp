@@ -31,7 +31,7 @@
 #include "vm/jit/compiler2/GlobalValueNumberingPass.hpp"
 #include "vm/jit/compiler2/ScheduleClickPass.hpp"
 #include "vm/jit/compiler2/ScheduleEarlyPass.hpp"
-#include "vm/jit/compiler2/InstructionMetaPass.hpp"
+#include "vm/jit/compiler2/SSAConstructionPass.hpp"
 #include "vm/jit/compiler2/SSAPrinterPass.hpp"
 
 #define DEBUG_NAME "compiler2/ConstantPropagationPass"
@@ -87,6 +87,7 @@ template <typename T>
 struct BinaryOperation<T, Instruction::DIVInstID> :
 		public std::binary_function<T,T,T> {
 	T operator()(const T &lhs, const T &rhs) const {
+		LOG2("Dividing " << lhs << " by " << rhs << nl);
 		return lhs / rhs;
 	}
 };
@@ -291,6 +292,7 @@ bool has_only_constant_operands(Instruction *inst) {
 				equal = firstOp->get_Double() == op->get_Double();
 				break;
 			default:
+				throw std::runtime_error("ConstantPropagationPass: Unhandled type in 'has_only_constant_operands'!");
 				assert(0);
 				return false;
 		}
@@ -328,6 +330,7 @@ bool ConstantPropagationPass::run(JITData &JD) {
 
 		if (constantOperands[I] == I->op_size()) {
 			if (I->get_opcode() == Instruction::CONSTInstID) {
+				LOG2("Propagating " << *I << nl);
 				propagate(I);
 			} else if (can_be_statically_evaluated(I)) {
 				CONSTInst *foldedInst = foldInstruction(I);
@@ -352,10 +355,10 @@ bool ConstantPropagationPass::run(JITData &JD) {
 
 // pass usage
 PassUsage& ConstantPropagationPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<InstructionMetaPass>();
-	PU.add_schedule_before<DeadCodeEliminationPass>();
-	PU.add_schedule_before<GlobalValueNumberingPass>();
-	PU.add_schedule_before<ScheduleEarlyPass>();
+	PU.requires<HIRInstructionsArtifact>();
+	PU.before<DeadCodeEliminationPass>();
+	PU.before<GlobalValueNumberingPass>();
+	PU.before<ScheduleEarlyPass>();
 	return PU;
 }
 

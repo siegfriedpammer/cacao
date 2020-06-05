@@ -204,7 +204,7 @@ dnl Must be BEFORE *linux*.
 
 *linux* | *Linux* )
     OS_DIR="linux"
-    AM_CPPFLAGS="$AM_CPPFLAGS -D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_BSD_SOURCE -D__STDC_FORMAT_MACROS"
+    AM_CPPFLAGS="$AM_CPPFLAGS -D__LINUX__ -D_POSIX_C_SOURCE=200112L -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED -D_DEFAULT_SOURCE -D__STDC_FORMAT_MACROS"
     ;;
 
 *netbsd* )
@@ -811,6 +811,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/compiler2/aarch64/Makefile]
 		[src/vm/jit/compiler2/alloc/Makefile]
 		[src/vm/jit/compiler2/memory/Makefile]
+		[src/vm/jit/compiler2/treescan/Makefile]
 		[src/vm/jit/compiler2/x86_64/Makefile]
 		[src/vm/jit/parisc/Makefile]
 		[src/vm/jit/parisc/linux/Makefile]
@@ -836,6 +837,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/x86_64/solaris/Makefile]
 		[tests/Makefile]
 		[tests/compiler2/Makefile]
+		[tests/compiler2/catch/Makefile]
 		[tests/compiler2/junit/Makefile]
 		[tests/gtest/Makefile]
 		[tests/gtest/compiler2/Makefile]

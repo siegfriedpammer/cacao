@@ -24,12 +24,13 @@
 
 #include "vm/jit/compiler2/JITData.hpp"
 #include "vm/jit/jit.hpp"
+#include "vm/jit/code.hpp"
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
 
-JITData::JITData(jitdata *jd) : jd(jd), M(jd->m), BE(Backend::factory(this)) {}
+JITData::JITData(jitdata *jd) : jd(jd), SSM(&MOF, jd->code), M(jd->m), BE(Backend::factory(this)) {}
 
 } // end namespace compiler2
 } // end namespace jit

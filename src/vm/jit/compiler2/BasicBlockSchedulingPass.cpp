@@ -102,7 +102,10 @@ private:
 					}
 				}
 			}
-			assert(unsched.empty() || !subloops.empty());
+			// assert(unsched.empty() || !subloops.empty());
+			if (!unsched.empty() && subloops.empty()) {
+				throw std::runtime_error("BasicBlockSchedulingPass: unscheduled blocks!");
+			}
 			for(LoopSetTy::iterator i = subloops.begin() , e = subloops.end(); i != e; ++i) {
 				Loop *subloop = *i;
 				if (is_ready(subloop->get_header()) ) {
@@ -132,7 +135,7 @@ public:
 
 bool BasicBlockSchedulingPass::run(JITData &JD) {
 	M = JD.get_Method();
-	LoopTree *LT = get_Pass<LoopPass>();
+	LoopTree *LT = get_Artifact<LoopPass>();
 
 	// schedule loops
 	LoopScheduler loop_scheduler(M,LT);
@@ -186,9 +189,9 @@ inline Loop* get_root() {
 bool BasicBlockSchedulingPass::verify() const {
 	// check init basic block
 	if (*bb_begin() != M->get_init_bb()) {
-		ERROR_MSG("Schedule does not start with init basic block!",
+		LOG(BoldRed << "Schedule does not start with init basic block!\n" <<
 			"Init basic block is " << M->get_init_bb()
-			<< " but schedule starts with " << *bb_begin());
+			<< " but schedule starts with " << *bb_begin() << reset_color << nl);
 		return false;
 	}
 	// check if ordering (obsolete)
@@ -209,7 +212,7 @@ bool BasicBlockSchedulingPass::verify() const {
 	}
 	#endif
 	#if VERIFY_PRED_PROPERTY || VERIFY_LOOP_PROPERTY
-	LoopTree *LT = get_Pass<LoopPass>();
+	LoopTree *LT = get_Artifact<LoopPass>();
 	#endif
 	#if VERIFY_PRED_PROPERTY
 	// check predecessor property
@@ -268,12 +271,14 @@ bool BasicBlockSchedulingPass::verify() const {
 
 // pass usage
 PassUsage& BasicBlockSchedulingPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<LoopPass>();
+	PU.provides<BasicBlockSchedule>();
+	PU.requires<LoopPass>();
 	return PU;
 }
 
 // register pass
 static PassRegistry<BasicBlockSchedulingPass> X("BasicBlockSchedulingPass");
+static ArtifactRegistry<BasicBlockSchedule> Y("BasicBlockSchedule");
 
 } // end namespace compiler2
 } // end namespace jit

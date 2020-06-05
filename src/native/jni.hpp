@@ -80,7 +80,7 @@ struct hashtable_global_ref_entry;
 
 // Some additional JNI version numbers, we currently support JNI 1.6.
 #define JNI_VERSION_SUPPORTED JNI_VERSION_1_6
-#define JNI_VERSION_CACAO     0xcaca0000
+#define JNI_VERSION_CACAO     ((int)0xcaca0000)
 
 
 // Typedef the JNI types.

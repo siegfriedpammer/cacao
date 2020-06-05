@@ -1028,11 +1028,13 @@ static void replace_patch_method_pointer(methodptr *mpp,
 	codeinfo *oldcode = code_get_codeinfo_for_pv(*mpp);
 	codeinfo *newcode = code_get_codeinfo_for_pv(entrypoint);
 
-	assert(oldcode->m == newcode->m);
+	assert_msg(oldcode->m == newcode->m, 
+			   "Old code: " << *oldcode->m << nl << 
+			   "New code: " << *newcode->m << nl);
 #endif
 
-	LOG("patch method pointer from " << (void *) *mpp << " to "
-		<< (void *) entrypoint << nl);
+	LOG("patch method pointer (" << kind << ") from " << (void *) *mpp 
+		<< " to " << (void *) entrypoint << nl);
 
 	/* write the new entrypoint */
 
@@ -1180,14 +1182,14 @@ void replace_patch_future_calls(u1 *ra,
 
 #if !defined(__I386__)
 	atentry = (calleeframe->down == NULL)
-			&& !(calleem->flags & ACC_STATIC)
-			&& (calleeframe->fromrp->id == 0); /* XXX */
+			&& !(calleem->flags & ACC_STATIC);
+			// && (calleeframe->fromrp->id == 0); /* XXX */
 #endif
 
 	/* get the position to patch, in case it was a statically bound call   */
 
 	pv = callerframe->fromcode->entrypoint;
-	if (callerframe->fromcode->optlevel > 0) {
+	if (callerframe->fromcode->optlevel > 1) {
 		patchpos = (u1*) callerframe->fromrp->patch_target_addr;
 	} else {
 		patchpos = (u1*) md_jit_method_patch_address(pv, ra, NULL);
@@ -1223,7 +1225,7 @@ void replace_patch_future_calls(u1 *ra,
 
 		assert(vftbl->clazz->vftbl == vftbl);
 
-		LOG("class: " << vftbl->clazz);
+		LOG("class: " << vftbl->clazz << nl);
 
 		replace_patch_class(vftbl, calleem, oldentrypoint, entrypoint);
 	} else {
@@ -1231,10 +1233,10 @@ void replace_patch_future_calls(u1 *ra,
 
 #if defined(__I386__) || defined(__X86_64__)
 		/* It happens that there is a patcher trap. (pm) */
-		if (*(u2 *)(patchpos - 1) == 0x0b0f) {
+		/*if (*(u2 *)(patchpos - 1) == 0x0b0f) {
 			LOG2("enountered patcher trap, not patching static call");
 			return;
-		}
+		}*/
 #endif
 
 #if defined(__AARCH64__)
@@ -1452,7 +1454,7 @@ rplpoint *replace_find_replacement_point_at_or_before_pc(
 	rplpoint *rp = code->rplpoints;
 
 	for (s4 i = 0; i < code->rplpointcount; ++i, ++rp) {
-		if (rp->pc <= pc && (rp->flags & desired_flags)) {
+		if (rp->pc <= pc && (rp->flags & desired_flags) == desired_flags) {
 			if (nearest == NULL || nearest->pc < rp->pc) {
 				nearest = rp;
 			}
@@ -1866,6 +1868,156 @@ static void replace_optimize(codeinfo *code, rplpoint *rp, executionstate_t *es)
 	LOG(BoldGreen << "finished replacement: " << reset_color << "jump into optimized code" << nl);
 }
 
+/* replace_handle_countdown_trap_simple ****************************************
+
+	This is basically what md_jit_method_patch_address does, if the caller was
+	compiled using the second stage, and the baseline was triggerd by a
+	compilerstub through an INVOKEVIRTUAL/INTERFACE.
+
+	Since the second stage generated code is much more dynamic - e.g. moves
+	could be inserted before the call site - we cannot simply rewrite the
+	generated machine code. Also this approach should be much more protable.
+
+	The code is rather similar to the countdown_trap_simple method, because
+	both patch the callsite.
+
+*******************************************************************************/
+
+void replace_patch_baseline_in_second_stage(u1* ra, codeinfo* caller, codeinfo* callee, executionstate_t *es)
+{
+	if (caller->optlevel < 2) return;
+
+	LOG("patching baseline compiled method into second stage\n");
+
+	if (caller && !(caller->m->flags & ACC_NATIVE)) {
+		LOG1("Found caller method [" << *caller->m << "]\n");
+
+		sourceframe_t caller_frame;
+		caller_frame.fromcode = caller;
+		caller_frame.method = caller->m;
+
+		codeinfo fake_callee_from;
+		fake_callee_from.entrypoint = callee->m->stubroutine;
+
+		sourceframe_t callee_frame;
+		callee_frame.fromcode = &fake_callee_from;
+		callee_frame.tocode = callee;
+		callee_frame.method = callee->m;
+		callee_frame.down = nullptr;
+		callee_frame.instance.a = nullptr;
+
+		// If the method is not static, the first argument register should
+		// hold the object instance
+		if (!(callee->m->flags & ACC_STATIC)) {
+#if defined(__X86_64__)
+			callee_frame.instance.a = (java_object_t*) es->intregs[REG_A0];
+#endif			
+		}
+		
+		caller_frame.down = &callee_frame;
+
+		// If the caller method was compiled with c2, find the replacement point
+		// since it holds the patchaddress for static/special calls
+		if (caller->optlevel > 1) {
+			caller_frame.fromrp = replace_find_replacement_point_at_or_before_pc(caller, ra - 1, 0x0);
+			assert_msg(caller_frame.fromrp, "Unable to find caller replacement point!");
+			LOG1("Found replacement point " << *caller_frame.fromrp << nl);
+		}
+
+		replace_patch_future_calls(ra, &caller_frame, &callee_frame);
+	}
+}
+
+/* replace_handle_countdown_trap_simple ****************************************
+
+   This function is called by the signal handler. It is a simpler version
+   of the normal on-stack-replacement mechanism. It only recompiles the method
+   with either the second stage or (if that fails) with the baseline compiler
+   with countdown traps deactivated.
+
+   In addition it tries to patch the call site. This is the data segment for
+   static and special calls and the vftbl for virtual/interface calls.
+
+   This functions DOES NOT TOUCH THE STACK. It simply relies on the fact that
+   replacement is triggered before the stack is touched, and the top stack
+   element is the return address in the caller method.
+
+   The only thing it touches in the execution state is the program counter,
+   so the pc points to the optimized version of the method.
+
+   IN:
+       pc...............the program counter that triggered the countdown trap.
+       es...............the execution state (machine state) at the countdown
+                        trap.
+
+   OUT:
+       es...............the execution state after replacement finished.
+
+*******************************************************************************/
+
+void replace_handle_countdown_trap_simple(u1 *pc, executionstate_t *es)
+{
+	LOG("handle countdown trap" << nl);
+	
+	/* search the codeinfo for the given PC */
+
+	codeinfo *code = code_find_codeinfo_for_pc(pc);
+	assert(code);
+	methodinfo *method = code->m;
+
+	method->mutex->lock();
+
+	LOG(BoldCyan << "Optimizing [" << *method << "]\n" << reset_color);
+
+	/* request optimization or at least a version without the countdown trap */
+	jit_request_optimization(method);
+	codeinfo *optimized_code = jit_get_current_code(method);
+	
+	method->mutex->unlock();
+
+	u1* ra = (u1*) *((uintptr_t*) es->sp);
+	codeinfo *caller = code_find_codeinfo_for_pc(ra);
+	if (caller && !(caller->m->flags & ACC_NATIVE)) {
+		LOG1("Found caller method [" << *caller->m << "]\n");
+
+		sourceframe_t caller_frame;
+		caller_frame.fromcode = caller;
+		caller_frame.method = caller->m;
+
+		sourceframe_t callee_frame;
+		callee_frame.fromcode = code;
+		callee_frame.tocode = optimized_code;
+		callee_frame.method = method;
+		callee_frame.down = nullptr;
+		callee_frame.instance.a = nullptr;
+
+		// If the method is not static, the first argument register should
+		// hold the object instance
+		if (!(method->flags & ACC_STATIC)) {
+#if defined(__X86_64__)
+			callee_frame.instance.a = (java_object_t*) es->intregs[REG_A0];
+#endif			
+		}
+		
+		caller_frame.down = &callee_frame;
+
+		// If the caller method was compiled with c2, find the replacement point
+		// since it holds the patchaddress for static/special calls
+		if (caller->optlevel > 1) {
+			caller_frame.fromrp = replace_find_replacement_point_at_or_before_pc(caller, ra - 1, 0x0);
+			assert_msg(caller_frame.fromrp, "Unable to find caller replacement point!");
+			LOG1("Found replacement point " << *caller_frame.fromrp << nl);
+		}
+
+		replace_patch_future_calls(ra, &caller_frame, &callee_frame);
+	}
+
+	es->pc = (u1*) (uintptr_t) optimized_code->entrypoint;
+	es->pv = (u1*) (uintptr_t) optimized_code->entrypoint;
+
+	LOG(BoldGreen << "Finished optimizing [" << *method << "]\n" << reset_color);
+}
+
 
 /* replace_handle_countdown_trap ***********************************************
 
@@ -1931,7 +2083,7 @@ void replace_handle_countdown_trap(u1 *pc, executionstate_t *es)
 bool replace_handle_replacement_trap(u1 *pc, executionstate_t *es)
 {
 	/* search the codeinfo for the given PC */
-
+	
 	codeinfo *code = code_find_codeinfo_for_pc(pc);
 	assert(code);
 

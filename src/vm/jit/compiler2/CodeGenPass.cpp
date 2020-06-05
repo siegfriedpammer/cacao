@@ -28,8 +28,9 @@
 #include "vm/jit/compiler2/PassUsage.hpp"
 #include "vm/jit/compiler2/MachineInstructionSchedulingPass.hpp"
 #include "vm/jit/compiler2/MachineBasicBlock.hpp"
-#include "vm/jit/compiler2/RegisterAllocatorPass.hpp"
+#include "vm/jit/compiler2/SSADeconstructionPass.hpp"
 #include "vm/jit/compiler2/MachineRegister.hpp"
+#include "vm/jit/compiler2/treescan/RegisterAssignmentPass.hpp"
 
 #include "toolbox/logging.hpp"
 
@@ -38,6 +39,8 @@
 #include "vm/jit/executionstate.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/methodtree.hpp"
+#include "vm/jit/linenumbertable.hpp"
+#include "vm/jit/exceptiontable.hpp"
 
 #include "vm/jit/disass.hpp"
 
@@ -50,11 +53,84 @@
 #define DEBUG_NAME "compiler2/CodeGen"
 
 STAT_DECLARE_VAR(std::size_t, compiler_last_codesize, 0)
-STAT_DECLARE_VAR(std::size_t, num_remaining_moves,0)
 
 namespace cacao {
 namespace jit {
 namespace compiler2 {
+
+namespace {
+static void emit_nop(CodeFragment code, int length) {
+	assert(length >= 0 && length <= 9);
+	unsigned mcodeptr = 0;
+	switch (length) {
+	case 0:
+		break;
+	case 1:
+		code[mcodeptr++] = 0x90;
+		break;
+	case 2:
+		code[mcodeptr++] = 0x66;
+		code[mcodeptr++] = 0x90;
+		break;
+	case 3:
+		code[mcodeptr++] = 0x0f;
+		code[mcodeptr++] = 0x1f;
+		code[mcodeptr++] = 0x00;
+		break;
+	case 4:
+		code[mcodeptr++] = 0x0f;
+		code[mcodeptr++] = 0x1f;
+		code[mcodeptr++] = 0x40;
+		code[mcodeptr++] = 0x00;
+		break;
+	case 5:
+		code[mcodeptr++] = 0x0f;
+		code[mcodeptr++] = 0x1f;
+		code[mcodeptr++] = 0x44;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		break;
+	case 6:
+		code[mcodeptr++] = 0x66;
+		code[mcodeptr++] = 0x0f;
+		code[mcodeptr++] = 0x1f;
+		code[mcodeptr++] = 0x44;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		break;
+	case 7:
+		code[mcodeptr++] = 0x0f;
+		code[mcodeptr++] = 0x1f;
+		code[mcodeptr++] = 0x80;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		break;
+	case 8:
+		code[mcodeptr++] = 0x0f;
+		code[mcodeptr++] = 0x1f;
+		code[mcodeptr++] = 0x84;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		break;
+	case 9:
+		code[mcodeptr++] = 0x66;
+		code[mcodeptr++] = 0x0f;
+		code[mcodeptr++] = 0x1f;
+		code[mcodeptr++] = 0x84;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		code[mcodeptr++] = 0x00;
+		break;
+	}
+}
+}
 
 #ifdef ENABLE_LOGGING
 Option<bool> CodeGenPass::print_code("PrintCodeSegment","compiler2: print code segment",false,::cacao::option::xx_root());
@@ -62,12 +138,37 @@ Option<bool> CodeGenPass::print_data("PrintDataSegment","compiler2: print data s
 #endif
 
 bool CodeGenPass::run(JITData &JD) {
-	MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
+	MachineInstructionSchedule *MIS = get_Artifact<LIRInstructionScheduleArtifact>()->MIS;
 	CodeMemory *CM = JD.get_CodeMemory();
 	CodeSegment &CS = CM->get_CodeSegment();
 	StackSlotManager *SSM = JD.get_StackSlotManager();
+	MachineOperandFactory *MOF = JD.get_MachineOperandFactory();
+
+	// Create Prolog and Epilog, first calculate all used callee saved registers
+	// and assign each callee saved register a stackslot and a native register
+	Backend::CalleeSavedRegisters registers;
+	auto used_operands = get_Artifact<RegisterAssignmentPass>()->get_used_operands();
+	auto RI = JD.get_Backend()->get_RegisterInfo();
+	for (unsigned idx = 0; idx < RI->class_count(); ++idx) {
+		const auto& regclass = RI->get_class(idx);
+		auto class_operands = used_operands & regclass.get_CalleeSaved();
+
+		std::for_each(class_operands.begin(), class_operands.end(), [&](auto& operand) {
+			MachineOperand* native_reg = MOF->CreateNativeRegister<NativeRegister>(regclass.default_type(), &operand);
+			auto slot = SSM->create_slot(regclass.default_type());
+
+			registers.push_back({native_reg, slot});
+		});
+	}
 
 	SSM->finalize();
+
+	JD.get_Backend()->create_prolog(*MIS->begin(), registers);
+	for (const auto block : *MIS) {
+		if (block->back()->is_end()) {
+			JD.get_Backend()->create_epilog(block, registers);
+		}
+	}
 
 	// NOTE reverse so we see jump targets (which are not backedges) before
 	// the jump.
@@ -86,11 +187,6 @@ bool CodeGenPass::run(JITData &JD) {
 			std::size_t end = CS.size();
 			instruction_positions[MI] = start;
 			instruction_sizes[MI] = end - start;
-			#if defined(ENABLE_STATISTICS)
-			if (MI->is_move() && start != end) {
-				STATISTICS(++num_remaining_moves);
-			}
-			#endif
 			if (DEBUG_COND_N(2)) {
 				if ( start == end) {
 					LOG2("none" << nl);
@@ -111,8 +207,14 @@ bool CodeGenPass::run(JITData &JD) {
 		bbmap[MBB] = bb_end - bb_start;
 	}
 	assert(MBB != NULL);
-	// create stack frame
-	JD.get_Backend()->create_frame(CM,SSM);
+
+	// Align code
+	/// @todo This needs to be platform independent
+#if defined(__X86_64__)
+	CodeFragment CF = CM->get_aligned_CodeFragment(0);
+	emit_nop(CF,CF.size());
+#endif
+
 	// fix last block (frame start, alignment)
 	bbmap[MBB] = CS.size() - bb_start;
 	// finish
@@ -217,6 +319,13 @@ void CodeGenPass::resolve_replacement_points(ForwardIt first, ForwardIt last, JI
 			if (reg) {
 				// the operand has been allocated to a register
 				MachineRegister *machine_reg = reg->to_MachineRegister();
+				if (!machine_reg && reg->is_virtual()) {
+					// XXX Somehow we end up with a ModRM operand here (??)
+					//     that looks like a virtual register, but is really an address
+					op_index++;
+					ra++;
+					continue;
+				}
 				assert(machine_reg);
 				ra->inmemory = false;
 
@@ -229,12 +338,17 @@ void CodeGenPass::resolve_replacement_points(ForwardIt first, ForwardIt last, JI
 				// but we had to change their visibility from `protected` to
 				// `public`. Is this approach ok?
 				ra->regoff = machine_reg->id_offset() / machine_reg->id_size();
-			} else {
+			} else if (mop->is_StackSlot()) {
 				// the operand has been allocated to a stack slot
 				StackSlot *stack_slot = mop->to_StackSlot();
 				assert(stack_slot);
 				ra->inmemory = true;
 				ra->regoff = stack_slot->get_index();
+			} else if (mop->is_ManagedStackSlot()) {
+				LOG(BoldRed << "Error: Managed Stackslot (" << mop 
+				            << ") is specified in replacement point, but unhandled at the moment\n"
+							<< reset_color);
+				ra->inmemory = true;
 			}
 
 			op_index++;
@@ -372,7 +486,21 @@ void CodeGenPass::finish(JITData &JD) {
 	code->savedadrcount      = ADR_SAV_CNT - rd->savadrreguse;
 #endif
 
-#if defined(__AARCH64__) || defined(__X86_64__)
+#if defined(__X86_64__)
+	if (!code_is_leafmethod(code)) {
+		// RSP is 16 byte aligned
+		code->stackframesize += (code->stackframesize % 2);
+		
+		// We use RBP register in non-leaf methods
+		code->stackframesize++;
+		code_flag_using_frameptr(code);
+	} else {
+		// If its a leaf method, we do not adjust RSP, meaning RSP points to the return address
+		code->stackframesize = 0;
+	}
+#endif
+
+#if defined(__AARCH64__)
 	// Since we use the EnterInst on method entry, the generated code saves the
 	// frame pointer (register RBP) of the calling method on the stack. We
 	// therefore have to provide an additional stack slot.
@@ -393,15 +521,34 @@ void CodeGenPass::finish(JITData &JD) {
 
 	/* Create the exception table. */
 
-#if 0
-	exceptiontable_create(jd);
-#endif
+	exceptiontable_create(JD.get_jitdata());
+
 
 	/* Create the linenumber table. */
 
-#if 0
-	code->linenumbertable = new LinenumberTable(jd);
+	std::vector<Linenumber> linenumbers;
+	for (auto i = instruction_positions.begin(), e = instruction_positions.end(); i != e; ++i) {
+		MachineInstruction* instr = i->first;
+		if (instr->get_line() == 0) continue;
 
+		LOG2(*instr << " at " << instr->get_line() << nl);
+		std::size_t offset = CS.size() - i->second;
+
+		linenumbers.push_back(Linenumber(instr->get_line(), (void*)offset));
+	}
+
+	std::sort(linenumbers.begin(), linenumbers.end(), [&](auto& ln1, auto& ln2) {
+		if (ln1.get_pc() == ln2.get_pc()) return ln1.get_linenumber() < ln2.get_linenumber(); 
+		return ln1.get_pc() < ln2.get_pc();
+	});
+
+	for (auto& lnr : linenumbers) {
+		LOG2("Line number " << lnr.get_linenumber() << " at " << lnr.get_pc() << nl);
+		JD.get_jitdata()->cd->linenumbers->push_front(lnr);
+	}
+	code->linenumbertable = new LinenumberTable(JD.get_jitdata());
+
+#if 0
 	/* jump table resolving */
 	for (jr = cd->jumpreferences; jr != NULL; jr = jr->next)
 		*((functionptr *) ((ptrint) epoint + jr->tablepos)) =
@@ -418,7 +565,7 @@ void CodeGenPass::finish(JITData &JD) {
 	/* replacement point resolving */
 	{
 		MInstListTy rplpoints;
-		MachineInstructionSchedule *MIS = get_Pass<MachineInstructionSchedulingPass>();
+		MachineInstructionSchedule *MIS = get_Artifact<LIRInstructionScheduleArtifact>()->MIS;
 		find_all_replacement_points(MIS, std::back_inserter(rplpoints));
 		resolve_replacement_points(rplpoints.begin(), rplpoints.end(), JD);
 	}
@@ -454,13 +601,16 @@ void CodeGenPass::finish(JITData &JD) {
 
 // pass usage
 PassUsage& CodeGenPass::get_PassUsage(PassUsage &PU) const {
-	PU.add_requires<MachineInstructionSchedulingPass>();
-	PU.add_requires<RegisterAllocatorPass>();
+	PU.provides<CodeGenPass>();
+	PU.requires<LIRInstructionScheduleArtifact>();
+	PU.requires<SSADeconstructionPass>();
+	PU.requires<RegisterAssignmentPass>();
 	return PU;
 }
 
 // registrate Pass
 static PassRegistry<CodeGenPass> X("CodeGenPass");
+static ArtifactRegistry<CodeGenPass> Y("CodeGenPass");
 
 } // end namespace compiler2
 } // end namespace jit

@@ -145,7 +145,7 @@ inline bool use_sib(X86_64Register *base, X86_64Register *index) {
 	return index || base == &RSP || base == &R12;
 }
 
-inline u1 get_modrm(u1 reg, u1 base, s4 disp, bool use_sib = false) {
+inline u1 get_modrm(u1 reg, u1 base, s4 disp, bool use_sib = false, bool is_base_extended = false) {
 	u1 modrm_mod = 6;
 	u1 modrm_reg = 3;
 	u1 modrm_rm = 0;
@@ -154,7 +154,10 @@ inline u1 get_modrm(u1 reg, u1 base, s4 disp, bool use_sib = false) {
 	u1 rm = 0;
 	u1 modrm = 0;
 
-	if (disp == 0 || base == 0x05 /* RBP */) {
+	if (disp == 0 && base == 0x05 && is_base_extended) {
+		mod = 0x01; // We use displacement, but encode 0 in it
+	}
+	else if (disp == 0 || (base == 0x05 && !is_base_extended) /* RBP */ ) {
 		// no disp
 		mod = 0x00; //0b00
 	}
@@ -184,7 +187,7 @@ inline u1 get_modrm(u1 reg, u1 base, s4 disp, bool use_sib = false) {
 }
 
 inline u1 get_modrm (X86_64Register *reg, X86_64Register *base, s4 disp, bool use_sib = false) {
-	return get_modrm((reg != NULL) ? reg->get_index() : 0, (base != NULL) ? base->get_index() : 0, disp, use_sib);
+	return get_modrm((reg != NULL) ? reg->get_index() : 0, (base != NULL) ? base->get_index() : 0, disp, use_sib, base->extented);
 }
 
 inline u1 get_sib(X86_64Register *base, X86_64Register *index = NULL, u1 scale = 1) {
@@ -232,13 +235,31 @@ inline u1 get_modrm_1reg(u1 reg, X86_64Register *rm) {
 int get_stack_position(MachineOperand *op) {
 	if (op->is_StackSlot()) {
 		StackSlot *slot = op->to_StackSlot();
-		return slot->get_index() * 8;
+		int offset_idx = slot->is_leaf() ? 1 : 2;
+		return (slot->get_index() + offset_idx) * 8;
 	} else if (op->is_ManagedStackSlot()) {
+		// If its a leaf method, we did not move RSP, and instead use negative offsets
 		ManagedStackSlot *slot = op->to_ManagedStackSlot();
-		StackSlotManager *SSM = slot->get_parent();
-		return -(SSM->get_number_of_machine_slots() - slot->get_index()) * 8;
+		bool is_leaf = slot->get_parent()->is_leaf();
+		if (!is_leaf) {
+			return slot->get_index() * 8;
+		}
+		
+		return -(slot->get_index() + 1) * 8;
+		
 	}
 	assert(false && "Not a stackslot");
+}
+
+// Caller memory arguments are referenced using RBP while
+// all other local stack variables are referenced using RSP
+GPRegister* get_stack_register(MachineOperand *op) {
+	assert_msg(op->is_stackslot(), "Operand " << op << " is not a stackslot!");
+	if (op->is_StackSlot()) {
+		StackSlot *slot = op->to_StackSlot();
+		return slot->is_leaf() ? &RSP : &RBP;
+	}
+	return &RSP;
 }
 
 class CodeSegmentBuilder {
@@ -421,17 +442,21 @@ struct InstructionEncoding {
 
 	}
 
-	static void emit (CodeMemory* CM, u1 primary_opcode, GPInstruction::OperandSize op_size, MachineOperand *src, MachineOperand *dst, u1 secondary_opcode = 0, u1 op_reg = 0, u1 prefix = 0, bool prefix_0f = false, bool encode_dst = true, bool imm_sign_extended = false) {
+	static void emit (CodeMemory* CM, u1 primary_opcode, GPInstruction::OperandSize op_size, 
+		              MachineOperand *src, MachineOperand *dst, u1 secondary_opcode = 0, 
+					  u1 op_reg = 0, u1 prefix = 0, bool prefix_0f = false, 
+					  bool encode_dst = true, bool imm_sign_extended = false, GPInstruction::OperandSize default_op_size = GPInstruction::OS_32) {
 		CodeSegmentBuilder code;
 		if (dst->is_Register()) {
 			X86_64Register *dst_reg = cast_to<X86_64Register>(dst);
 			if (src->is_Register()) {
 				X86_64Register *src_reg = cast_to<X86_64Register>(src);
-				u1 rex = get_rex(dst_reg,src_reg,op_size == GPInstruction::OS_64);
-				if (rex != 0x40)
-					code += rex;
+				bool opsize64 = (op_size == GPInstruction::OS_64) && (default_op_size != GPInstruction::OS_64);
+				u1 rex = get_rex(dst_reg,src_reg,opsize64);
 				if (prefix)
 					code += prefix;
+				if (rex != 0x40)
+					code += rex;
 				if (prefix_0f)
 					code += 0x0F;
 				code += primary_opcode;
@@ -443,10 +468,10 @@ struct InstructionEncoding {
 			else if (src->is_Immediate()) {
 				Immediate *src_imm = cast_to<Immediate>(src);
 				u1 rex = get_rex(NULL,dst_reg,op_size == GPInstruction::OS_64);
-				if (rex != 0x40)
-					code += rex;
 				if (prefix)
 					code += prefix;
+				if (rex != 0x40)
+					code += rex;
 				if (prefix_0f)
 					code += 0x0F;
 				if (!encode_dst)
@@ -533,27 +558,44 @@ struct InstructionEncoding {
 			}
 			else if (src->is_stackslot()) {
 				s4 index = get_stack_position(src);
-				u1 rex = get_rex(dst_reg,NULL,op_size == GPInstruction::OS_64);
-				if (rex != 0x40)
-					code += rex;
+				auto stack_reg = get_stack_register(src);
+				bool opsize64 = (op_size == GPInstruction::OS_64) && (default_op_size != GPInstruction::OS_64);
+				u1 rex = get_rex(dst_reg,NULL,opsize64);
 				if (prefix)
 					code += prefix;
+				if (rex != 0x40)
+					code += rex;
 				if (prefix_0f)
 					code += 0x0F;
 				code += primary_opcode;
 				if (secondary_opcode != 0x00) {
 					code += secondary_opcode;
 				}
-				if (fits_into<s1>(index)) {
-					// Shouldn't mod be 0x0 for RIP relative addressing? needs test
-					code += get_modrm(0x1,dst_reg,&RBP);
-					code += index;
+				bool sib = use_sib(stack_reg, nullptr);
+
+				if (index != 0) {
+					if (fits_into<s1>(index)) {
+						code += get_modrm(0x1, dst_reg, stack_reg);
+						if (sib) {
+							code += get_sib(stack_reg, stack_reg, 0);
+						}
+						code += (s1)index;
+					}
+					else {
+						code += get_modrm(0x2, dst_reg, stack_reg);
+						if (sib) {
+							code += get_sib(stack_reg, stack_reg, 0);
+						}
+						code += (u1) 0xff & (index >> 0x00);
+						code += (u1) 0xff & (index >> 0x08);
+						code += (u1) 0xff & (index >> 0x10);
+						code += (u1) 0xff & (index >> 0x18);
+					}
 				} else {
-					code += get_modrm(0x2,dst_reg,&RBP);
-					code += (u1) 0xff & (index >> 0x00);
-					code += (u1) 0xff & (index >> 0x08);
-					code += (u1) 0xff & (index >> 0x10);
-					code += (u1) 0xff & (index >> 0x18);
+					code += get_modrm(0, dst_reg, stack_reg);
+					if (sib) {
+						code += get_sib(stack_reg, stack_reg, 0);
+					}
 				}
 			}
 			else if (src->is_Address()) {
@@ -563,10 +605,10 @@ struct InstructionEncoding {
 				s4 disp = src_mod->getDisp();
 				u1 scale = src_mod->getScale();
 				u1 rex = get_rex(dst_reg, base, op_size, index);
-				if (rex != 0x40)
-					code += rex;
 				if (prefix)
 					code += prefix;
+				if (rex != 0x40)
+					code += rex;
 				if (prefix_0f)
 					code += 0x0F;
 				code += primary_opcode;
@@ -574,7 +616,8 @@ struct InstructionEncoding {
 					code += secondary_opcode;
 				}
 				bool sib = use_sib(base, index);
-				code += get_modrm(dst_reg,base,disp,sib);
+				auto rm = get_modrm(dst_reg,base,disp,sib);
+				code += rm;
 				if (sib) {
 					code += get_sib(base,index,scale);
 				}
@@ -588,6 +631,13 @@ struct InstructionEncoding {
 						code += (u1) 0xff & (disp >> 0x10);
 						code += (u1) 0xff & (disp >> 0x18);
 					}
+				} else {
+					// In special cases (for R13), even though displacement is 0, we have to
+					// encode the 0 offset explicitly or the encoding clashes with RIP-relative addressing
+					u1 mod = rm >> 6;
+					if (mod == 0x1) {
+						code += s1(0);
+					}
 				}
 			}
 			else {
@@ -597,29 +647,45 @@ struct InstructionEncoding {
 		}
 		else if (dst->is_stackslot()) {
 			s4 index = get_stack_position(dst);
+			auto stack_reg = get_stack_register(dst);
 			if (src->is_Register()) {
 				X86_64Register *src_reg = cast_to<X86_64Register>(src);
 				u1 rex = get_rex(src_reg,NULL,op_size == GPInstruction::OS_64);
-				if (rex != 0x40)
-					code += rex;
 				if (prefix)
 					code += prefix;
+				if (rex != 0x40)
+					code += rex;
 				if (prefix_0f)
 					code += 0x0F;
 				code += primary_opcode;
 				if (secondary_opcode != 0x00) {
 					code += secondary_opcode;
 				}
-				if (fits_into<s1>(index)) {
-					// Shouldn't mod be 0x0 for RIP relative addressing? needs test
-					code += get_modrm(0x1,src_reg,&RBP);
-					code += index;
+				bool sib = use_sib(stack_reg, nullptr);
+
+				if (index != 0) {
+					if (fits_into<s1>(index)) {
+						code += get_modrm(0x1, src_reg, stack_reg);
+						if (sib) {
+							code += get_sib(stack_reg, stack_reg, 0);
+						}
+						code += (s1)index;
+					}
+					else {
+						code += get_modrm(0x2, src_reg, stack_reg);
+						if (sib) {
+							code += get_sib(stack_reg, stack_reg, 0);
+						}
+						code += (u1) 0xff & (index >> 0x00);
+						code += (u1) 0xff & (index >> 0x08);
+						code += (u1) 0xff & (index >> 0x10);
+						code += (u1) 0xff & (index >> 0x18);
+					}
 				} else {
-					code += get_modrm(0x2,src_reg,&RBP);
-					code += (u1) 0xff & (index >> 0x00);
-					code += (u1) 0xff & (index >> 0x08);
-					code += (u1) 0xff & (index >> 0x10);
-					code += (u1) 0xff & (index >> 0x18);
+					code += get_modrm(0, src_reg, stack_reg);
+					if (sib) {
+						code += get_sib(stack_reg, stack_reg, 0);
+					}
 				}
 			}
 			else {
@@ -636,10 +702,10 @@ struct InstructionEncoding {
 			if (src->is_Register()) {
 				X86_64Register *src_reg = cast_to<X86_64Register>(src);
 				u1 rex = get_rex(src_reg, base, op_size, index);
-				if (rex != 0x40)
-					code += rex;
 				if (prefix)
 					code += prefix;
+				if (rex != 0x40)
+					code += rex;
 				if (prefix_0f)
 					code += 0x0F;
 				code += primary_opcode;
@@ -666,10 +732,10 @@ struct InstructionEncoding {
 			else if (src->is_Immediate()) {
 				Immediate *src_imm = cast_to<Immediate>(src);
 				u1 rex = get_rex(NULL, base, op_size, index);
-				if (rex != 0x40)
-					code += rex;
 				if (prefix)
 					code += prefix;
+				if (rex != 0x40)
+					code += rex;
 				if (prefix_0f)
 					code += 0x0F;
 				code += primary_opcode;
