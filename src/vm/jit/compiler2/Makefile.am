@@ -83,8 +83,14 @@ libcompiler2_la_SOURCES = \
 	GlobalValueNumberingPass.hpp \
 	GraphHelper.cpp \
 	GraphHelper.hpp \
+	HIRManipulations.cpp \
+	HIRManipulations.hpp \
+	HIRUtils.cpp \
+	HIRUtils.hpp \
 	ICMDPrinterPass.cpp \
 	ICMDPrinterPass.hpp \
+	InliningPass.cpp \
+	InliningPass.hpp \
 	Instruction.cpp \
 	Instruction.hpp \
 	InstructionSchedule.hpp \

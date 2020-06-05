@@ -55,6 +55,7 @@ namespace compiler2 {
 class JsonGraphPrinter {
 private:
 	FILE* file;
+    std::string file_name;
     std::size_t passNr;
     std::size_t instrNr;
     std::size_t edgeNr;
@@ -71,6 +72,8 @@ public:
 protected:
     typedef std::unordered_set<PassInfo::IDTy> DependencyGraphSet;
     typedef PassInfo::IDTy DependencyGraphId;
+
+    void printDependencyGraph(OStream &OS);
 
 	void printHIRInstruction(OStream &OS, Instruction *i, bool isRoot, GlobalSchedule* schedule);
     void printHIREdges(OStream &OS, Instruction *i);

@@ -90,6 +90,51 @@ bool Instruction::verify() const {
 			}
 		}
 	}
+	LOG ("Verifying deps for " << this << nl);
+	for(auto dep_it = dep_list.begin(); dep_it != dep_list.end(); dep_it++){
+		auto dep = *dep_it;
+		auto correct_reverse_edge = std::find(dep->rdep_begin(), dep->rdep_end(), this) != dep->rdep_end();
+		if (!correct_reverse_edge) {
+			LOG(Red << "Instruction verification error!" << reset_color << nl <<
+			 "Missing reverse dependency edge from " << dep << " to " << this);
+			return false;
+		}
+	}
+	LOG ("Verifying reverse deps for " << this << nl);
+	for(auto rdep_it = reverse_dep_list.begin(); rdep_it != reverse_dep_list.end(); rdep_it++){
+		auto rdep = *rdep_it;
+		auto correct_reverse_edge = std::find(rdep->dep_begin(), rdep->dep_end(), this) != rdep->rdep_end();
+		if (!correct_reverse_edge) {
+			LOG(Red << "Instruction verification error!" << reset_color << nl <<
+			 "Obsolete reverse dependency edge from " << this << " to " << rdep);
+			return false;
+		}
+	}
+	LOG ("Verifying ops for " << this << nl);
+	for(auto op_it = op_list.begin(); op_it != op_list.end(); op_it++){
+		auto op = *op_it;
+		auto op_inst = op->to_Instruction();
+
+		if(!op_inst)
+			continue;
+
+		auto correct_reverse_edge = std::find(op_inst->user_begin(), op_inst->user_end(), this) != op_inst->user_end();
+		if (!correct_reverse_edge) {
+			LOG(Red << "Instruction verification error!" << reset_color << nl <<
+			 "Missing user edge from " << op_inst << " to " << this);
+			return false;
+		}
+	}
+	LOG ("Verifying users for " << this << nl);
+	for(auto user_it = user_list.begin(); user_it != user_list.end(); user_it++){
+		auto user = *user_it;
+		auto correct_reverse_edge = std::find(user->op_begin(), user->op_end(), this) != user->op_end();
+		if (!correct_reverse_edge) {
+			LOG(Red << "Instruction verification error!" << reset_color << nl <<
+			 "Obsolete op edge from " << this << " to " << user);
+			return false;
+		}
+	}
 	return true;
 }
 

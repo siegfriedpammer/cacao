@@ -39,6 +39,7 @@
 #include "vm/jit/compiler2/Compiler.hpp"
 
 #include "toolbox/logging.hpp"
+#define DEBUG_NAME "compiler2/Instruction"
 
 #include "vm/jit/compiler2/alloc/vector.hpp"
 #include "vm/jit/compiler2/alloc/set.hpp"
@@ -174,6 +175,24 @@ public:
 		I->reverse_dep_list.remove(this);
 	}
 
+	virtual void remove_op(Instruction* I) {
+		assert(I);
+		auto found = std::find(op_begin(), op_end(), I);
+		op_list.erase(found);
+		auto found_reverse = std::find(I->user_begin(), I->user_end(), this);
+		I->user_list.erase(found_reverse);
+	}
+	
+	void replace_dep(Instruction* i_old, Instruction* i_new) {
+		assert(i_old);
+		assert(i_new);
+		std::replace(dep_list.begin(), dep_list.end(), i_old, i_new);
+		for(int i = 0; i < std::count(dep_list.begin(), dep_list.end(), i_new); i++){
+			i_old->reverse_dep_list.remove(this);
+			i_new->reverse_dep_list.push_back(this);
+		}
+	}
+
 	/**
 	 * Check if the instruction is in a correct state.
 	 */
@@ -258,6 +277,7 @@ public:
 
 	// needed to access replace_op in replace_value
 	friend class Value;
+	friend class HIRManipulations;
 };
 
 /**

@@ -23,6 +23,7 @@
 */
 
 
+#include <iostream>
 #include "config.h"
 
 #include "vm/vm.hpp"
@@ -149,6 +150,40 @@ JNIEXPORT jobject JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_execute
 	return (jobject) result;
 }
 
+/*
+ * Class:     org/cacaojvm/compiler2/test/Compiler2Test
+ * Method:    getStatistics
+ * Signature: (Ljava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_getStatistics(JNIEnv *env, jclass clazz, jstring statistics_entry) {
+	// without enabled statistics we throw an exception
+	#if !defined(ENABLE_STATISTICS)
+	exceptions_throw_unsatisfiedlinkerror(Utf8String::from_utf8("to use the getStatistics(...) method you have to set ENABLE_STATISTICS first"));
+	return 0;
+	#else
+
+	if (statistics_entry == NULL) {
+		exceptions_throw_illegalargumentexception();
+		os::abort();
+	}
+
+	// search for an statistics entry with the specified name
+	cacao::StatGroup *root = &cacao::StatGroup::root();
+	const char *v = env->GetStringUTFChars(statistics_entry, 0);
+	const cacao::StatEntry *entry = root->find(v);
+
+	// no entry with that name found!
+	if (!entry) {
+		exceptions_throw_illegalargumentexception();
+		return 0;
+	}
+
+	// return value as long
+	unsigned long return_value = entry->get_value();
+	return (jlong) return_value;
+	#endif
+}
+
 } // extern "C"
 
 /* native methods implemented by this file ************************************/
@@ -156,6 +191,7 @@ JNIEXPORT jobject JNICALL Java_org_cacaojvm_compiler2_test_Compiler2Test_execute
 static JNINativeMethod methods[] = {
 	{ (char*) "compileMethod", (char*) "(ZLjava/lang/Class;Ljava/lang/String;Ljava/lang/String;)V",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_Compiler2Test_compileMethod },
 	{ (char*) "executeMethod", (char*) "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/Object;",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_Compiler2Test_executeMethod },
+	{ (char*) "getStatistics", (char*) "(Ljava/lang/String;)J",(void*) (uintptr_t) &Java_org_cacaojvm_compiler2_test_Compiler2Test_getStatistics },
 };
 
 

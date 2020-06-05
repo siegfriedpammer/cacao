@@ -1,0 +1,5 @@
+Implementation,Time,Speedup
+No inlining,163.756,100.0
+EverythingPossible,98.266,166.646
+LimitedBreadthFirst,102.043,160.477
+Knapsack,70.216,233.218

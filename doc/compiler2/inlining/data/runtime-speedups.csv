@@ -1,0 +1,8 @@
+Benchmark,baseline,withoutabs,withabs,withoutrel,withrel
+apply-to-array,4.424,3.908,1.29,113.202,342.807
+array-times-two,5.95,6.136,4.443,96.957,133.915
+big-call-graph,166.974,166.581,69.206,100.236,241.272
+bubble-sort,2.054,2.165,2.171,94.878,94.615
+categorize-points,230.742,227.565,217.165,101.396,106.252
+create-points,23.653,23.922,23.42,98.877,100.995
+fibonacci,67.303,156.309,66.969,43.057,100.498

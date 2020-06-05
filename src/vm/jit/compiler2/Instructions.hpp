@@ -37,6 +37,10 @@
 #include "vm/jit/compiler2/InstructionVisitor.hpp"
 #include "vm/types.hpp"
 
+#include "toolbox/logging.hpp"
+
+#define DEBUG_NAME "compiler2/Instructions"
+
 namespace cacao {
 namespace jit {
 namespace compiler2 {
@@ -317,6 +321,21 @@ public:
 		}
 	}
 
+	virtual void remove_op(Instruction* I) {
+		Instruction::remove_op(I);
+		std::remove(stackvars.begin(), stackvars.end(), I);
+		std::remove(params.begin(), params.end(), I);
+		for (JavalocalListTy::iterator i = javalocals.begin(), e = javalocals.end();
+				i != e; i++) {
+			Javalocal &local = *i;
+			if (local.value == I) {
+				LOG("Deleting op java local for " << I << nl);
+				javalocals.erase(i);
+				return;
+			}
+		}
+	}
+
 	/**
 	 * @see Instruction::is_homogeneous()
 	 */
@@ -450,6 +469,9 @@ private:
 	void set_predecessor(int index, BeginInst *BI) {
 		pred_list[index] = BI;
 	}
+	void append_predecessor(BeginInst *BI) {
+		pred_list.push_back(BI);
+	}
 	void set_successor(int index, BeginInst *BI);
 
 public:
@@ -484,6 +506,11 @@ public:
 		return *i;
 	}
 	int get_successor_index(const BeginInst* BI) const;
+	void replace_predecessor (BeginInst* old_bb, BeginInst* new_bb) {
+		auto index = get_predecessor_index (old_bb);
+		assert(index >= 0);
+		pred_list.at(index) = new_bb;
+	}
 
 	EndInst *get_EndInst() const { return end; }
 	void set_EndInst(EndInst* e) { end = e; }
@@ -495,6 +522,7 @@ public:
 
 	friend class EndInst;
 	friend class Method;
+	friend class HIRManipulations;
 	virtual void accept(InstructionVisitor& v, bool copyOperands) { v.visit(this, copyOperands); }
 };
 
@@ -589,6 +617,35 @@ public:
 	BeginInstRef& get_successor(size_t i) {
 		assert(i < succ_size());
 		return succ_list[i];
+	}
+	
+	virtual bool verify() const {
+		LOG ("Verifying successors" << nl);
+		for(auto succ_it = succ_begin(); succ_it != succ_end(); succ_it++){
+			auto succ = (*succ_it).get();
+			auto correct_reverse_edge = std::find(succ->pred_begin(), succ->pred_end(), begin) != succ->pred_end();
+			if (!correct_reverse_edge) {
+				LOG(Red << "Instruction verification error!" << reset_color << nl <<
+				"Missing predecessor edge from " << succ << " to " << begin);
+				return false;
+			}
+			// TODO: this could be solved in a better way by moving it into EndInst. Due to the
+			// forward reference this is not possible at the moment
+			LOG ("Verifying predecessors for " << succ << nl);
+			for(auto succ_pred_it = succ->pred_begin(); succ_pred_it != succ->pred_end(); succ_pred_it++){
+				auto succ_pred = *succ_pred_it;
+				auto end_inst = succ_pred->get_EndInst();
+				auto check_if_backedge = [&](BeginInstRef ref) {return ref.get() == succ;};
+				auto correct_reverse_edge_inner = 
+					std::find_if(end_inst->succ_begin(), end_inst->succ_end(), check_if_backedge) != end_inst->succ_end();
+				if (!correct_reverse_edge_inner) {
+					LOG(Red << "Instruction verification error!" << reset_color << nl <<
+					"Obsolete predecessor edge from " << succ << " to " << succ_pred);
+					return false;
+				}
+			}
+		}
+		return Instruction::verify();
 	}
 
 	friend class BeginInst;
@@ -2014,6 +2071,15 @@ public:
 		return begin;
 	}
 	virtual bool is_floating() const { return false; }
+
+	virtual bool verify() const {
+		if(op_size() == 0){
+			LOG(Red << "Instruction verification error!" << reset_color << "\nThe phi instruction " << this
+				<< " has no operands." << nl);
+			return false;
+		}
+		return MultiOpInst::verify();
+	}
 
 	// exporting to the public
 	using Instruction::append_op;

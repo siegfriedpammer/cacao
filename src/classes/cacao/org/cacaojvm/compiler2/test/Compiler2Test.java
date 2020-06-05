@@ -31,6 +31,17 @@ class Compiler2Test {
 	protected static native Object executeMethod(Class<?> compileClass, 
 			String methodName, String methodDesc, Object[] args) throws Throwable;
 
+	/**
+	 * Returns the statistics value for the specified statistics entry.
+	 * If the the name of the entry is not unique the first found entry  will be returned.
+	 *
+	 * @param statisticsEntry name of the statistics entry
+	 * @returns the current value of the statistics entry if the entry exists
+	 * @throws UnsatisfiedLinkError when cacao wasn't compiled with ENABLE_STATISTICS.
+	 *         If the statisticsEntry is null or not a existing name then an IllegalArgumentException is thrown.
+	 */
+	protected static native long getStatistics(String statisticsEntry);
+
 	protected static void compileBaseline(Class<?> compileClass,
 			String methodName, String methodDesc) {
 		compileMethod(true, compileClass, methodName, methodDesc);

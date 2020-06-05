@@ -167,6 +167,8 @@ public:
  * The PassRunner owns all the pass instances for its corresponding run.
  */
 class PassRunner {
+private:
+	void runPassesUntil(JITData &JD, PassInfo::IDTy lastPass);
 public:
 	using PassMapTy = std::unordered_map<PassInfo::IDTy,PassUPtrTy>;
 	using ArtifactReadyMapTy = alloc::unordered_map<ArtifactInfo::IDTy,bool>::type;
@@ -200,6 +202,15 @@ public:
 	 * run passes
 	 */
 	virtual void runPasses(JITData &JD);
+	/**
+	 * run passes until a given Pass
+	 */
+	template<class PassName>
+	void runPassesUntil(JITData &JD) {
+		auto last_pass = PassName::template ID<PassName>();
+		runPassesUntil(JD, last_pass);
+	}
+
 
 	friend class Pass;
 	friend class JsonGraphPrinter;

@@ -76,6 +76,7 @@ SourceStateInst *SourceStateAttachmentPass::process_block(BeginInst *begin,
 	//       the optimizing compiler run
 	// assert(latest_source_state);
 	if (!latest_source_state) {
+		LOG("SourceStateAttachementPass: no latest source state found for " << begin << "!");
 		throw std::runtime_error("SourceStateAttachementPass: no latest source state found!");
 	}
 
@@ -92,6 +93,7 @@ SourceStateInst *SourceStateAttachmentPass::process_block(BeginInst *begin,
 		// Keep track of the latest applicable SourceStateInst.
 		if (I->has_side_effects()) {
 			latest_source_state = get_associated_source_state(I);
+			LOG2("Found source state " << latest_source_state << " for " << I << nl);
 			assert(latest_source_state);
 		}
 	}
@@ -149,6 +151,7 @@ PassUsage& SourceStateAttachmentPass::get_PassUsage(PassUsage &PU) const {
 	PU.requires<HIRInstructionsArtifact>();
 	PU.requires<ListSchedulingPass>();
 	PU.before<MachineInstructionSchedulingPass>();
+	PU.modifies<ListSchedulingPass>();
 	return PU;
 }
 

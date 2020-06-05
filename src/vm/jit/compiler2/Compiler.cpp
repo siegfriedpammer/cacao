@@ -78,6 +78,7 @@
 #include "vm/jit/compiler2/DeadCodeEliminationPass.hpp"
 #include "vm/jit/compiler2/ConstantPropagationPass.hpp"
 #include "vm/jit/compiler2/GlobalValueNumberingPass.hpp"
+#include "vm/jit/compiler2/InliningPass.hpp"
 
 #include "vm/jit/compiler2/treescan/LivetimeAnalysisPass.hpp"
 
