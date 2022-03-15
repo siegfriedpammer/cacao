@@ -47,15 +47,15 @@ fi
 ])
 
 AC_DEFUN([AC_CHECK_USE_AUTOMATON],[
-AC_MSG_CHECKING(whether JIT compiler should be compiled)
-AC_ARG_ENABLE([jit],
+AC_MSG_CHECKING(whether automaton should be compiled)
+AC_ARG_ENABLE([automaton],
               [AS_HELP_STRING(--enable-automaton,enable automaton compiler)],
               [case "${enableval}" in
-                   no)
-                       USE_AUTOMATON=no
+                   yes)
+                       USE_AUTOMATON=yes
                        ;;
                    *)
-                       USE_AUTOMATON=yes
+                       USE_AUTOMATON=no
                        ;;
                esac],
               [USE_AUTOMATON=no])
