@@ -1663,7 +1663,7 @@ bool codegen_emit(jitdata *jd)
 
 #if defined(USE_AUTOMATON)
 
-	printf("trolololo\n");
+	printf("trolololo\n"); djfklsjfaksldjfoawedfslkd.jvx
 	#endif
 			// The big switch.
 			switch (iptr->opc) {

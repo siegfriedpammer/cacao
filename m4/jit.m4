@@ -43,5 +43,6 @@ AM_CONDITIONAL([ENABLE_JIT], test x"${ENABLE_JIT}" = "xyes")
 
 if test x"${ENABLE_JIT}" = "xyes"; then
     AC_DEFINE([ENABLE_JIT], 1, [enable JIT compiler])
+    AC_DEFINE([USE_AUTOMATON], 1, [enable automaton JIT compiler])
 fi
 ])
