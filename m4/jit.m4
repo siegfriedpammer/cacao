@@ -49,7 +49,7 @@ fi
 AC_DEFUN([AC_CHECK_USE_AUTOMATON],[
 AC_MSG_CHECKING(whether automaton should be compiled)
 AC_ARG_ENABLE([automaton],
-              [AS_HELP_STRING(--enable-automaton,enable automaton compiler)],
+              [AS_HELP_STRING(--enable-automaton,enable automaton compiler [[default=no]])],
               [case "${enableval}" in
                    yes)
                        USE_AUTOMATON=yes
