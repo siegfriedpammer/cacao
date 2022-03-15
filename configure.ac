@@ -497,6 +497,9 @@ AC_CHECK_ENABLE_INTRP
 if test x"${ENABLE_JIT}" = "xno" -a x"${ENABLE_INTRP}" = "xno"; then
     AC_ERROR(You have to enable at least the JIT or the interpreter.)
 fi
+if test x"${USE_AUTOMATON}" = "xno"; then
+    AC_ERROR(asdfjasdfasjdfklasdfjaslkdjfsökdfl.)
+fi
 
 AC_CHECK_SOFTFLOAT
 AC_CHECK_SOFT_FLOAT_CMP
