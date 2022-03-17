@@ -102,6 +102,10 @@
 #include "vm/jit/intrp/intrp.h"
 #endif
 
+#if defined(USE_AUTOMATON)
+#include "vm/jit/automata/automata.hpp"
+#endif
+
 #include "toolbox/logging.hpp"
 
 #define DEBUG_NAME "codegen"
@@ -1662,9 +1666,8 @@ bool codegen_emit(jitdata *jd)
 			MCODECHECK(1024);  // I386, X86_64, S390      /* 1kB should be enough */
 
 #if defined(USE_AUTOMATON)
-
-	printf("trolololo\n"); djfklsjfaksldjfoawedfslkd.jvx
-	#endif
+			hello();
+#else
 			// The big switch.
 			switch (iptr->opc) {
 
@@ -2682,7 +2685,7 @@ gen_method:
 				return false;
 
 			} // the big switch
-//#endif
+#endif
 
 #if defined(ENABLE_REPLACEMENT)
 			if (instruction_has_side_effects(iptr) && JITDATA_HAS_FLAG_DEOPTIMIZE(jd)) {
