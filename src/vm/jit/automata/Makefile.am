@@ -29,7 +29,8 @@ noinst_LTLIBRARIES = \
 
 libautomata_la_SOURCES = \
 	automata.hpp \
-	automata.cpp
+	automata.cpp \
+	codegen_emit_helpers.cpp
 
 
 ## Local variables:

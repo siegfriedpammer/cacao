@@ -1,0 +1,1 @@
+gawk -f custom.awk < grammar.bfe | iburg -I > grammar.c
