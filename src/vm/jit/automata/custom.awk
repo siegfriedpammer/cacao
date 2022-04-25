@@ -3,6 +3,12 @@
 # AWK script for generating a reducer for iburg
 # this is a modified version of the BFE script
 
+function ltrim(s) { sub(/^[ \t\r\n]+/, "", s); return s }
+function rtrim(s) { sub(/[ \t\r\n]+$/, "", s); return s }
+function trim(s) { return rtrim(ltrim(s)); }
+
+
+
 /^%%$/ {
   part+=1;
   FS="#"; 
@@ -11,13 +17,13 @@
   next;
 }
 part==0
-part==1 && NF>0 {
+part==1 && NF>0 && /^\s*[^\/]{2}/ {
   printf "%s = %d",$1,rule;
   if ($2!="")
     printf " (%s)",$2;
   printf ";\n";
-  action1[rule]=$3;
-  action2[rule]=$4;
+  action1[rule]=trim($3);
+  action2[rule]=trim($4);
   rule++;
   next;
 }
@@ -42,11 +48,12 @@ END {
   print"  }";
   print"  switch (ruleNo) {";
   for (i in action1) {
-    print "  case "i":";
-    print action1[i];
-    print "    break;";
+    if (action1[i]!="") {
+      print "  case "i":";
+      print "    "action1[i];
+      print "    break;";
+    }
   }
-  print"  default:    assert (0);";
   print"  }";
   print"  burm_kids (bnode, ruleNo, kids);";
   print"  for (i = 0; nts[i]; i++)";
@@ -55,11 +62,12 @@ END {
   print"";
   print"  switch (ruleNo) {";
   for (i in action2) {
-    print "  case "i":";
-    print action2[i];
-    print "    break;";
+    if (action2[i]!="") {
+      print "  case "i":";
+      print "    "action2[i];
+      print "    break;";
+    }
   }
-  print"  default:    assert (0);";
   print"  }";
   print"}";
 }

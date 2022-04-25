@@ -2,17 +2,21 @@
 #include <stdlib.h>
 #include <assert.h>
 
+typedef struct automaton_context_t *automaton_context;
 typedef struct burm_state *STATEPTR_TYPE;
 struct instruction;
 struct jitdata;
+
+char burm_arity[];
+char *burm_opname[];
 
 typedef struct node_t {
 	int		op;
 	struct node_t   *kids[2];
 	STATEPTR_TYPE	state;
     /* user defined data fields follow here */
-    struct jitdata *jd;
 	struct instruction *iptr;
+	void *jd;
 } *node;
 
 #define NODEPTR_TYPE	node
@@ -22,7 +26,7 @@ typedef struct node_t {
 #define STATE_LABEL(p)	((p)->state)
 #define PANIC		printf
 
-void codegen_emit_instruction(struct jitdata *jd, struct instruction *iptr);
+void codegen_emit_instruction(NODEPTR_TYPE bnode);
 void codegen_nop(NODEPTR_TYPE bnode);
 void codegen_emit_builtin(NODEPTR_TYPE bnode);
 void codegen_emit_breakpoint(NODEPTR_TYPE bnode);

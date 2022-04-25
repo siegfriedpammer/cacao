@@ -1648,13 +1648,12 @@ bool codegen_emit(jitdata *jd)
 		}
 #endif
 
+#if false && defined(USE_AUTOMATON)
+		automaton_run(bptr, jd);
+#else
 		// Walk through all instructions.
 		int32_t len = bptr->icount;
 		uint16_t currentline = 0;
-
-#if defined(USE_AUTOMATON)
-		automaton_initialize(bptr);
-#endif
 
 		for (instruction* iptr = bptr->iinstr; len > 0; len--, iptr++) {
 
@@ -1670,9 +1669,6 @@ bool codegen_emit(jitdata *jd)
 			MCODECHECK(128);   // PPC64
 			MCODECHECK(1024);  // I386, X86_64, S390      /* 1kB should be enough */
 
-#if defined(USE_AUTOMATON)
-			automaton_next(jd, iptr);
-#else
 			// The big switch.
 			switch (iptr->opc) {
 
@@ -2690,7 +2686,6 @@ gen_method:
 				return false;
 
 			} // the big switch
-#endif
 
 #if defined(ENABLE_REPLACEMENT)
 			if (instruction_has_side_effects(iptr) && JITDATA_HAS_FLAG_DEOPTIMIZE(jd)) {
@@ -2699,9 +2694,6 @@ gen_method:
 #endif
 
 		} // for all instructions
-
-#if defined(USE_AUTOMATON)
-		automaton_cleanup();
 #endif
 
 #if defined(ENABLE_SSA)

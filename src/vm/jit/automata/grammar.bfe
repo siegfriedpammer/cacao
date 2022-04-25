@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
+//#define DEBUG 1
+
 #include "grammar.h"
 %}
 
@@ -35,265 +37,155 @@
 %term IF_DCMPG_GT=234 IF_DCMPG_LE=235 UNDEF236=236 UNDEF237=237 UNDEF238=238 UNDEF239=239 UNDEF240=240 UNDEF241=241
 %term UNDEF242=242 UNDEF243=243 UNDEF244=244 UNDEF245=245 UNDEF246=246 UNDEF247=247 UNDEF248=248 GETEXCEPTION=249
 %term PHI=250 INLINE_START=251 INLINE_END=252 INLINE_BODY=253 UNDEF254=254 BUILTIN=255
- 
+
+%term RESULT=300
+
 %%
 
-reg: NOP             # 100 # codegen_nop(bnode); #
-reg: ACONST          # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);   #      
-reg: CHECKNULL       # 100 # codegen_emit_checknull(bnode);    #      
-reg: ICONST          # 100 # codegen_emit_iconst(bnode);   #      
-reg: UNDEF4          # 100 # codegen_emit_undef(bnode);    #      
-reg: IDIVPOW2        # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LDIVPOW2        # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: UNDEF7          # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF8          # 100 # codegen_emit_undef(bnode);    #      
-reg: LCONST          # 100 # codegen_emit_lconst(bnode);   #      
-reg: LCMPCONST       # 100 # codegen_emit_unknown(bnode);    #      
-reg: FCONST          # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);   #      
-reg: UNDEF12         # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF13         # 100 # codegen_emit_undef(bnode);    #      
-reg: DCONST          # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: COPY            # 100 # codegen_emit_copy(bnode);    #      
-reg: MOVE            # 100 # codegen_emit_copy(bnode);    #      
-reg: UNDEF17         # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF18         # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF19         # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF20         # 100 # codegen_emit_undef(bnode);    #      
-reg: ILOAD           # 100 # codegen_emit_copy(bnode);    #      
-reg: LLOAD           # 100 # codegen_emit_copy(bnode);    #      
-reg: FLOAD           # 100 # codegen_emit_copy(bnode);    #      
-reg: DLOAD           # 100 # codegen_emit_copy(bnode);    #      
-reg: ALOAD           # 100 # codegen_emit_copy(bnode);    #      
-reg: IADDCONST       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: ISUBCONST       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IMULCONST       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IANDCONST       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IORCONST        # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IXORCONST       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: ISHLCONST       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: ISHRCONST       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IUSHRCONST      # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IREMPOW2        # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LADDCONST       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LSUBCONST       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LMULCONST       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LANDCONST       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LORCONST        # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LXORCONST       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LSHLCONST       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LSHRCONST       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LUSHRCONST      # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LREMPOW2        # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IALOAD          # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LALOAD          # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: FALOAD          # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: DALOAD          # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: AALOAD          # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: BALOAD          # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: CALOAD          # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: SALOAD          # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: ISTORE          # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LSTORE          # 100 # codegen_emit_copy(bnode);    #      
-reg: FSTORE          # 100 # codegen_emit_copy(bnode);    #      
-reg: DSTORE          # 100 # codegen_emit_copy(bnode);    #      
-reg: ASTORE          # 100 # codegen_emit_astore(bnode);    #      
-reg: IF_LEQ          # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_LNE          # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_LLT          # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_LGE          # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_LGT          # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_LLE          # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_LCMPEQ       # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_LCMPNE       # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_LCMPLT       # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_LCMPGE       # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_LCMPGT       # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_LCMPLE       # 100 # codegen_emit_unknown(bnode);    #      
-reg: UNDEF71         # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF72         # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF73         # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF74         # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF75         # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF76         # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF77         # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF78         # 100 # codegen_emit_undef(bnode);    #      
-reg: IASTORE         # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LASTORE         # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: FASTORE         # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: DASTORE         # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: AASTORE         # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: BASTORE         # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: CASTORE         # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: SASTORE         # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: POP             # 100 # codegen_nop(bnode);    #      
-reg: POP2            # 100 # codegen_nop(bnode);    #      
-reg: DUP             # 100 # codegen_emit_unknown(bnode);    #      
-reg: DUP_X1          # 100 # codegen_emit_unknown(bnode);    #      
-reg: DUP_X2          # 100 # codegen_emit_unknown(bnode);    #      
-reg: DUP2            # 100 # codegen_emit_unknown(bnode);    #      
-reg: DUP2_X1         # 100 # codegen_emit_unknown(bnode);    #      
-reg: DUP2_X2         # 100 # codegen_emit_unknown(bnode);    #      
-reg: SWAP            # 100 # codegen_emit_unknown(bnode);    #      
-reg: IADD            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LADD            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: FADD            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: DADD            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: ISUB            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LSUB            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: FSUB            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: DSUB            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IMUL            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LMUL            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: FMUL            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: DMUL            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IDIV            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LDIV            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: FDIV            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: DDIV            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IREM            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LREM            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: FREM            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: DREM            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: INEG            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LNEG            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: FNEG            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: DNEG            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: ISHL            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LSHL            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: ISHR            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LSHR            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IUSHR           # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LUSHR           # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IAND            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LAND            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IOR             # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LOR             # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IXOR            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LXOR            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IINC            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: I2L             # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: I2F             # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: I2D             # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: L2I             # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: L2F             # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: L2D             # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: F2I             # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: F2L             # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: F2D             # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: D2I             # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: D2L             # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: D2F             # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: INT2BYTE        # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: INT2CHAR        # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: INT2SHORT       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LCMP            # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: FCMPL           # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: FCMPG           # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: DCMPL           # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: DCMPG           # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IFEQ            # 100 # codegen_emit_branch(bnode);    #      
-reg: IFNE            # 100 # codegen_emit_branch(bnode);    #      
-reg: IFLT            # 100 # codegen_emit_branch(bnode);    #      
-reg: IFGE            # 100 # codegen_emit_branch(bnode);    #      
-reg: IFGT            # 100 # codegen_emit_branch(bnode);    #      
-reg: IFLE            # 100 # codegen_emit_branch(bnode);    #      
-reg: IF_ICMPEQ       # 100 # codegen_emit_branch(bnode);    #      
-reg: IF_ICMPNE       # 100 # codegen_emit_branch(bnode);    #      
-reg: IF_ICMPLT       # 100 # codegen_emit_branch(bnode);    #      
-reg: IF_ICMPGE       # 100 # codegen_emit_branch(bnode);    #      
-reg: IF_ICMPGT       # 100 # codegen_emit_branch(bnode);    #      
-reg: IF_ICMPLE       # 100 # codegen_emit_branch(bnode);    #      
-reg: IF_ACMPEQ       # 100 # codegen_emit_branch(bnode);    #      
-reg: IF_ACMPNE       # 100 # codegen_emit_branch(bnode);    #      
-reg: GOTO            # 100 # codegen_emit_jump(bnode);    #      
-reg: JSR             # 100 # codegen_emit_jump(bnode);    #      
-reg: RET             # 100 # codegen_emit_jump(bnode);    #      
-reg: TABLESWITCH     # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LOOKUPSWITCH    # 100 # codegen_emit_lookup(bnode);    #      
-reg: IRETURN         # 100 # codegen_emit_return(bnode);    #      
-reg: LRETURN         # 100 # codegen_emit_return(bnode);    #      
-reg: FRETURN         # 100 # codegen_emit_return(bnode);    #      
-reg: DRETURN         # 100 # codegen_emit_return(bnode);    #      
-reg: ARETURN         # 100 # codegen_emit_return(bnode);    #      
-reg: RETURN          # 100 # codegen_emit_return(bnode);    #      
-reg: GETSTATIC       # 100 # codegen_emit_getstatic(bnode);    #      
-reg: PUTSTATIC       # 100 # codegen_emit_putstatic(bnode);    #      
-reg: GETFIELD        # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: PUTFIELD        # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: INVOKEVIRTUAL   # 100 # codegen_emit_invoke(bnode);    #      
-reg: INVOKESPECIAL   # 100 # codegen_emit_invoke(bnode);    #      
-reg: INVOKESTATIC    # 100 # codegen_emit_invoke(bnode);    #      
-reg: INVOKEINTERFACE # 100 # codegen_emit_invoke(bnode);    #      
-reg: UNDEF186        # 100 # codegen_emit_undef(bnode);    #      
-reg: NEW             # 100 # codegen_emit_unknown(bnode);    #      
-reg: NEWARRAY        # 100 # codegen_emit_unknown(bnode);    #      
-reg: ANEWARRAY       # 100 # codegen_emit_unknown(bnode);    #      
-reg: ARRAYLENGTH     # 100 # codegen_emit_unknown(bnode);    #      
-reg: ATHROW          # 100 # codegen_emit_unknown(bnode);    #      
-reg: CHECKCAST       # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: INSTANCEOF      # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: MONITORENTER    # 100 # codegen_emit_unknown(bnode);    #      
-reg: MONITOREXIT     # 100 # codegen_emit_unknown(bnode);    #      
-reg: UNDEF196        # 100 # codegen_emit_undef(bnode);    #      
-reg: MULTIANEWARRAY  # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IFNULL          # 100 # codegen_emit_ifnull(bnode);    #      
-reg: IFNONNULL       # 100 # codegen_emit_ifnull(bnode);    #      
-reg: UNDEF200        # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF201        # 100 # codegen_emit_undef(bnode);    #      
-reg: BREAKPOINT      # 100 # codegen_emit_breakpoint(bnode);    #      
-reg: UNDEF203        # 100 # codegen_emit_undef(bnode);    #      
-reg: IASTORECONST    # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LASTORECONST    # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: FASTORECONST    # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: DASTORECONST    # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: AASTORECONST    # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: BASTORECONST    # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: CASTORECONST    # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: SASTORECONST    # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: PUTSTATICCONST  # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: PUTFIELDCONST   # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IMULPOW2        # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: LMULPOW2        # 100 # codegen_emit_instruction(bnode->jd, bnode->iptr);    #      
-reg: IF_FCMPEQ       # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_FCMPNE       # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_FCMPL_LT     # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_FCMPL_GE     # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_FCMPL_GT     # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_FCMPL_LE     # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_FCMPG_LT     # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_FCMPG_GE     # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_FCMPG_GT     # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_FCMPG_LE     # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_DCMPEQ       # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_DCMPNE       # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_DCMPL_LT     # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_DCMPL_GE     # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_DCMPL_GT     # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_DCMPL_LE     # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_DCMPG_LT     # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_DCMPG_GE     # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_DCMPG_GT     # 100 # codegen_emit_unknown(bnode);    #      
-reg: IF_DCMPG_LE     # 100 # codegen_emit_unknown(bnode);    #        
-reg: UNDEF236        # 100 # codegen_emit_undef(bnode);    #    
-reg: UNDEF237        # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF238        # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF239        # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF240        # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF241        # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF242        # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF243        # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF244        # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF245        # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF246        # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF247        # 100 # codegen_emit_undef(bnode);    #      
-reg: UNDEF248        # 100 # codegen_emit_undef(bnode);    #      
-reg: GETEXCEPTION    # 100 # codegen_emit_getexception(bnode);    #      
-reg: PHI             # 100 # codegen_emit_phi(bnode);    #      
-reg: INLINE_START    # 100 # codegen_emit_inline_start(bnode);    #      
-reg: INLINE_END      # 100 # codegen_emit_inline_end(bnode);    #      
-reg: INLINE_BODY     # 100 # codegen_emit_inline_body(bnode);    #      
-reg: UNDEF254        # 100 # codegen_emit_undef(bnode);    #      
-reg: BUILTIN         # 100 # codegen_emit_builtin(bnode);    #      
+reg: NOP                # 100 # # codegen_nop(bnode);
+reg: POP                # 100 # # codegen_nop(bnode);
+reg: POP2               # 100 # # codegen_nop(bnode);
+reg: RESULT             # 100 # # codegen_emit_result(bnode);
+
+reg: ACONST          # 100 # # codegen_emit_instruction(bnode);
+reg: ICONST          # 100 # # codegen_emit_iconst(bnode);
+reg: LCONST          # 100 # # codegen_emit_lconst(bnode);
+reg: FCONST          # 100 # # codegen_emit_instruction(bnode);
+reg: DCONST          # 100 # # codegen_emit_instruction(bnode);
+
+reg: CHECKNULL(reg)  # 100 # # codegen_emit_checknull(bnode);
+reg: COPY            # 100 # # codegen_emit_copy(bnode);
+reg: MOVE            # 100 # # codegen_emit_copy(bnode);
+reg: ILOAD           # 100 # # codegen_emit_copy(bnode);
+reg: LLOAD           # 100 # # codegen_emit_copy(bnode);
+reg: FLOAD           # 100 # # codegen_emit_copy(bnode);
+reg: DLOAD           # 100 # # codegen_emit_copy(bnode);
+reg: ALOAD           # 100 # # codegen_emit_copy(bnode);
+reg: IALOAD          # 100 # # codegen_emit_instruction(bnode);
+reg: LALOAD          # 100 # # codegen_emit_instruction(bnode);
+reg: FALOAD          # 100 # # codegen_emit_instruction(bnode);
+reg: DALOAD          # 100 # # codegen_emit_instruction(bnode);
+reg: AALOAD          # 100 # # codegen_emit_instruction(bnode);
+reg: BALOAD          # 100 # # codegen_emit_instruction(bnode);
+reg: CALOAD          # 100 # # codegen_emit_instruction(bnode);
+reg: SALOAD          # 100 # # codegen_emit_instruction(bnode);
+reg: ISTORE          # 100 # # codegen_emit_instruction(bnode);
+reg: LSTORE          # 100 # # codegen_emit_copy(bnode);
+reg: FSTORE          # 100 # # codegen_emit_copy(bnode);
+reg: DSTORE          # 100 # # codegen_emit_copy(bnode);
+reg: ASTORE          # 100 # # codegen_emit_astore(bnode);
+reg: IASTORE         # 100 # # codegen_emit_instruction(bnode);
+reg: LASTORE         # 100 # # codegen_emit_instruction(bnode);
+reg: FASTORE         # 100 # # codegen_emit_instruction(bnode);
+reg: DASTORE         # 100 # # codegen_emit_instruction(bnode);
+reg: AASTORE         # 100 # # codegen_emit_instruction(bnode);
+reg: BASTORE         # 100 # # codegen_emit_instruction(bnode);
+reg: CASTORE         # 100 # # codegen_emit_instruction(bnode);
+reg: SASTORE         # 100 # # codegen_emit_instruction(bnode);
+
+reg: IADD(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: LADD(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: FADD(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: DADD(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: ISUB(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: LSUB(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: FSUB(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: DSUB(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: IMUL(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: LMUL(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: FMUL(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: DMUL(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: IDIV(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: LDIV(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: FDIV(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: DDIV(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: IREM(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: LREM(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: FREM(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: DREM(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: INEG            # 100 # # codegen_emit_instruction(bnode);
+reg: LNEG            # 100 # # codegen_emit_instruction(bnode);
+reg: FNEG            # 100 # # codegen_emit_instruction(bnode);
+reg: DNEG            # 100 # # codegen_emit_instruction(bnode);
+reg: ISHL(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: LSHL(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: ISHR(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: LSHR(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: IUSHR(reg, reg) # 100 # # codegen_emit_instruction(bnode);
+reg: LUSHR(reg, reg) # 100 # # codegen_emit_instruction(bnode);
+reg: IAND(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: LAND(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: IOR(reg, reg)   # 100 # # codegen_emit_instruction(bnode);
+reg: LOR(reg, reg)   # 100 # # codegen_emit_instruction(bnode);
+reg: IXOR(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: LXOR(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: IINC            # 100 # # codegen_emit_instruction(bnode);
+reg: I2L             # 100 # # codegen_emit_instruction(bnode);
+reg: I2F             # 100 # # codegen_emit_instruction(bnode);
+reg: I2D             # 100 # # codegen_emit_instruction(bnode);
+reg: L2I             # 100 # # codegen_emit_instruction(bnode);
+reg: L2F             # 100 # # codegen_emit_instruction(bnode);
+reg: L2D             # 100 # # codegen_emit_instruction(bnode);
+reg: F2I             # 100 # # codegen_emit_instruction(bnode);
+reg: F2L             # 100 # # codegen_emit_instruction(bnode);
+reg: F2D             # 100 # # codegen_emit_instruction(bnode);
+reg: D2I             # 100 # # codegen_emit_instruction(bnode);
+reg: D2L             # 100 # # codegen_emit_instruction(bnode);
+reg: D2F             # 100 # # codegen_emit_instruction(bnode);
+reg: INT2BYTE        # 100 # # codegen_emit_instruction(bnode);
+reg: INT2CHAR        # 100 # # codegen_emit_instruction(bnode);
+reg: INT2SHORT       # 100 # # codegen_emit_instruction(bnode);
+reg: LCMP            # 100 # # codegen_emit_instruction(bnode);
+reg: FCMPL           # 100 # # codegen_emit_instruction(bnode);
+reg: FCMPG           # 100 # # codegen_emit_instruction(bnode);
+reg: DCMPL           # 100 # # codegen_emit_instruction(bnode);
+reg: DCMPG           # 100 # # codegen_emit_instruction(bnode);
+reg: IFEQ            # 100 # # codegen_emit_branch(bnode);
+reg: IFNE            # 100 # # codegen_emit_branch(bnode);
+reg: IFLT            # 100 # # codegen_emit_branch(bnode);
+reg: IFGE            # 100 # # codegen_emit_branch(bnode);
+reg: IFGT            # 100 # # codegen_emit_branch(bnode);
+reg: IFLE            # 100 # # codegen_emit_branch(bnode);
+reg: IF_ICMPEQ       # 100 # # codegen_emit_branch(bnode);
+reg: IF_ICMPNE       # 100 # # codegen_emit_branch(bnode);
+reg: IF_ICMPLT       # 100 # # codegen_emit_branch(bnode);
+reg: IF_ICMPGE       # 100 # # codegen_emit_branch(bnode);
+reg: IF_ICMPGT       # 100 # # codegen_emit_branch(bnode);
+reg: IF_ICMPLE       # 100 # # codegen_emit_branch(bnode);
+reg: IF_ACMPEQ       # 100 # # codegen_emit_branch(bnode);
+reg: IF_ACMPNE       # 100 # # codegen_emit_branch(bnode);
+reg: GOTO            # 100 # # codegen_emit_jump(bnode);
+reg: JSR             # 100 # # codegen_emit_jump(bnode);
+reg: RET             # 100 # # codegen_emit_jump(bnode);
+reg: TABLESWITCH     # 100 # # codegen_emit_instruction(bnode);
+reg: LOOKUPSWITCH    # 100 # # codegen_emit_lookup(bnode);
+reg: IRETURN         # 100 # # codegen_emit_return(bnode);
+reg: LRETURN         # 100 # # codegen_emit_return(bnode);
+reg: FRETURN         # 100 # # codegen_emit_return(bnode);
+reg: DRETURN         # 100 # # codegen_emit_return(bnode);
+reg: ARETURN         # 100 # # codegen_emit_return(bnode);
+reg: RETURN          # 100 # # codegen_emit_return(bnode);
+reg: GETSTATIC       # 100 # # codegen_emit_getstatic(bnode);
+reg: PUTSTATIC       # 100 # # codegen_emit_putstatic(bnode);
+reg: GETFIELD        # 100 # # codegen_emit_instruction(bnode);
+reg: PUTFIELD        # 100 # # codegen_emit_instruction(bnode);
+reg: INVOKEVIRTUAL(reg, reg)   # 100 # # codegen_emit_invoke(bnode);
+reg: INVOKESPECIAL(reg, reg)   # 100 # # codegen_emit_invoke(bnode);
+reg: INVOKESTATIC(reg, reg)    # 100 # # codegen_emit_invoke(bnode);
+reg: INVOKEINTERFACE(reg, reg) # 100 # # codegen_emit_invoke(bnode);
+reg: CHECKCAST       # 100 # # codegen_emit_instruction(bnode);
+reg: INSTANCEOF      # 100 # # codegen_emit_instruction(bnode);
+reg: MULTIANEWARRAY  # 100 # # codegen_emit_instruction(bnode);
+reg: ATHROW(reg)     # 100 # # codegen_emit_throw(bnode);
+reg: IFNULL          # 100 # # codegen_emit_ifnull(bnode);
+reg: IFNONNULL       # 100 # # codegen_emit_ifnull(bnode);
+reg: BREAKPOINT      # 100 # # codegen_emit_breakpoint(bnode);
+reg: GETEXCEPTION    # 100 # # codegen_emit_getexception(bnode);
+reg: PHI             # 100 # # codegen_emit_phi(bnode);
+reg: INLINE_START    # 100 # # codegen_emit_inline_start(bnode);
+reg: INLINE_END      # 100 # # codegen_emit_inline_end(bnode);
+reg: INLINE_BODY     # 100 # # codegen_emit_inline_body(bnode);
+reg: BUILTIN(reg, reg)    # 100 # # codegen_emit_builtin(bnode);
 
 %%
 

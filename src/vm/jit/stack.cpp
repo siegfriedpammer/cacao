@@ -2489,13 +2489,13 @@ icmd_NOP:
 						OP0_0;
 						break;
 
-
 						/* pop 0 push 1 const */
 
 	/************************** ICONST OPTIMIZATIONS **************************/
 
 					case ICMD_ICONST:
 						STATISTICS(count_pcmd_load++);
+#if !defined(USE_AUTOMATON)
 						if (len == 0)
 							goto normal_ICONST;
 
@@ -2877,8 +2877,8 @@ icmd_NOP:
 
 						/* if we get here, the ICONST has been optimized */
 						break;
-
 normal_ICONST:
+#endif
 						/* normal case of an unoptimized ICONST */
 						OP0_1(TYPE_INT);
 						break;
@@ -2887,6 +2887,7 @@ normal_ICONST:
 
 					case ICMD_LCONST:
 						STATISTICS(count_pcmd_load++);
+#if !defined(USE_AUTOMATON)
 						if (len == 0)
 							goto normal_LCONST;
 
@@ -3212,6 +3213,7 @@ normal_ICONST:
 						break;
 
 normal_LCONST:
+#endif
 						/* the normal case of an unoptimized LCONST */
 						OP0_1(TYPE_LNG);
 						break;
@@ -3233,6 +3235,7 @@ normal_LCONST:
 					case ICMD_ACONST:
 						coalescing_boundary = sd.new_elem;
 						STATISTICS(count_pcmd_load++);
+#if !defined(USE_AUTOMATON)
 #if SUPPORT_CONST_STORE
 						/* We can only optimize if the ACONST is resolved
 						 * and there is an instruction after it. */
@@ -3280,6 +3283,7 @@ normal_LCONST:
 
 normal_ACONST:
 #endif /* SUPPORT_CONST_STORE */
+#endif
 						OP0_1(TYPE_ADR);
 						break;
 
