@@ -491,6 +491,7 @@ AC_CHECK_ENABLE_DL
 AC_CHECK_ENABLE_JAVA
 
 AC_CHECK_ENABLE_JIT
+AC_CHECK_USE_AUTOMATON
 AC_CHECK_ENABLE_INTRP
 
 if test x"${ENABLE_JIT}" = "xno" -a x"${ENABLE_INTRP}" = "xno"; then
@@ -792,6 +793,7 @@ AC_CONFIG_FILES([Makefile]
 		[src/vm/jit/aarch64/linux/Makefile]
 		[src/vm/jit/arm/Makefile]
 		[src/vm/jit/arm/linux/Makefile]
+		[src/vm/jit/automata/Makefile]
 		[src/vm/jit/i386/Makefile]
 		[src/vm/jit/i386/cygwin/Makefile]
 		[src/vm/jit/i386/darwin/Makefile]

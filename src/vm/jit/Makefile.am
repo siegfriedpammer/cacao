@@ -34,7 +34,7 @@ DIST_SUBDIRS = \
 	schedule \
 	verify \
 	compiler2 \
-	\
+	automata \
 	intrp \
 	aarch64 \
 	alpha \
@@ -86,6 +86,14 @@ SUBDIRS += \
 
 COMPILER2_LIB = \
        compiler2/libcompiler2.la
+endif
+
+if USE_AUTOMATON
+SUBDIRS += \
+       automata
+
+AUTOMATON_LIB = \
+       automata/libautomata.la
 endif
 
 if ENABLE_LOOP
@@ -222,6 +230,11 @@ libjit_la_LIBADD = \
 if ENABLE_COMPILER2
 libjit_la_LIBADD += \
        $(COMPILER2_LIB)
+endif
+
+if USE_AUTOMATON
+libjit_la_LIBADD += \
+       $(AUTOMATON_LIB)
 endif
 
 

@@ -45,3 +45,24 @@ if test x"${ENABLE_JIT}" = "xyes"; then
     AC_DEFINE([ENABLE_JIT], 1, [enable JIT compiler])
 fi
 ])
+
+AC_DEFUN([AC_CHECK_USE_AUTOMATON],[
+AC_MSG_CHECKING(whether automaton should be compiled)
+AC_ARG_ENABLE([automaton],
+              [AS_HELP_STRING(--enable-automaton,enable automaton compiler [[default=no]])],
+              [case "${enableval}" in
+                   yes)
+                       USE_AUTOMATON=yes
+                       ;;
+                   *)
+                       USE_AUTOMATON=no
+                       ;;
+               esac],
+              [USE_AUTOMATON=no])
+AC_MSG_RESULT(${USE_AUTOMATON})
+AM_CONDITIONAL([USE_AUTOMATON], test x"${USE_AUTOMATON}" = "xyes")
+
+if test x"${USE_AUTOMATON}" = "xyes"; then
+    AC_DEFINE([USE_AUTOMATON], 1, [enable automaton])
+fi
+])
