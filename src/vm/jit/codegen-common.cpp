@@ -1648,7 +1648,7 @@ bool codegen_emit(jitdata *jd)
 		}
 #endif
 
-#if false && defined(USE_AUTOMATON)
+#if defined(USE_AUTOMATON)
 		automaton_run(bptr, jd);
 #else
 		// Walk through all instructions.

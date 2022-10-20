@@ -15,11 +15,13 @@ typedef struct burm_state *STATEPTR_TYPE;
 #define burm_assert(x,y) if (!(x)) { extern void abort(void); y; abort(); }
 #endif
 
-#define burm_reg_NT 1
-int burm_max_nt = 1;
+#define burm_root_NT 1
+#define burm_reg_NT 2
+int burm_max_nt = 2;
 
 char *burm_ntname[] = {
 	0,
+	"root",
 	"reg",
 	0
 };
@@ -27,60 +29,61 @@ char *burm_ntname[] = {
 struct burm_state {
 	int op;
 	STATEPTR_TYPE left, right;
-	short cost[2];
+	short cost[3];
 	struct {
-		unsigned burm_reg:8;
+		unsigned burm_root:7;
+		unsigned burm_reg:7;
 	} rule;
 };
 
-static short burm_nts_0[] = { 0 };
-static short burm_nts_1[] = { burm_reg_NT, 0 };
+static short burm_nts_0[] = { burm_reg_NT, 0 };
+static short burm_nts_1[] = { 0 };
 static short burm_nts_2[] = { burm_reg_NT, burm_reg_NT, 0 };
 
 short *burm_nts[] = {
 	0,	/* 0 */
 	burm_nts_0,	/* 1 */
-	burm_nts_0,	/* 2 */
-	burm_nts_0,	/* 3 */
-	burm_nts_0,	/* 4 */
-	burm_nts_0,	/* 5 */
-	burm_nts_0,	/* 6 */
-	burm_nts_0,	/* 7 */
-	burm_nts_0,	/* 8 */
-	burm_nts_0,	/* 9 */
+	burm_nts_1,	/* 2 */
+	burm_nts_1,	/* 3 */
+	burm_nts_1,	/* 4 */
+	burm_nts_1,	/* 5 */
+	burm_nts_1,	/* 6 */
+	burm_nts_1,	/* 7 */
+	burm_nts_1,	/* 8 */
+	burm_nts_1,	/* 9 */
 	burm_nts_1,	/* 10 */
 	burm_nts_0,	/* 11 */
-	burm_nts_0,	/* 12 */
-	burm_nts_0,	/* 13 */
-	burm_nts_0,	/* 14 */
-	burm_nts_0,	/* 15 */
-	burm_nts_0,	/* 16 */
-	burm_nts_0,	/* 17 */
-	burm_nts_0,	/* 18 */
-	burm_nts_0,	/* 19 */
-	burm_nts_0,	/* 20 */
-	burm_nts_0,	/* 21 */
-	burm_nts_0,	/* 22 */
-	burm_nts_0,	/* 23 */
-	burm_nts_0,	/* 24 */
-	burm_nts_0,	/* 25 */
-	burm_nts_0,	/* 26 */
+	burm_nts_1,	/* 12 */
+	burm_nts_1,	/* 13 */
+	burm_nts_1,	/* 14 */
+	burm_nts_1,	/* 15 */
+	burm_nts_1,	/* 16 */
+	burm_nts_1,	/* 17 */
+	burm_nts_1,	/* 18 */
+	burm_nts_2,	/* 19 */
+	burm_nts_2,	/* 20 */
+	burm_nts_2,	/* 21 */
+	burm_nts_2,	/* 22 */
+	burm_nts_2,	/* 23 */
+	burm_nts_2,	/* 24 */
+	burm_nts_2,	/* 25 */
+	burm_nts_2,	/* 26 */
 	burm_nts_0,	/* 27 */
 	burm_nts_0,	/* 28 */
 	burm_nts_0,	/* 29 */
 	burm_nts_0,	/* 30 */
 	burm_nts_0,	/* 31 */
-	burm_nts_0,	/* 32 */
-	burm_nts_0,	/* 33 */
-	burm_nts_0,	/* 34 */
-	burm_nts_0,	/* 35 */
-	burm_nts_0,	/* 36 */
-	burm_nts_0,	/* 37 */
-	burm_nts_0,	/* 38 */
-	burm_nts_2,	/* 39 */
+	burm_nts_1,	/* 32 */
+	burm_nts_1,	/* 33 */
+	burm_nts_1,	/* 34 */
+	burm_nts_1,	/* 35 */
+	burm_nts_1,	/* 36 */
+	burm_nts_1,	/* 37 */
+	burm_nts_1,	/* 38 */
+	burm_nts_1,	/* 39 */
 	burm_nts_2,	/* 40 */
-	burm_nts_2,	/* 41 */
-	burm_nts_2,	/* 42 */
+	burm_nts_0,	/* 41 */
+	burm_nts_0,	/* 42 */
 	burm_nts_2,	/* 43 */
 	burm_nts_2,	/* 44 */
 	burm_nts_2,	/* 45 */
@@ -97,13 +100,13 @@ short *burm_nts[] = {
 	burm_nts_2,	/* 56 */
 	burm_nts_2,	/* 57 */
 	burm_nts_2,	/* 58 */
-	burm_nts_0,	/* 59 */
-	burm_nts_0,	/* 60 */
-	burm_nts_0,	/* 61 */
+	burm_nts_2,	/* 59 */
+	burm_nts_2,	/* 60 */
+	burm_nts_2,	/* 61 */
 	burm_nts_0,	/* 62 */
-	burm_nts_2,	/* 63 */
-	burm_nts_2,	/* 64 */
-	burm_nts_2,	/* 65 */
+	burm_nts_0,	/* 63 */
+	burm_nts_0,	/* 64 */
+	burm_nts_0,	/* 65 */
 	burm_nts_2,	/* 66 */
 	burm_nts_2,	/* 67 */
 	burm_nts_2,	/* 68 */
@@ -113,10 +116,10 @@ short *burm_nts[] = {
 	burm_nts_2,	/* 72 */
 	burm_nts_2,	/* 73 */
 	burm_nts_2,	/* 74 */
-	burm_nts_0,	/* 75 */
-	burm_nts_0,	/* 76 */
-	burm_nts_0,	/* 77 */
-	burm_nts_0,	/* 78 */
+	burm_nts_2,	/* 75 */
+	burm_nts_2,	/* 76 */
+	burm_nts_2,	/* 77 */
+	burm_nts_1,	/* 78 */
 	burm_nts_0,	/* 79 */
 	burm_nts_0,	/* 80 */
 	burm_nts_0,	/* 81 */
@@ -132,11 +135,11 @@ short *burm_nts[] = {
 	burm_nts_0,	/* 91 */
 	burm_nts_0,	/* 92 */
 	burm_nts_0,	/* 93 */
-	burm_nts_0,	/* 94 */
-	burm_nts_0,	/* 95 */
-	burm_nts_0,	/* 96 */
-	burm_nts_0,	/* 97 */
-	burm_nts_0,	/* 98 */
+	burm_nts_2,	/* 94 */
+	burm_nts_2,	/* 95 */
+	burm_nts_2,	/* 96 */
+	burm_nts_2,	/* 97 */
+	burm_nts_2,	/* 98 */
 	burm_nts_0,	/* 99 */
 	burm_nts_0,	/* 100 */
 	burm_nts_0,	/* 101 */
@@ -151,35 +154,53 @@ short *burm_nts[] = {
 	burm_nts_0,	/* 110 */
 	burm_nts_0,	/* 111 */
 	burm_nts_0,	/* 112 */
-	burm_nts_0,	/* 113 */
-	burm_nts_0,	/* 114 */
-	burm_nts_0,	/* 115 */
-	burm_nts_0,	/* 116 */
-	burm_nts_0,	/* 117 */
-	burm_nts_0,	/* 118 */
-	burm_nts_0,	/* 119 */
-	burm_nts_0,	/* 120 */
-	burm_nts_0,	/* 121 */
-	burm_nts_0,	/* 122 */
-	burm_nts_0,	/* 123 */
-	burm_nts_0,	/* 124 */
+	burm_nts_2,	/* 113 */
+	burm_nts_2,	/* 114 */
+	burm_nts_2,	/* 115 */
+	burm_nts_2,	/* 116 */
+	burm_nts_2,	/* 117 */
+	burm_nts_2,	/* 118 */
+	burm_nts_2,	/* 119 */
+	burm_nts_2,	/* 120 */
+	burm_nts_2,	/* 121 */
+	burm_nts_2,	/* 122 */
+	burm_nts_2,	/* 123 */
+	burm_nts_2,	/* 124 */
 	burm_nts_2,	/* 125 */
 	burm_nts_2,	/* 126 */
-	burm_nts_2,	/* 127 */
-	burm_nts_2,	/* 128 */
-	burm_nts_0,	/* 129 */
+	burm_nts_1,	/* 127 */
+	burm_nts_1,	/* 128 */
+	burm_nts_1,	/* 129 */
 	burm_nts_0,	/* 130 */
 	burm_nts_0,	/* 131 */
-	burm_nts_1,	/* 132 */
+	burm_nts_0,	/* 132 */
 	burm_nts_0,	/* 133 */
 	burm_nts_0,	/* 134 */
 	burm_nts_0,	/* 135 */
 	burm_nts_0,	/* 136 */
-	burm_nts_0,	/* 137 */
-	burm_nts_0,	/* 138 */
+	burm_nts_1,	/* 137 */
+	burm_nts_1,	/* 138 */
 	burm_nts_0,	/* 139 */
 	burm_nts_0,	/* 140 */
 	burm_nts_2,	/* 141 */
+	burm_nts_2,	/* 142 */
+	burm_nts_2,	/* 143 */
+	burm_nts_2,	/* 144 */
+	burm_nts_2,	/* 145 */
+	burm_nts_0,	/* 146 */
+	burm_nts_0,	/* 147 */
+	burm_nts_1,	/* 148 */
+	burm_nts_0,	/* 149 */
+	burm_nts_0,	/* 150 */
+	burm_nts_0,	/* 151 */
+	burm_nts_0,	/* 152 */
+	burm_nts_1,	/* 153 */
+	burm_nts_1,	/* 154 */
+	burm_nts_1,	/* 155 */
+	burm_nts_1,	/* 156 */
+	burm_nts_1,	/* 157 */
+	burm_nts_1,	/* 158 */
+	burm_nts_2,	/* 159 */
 };
 
 char burm_arity[] = {
@@ -229,31 +250,31 @@ char burm_arity[] = {
 	0,	/* 43=LSHRCONST */
 	0,	/* 44=LUSHRCONST */
 	0,	/* 45=LREMPOW2 */
-	0,	/* 46=IALOAD */
-	0,	/* 47=LALOAD */
-	0,	/* 48=FALOAD */
-	0,	/* 49=DALOAD */
-	0,	/* 50=AALOAD */
-	0,	/* 51=BALOAD */
-	0,	/* 52=CALOAD */
-	0,	/* 53=SALOAD */
-	0,	/* 54=ISTORE */
-	0,	/* 55=LSTORE */
-	0,	/* 56=FSTORE */
-	0,	/* 57=DSTORE */
-	0,	/* 58=ASTORE */
-	0,	/* 59=IF_LEQ */
-	0,	/* 60=IF_LNE */
-	0,	/* 61=IF_LLT */
-	0,	/* 62=IF_LGE */
-	0,	/* 63=IF_LGT */
-	0,	/* 64=IF_LLE */
-	0,	/* 65=IF_LCMPEQ */
-	0,	/* 66=IF_LCMPNE */
-	0,	/* 67=IF_LCMPLT */
-	0,	/* 68=IF_LCMPGE */
-	0,	/* 69=IF_LCMPGT */
-	0,	/* 70=IF_LCMPLE */
+	2,	/* 46=IALOAD */
+	2,	/* 47=LALOAD */
+	2,	/* 48=FALOAD */
+	2,	/* 49=DALOAD */
+	2,	/* 50=AALOAD */
+	2,	/* 51=BALOAD */
+	2,	/* 52=CALOAD */
+	2,	/* 53=SALOAD */
+	1,	/* 54=ISTORE */
+	1,	/* 55=LSTORE */
+	1,	/* 56=FSTORE */
+	1,	/* 57=DSTORE */
+	1,	/* 58=ASTORE */
+	1,	/* 59=IF_LEQ */
+	1,	/* 60=IF_LNE */
+	1,	/* 61=IF_LLT */
+	1,	/* 62=IF_LGE */
+	1,	/* 63=IF_LGT */
+	1,	/* 64=IF_LLE */
+	2,	/* 65=IF_LCMPEQ */
+	2,	/* 66=IF_LCMPNE */
+	2,	/* 67=IF_LCMPLT */
+	2,	/* 68=IF_LCMPGE */
+	2,	/* 69=IF_LCMPGT */
+	2,	/* 70=IF_LCMPLE */
 	0,	/* 71=UNDEF71 */
 	0,	/* 72=UNDEF72 */
 	0,	/* 73=UNDEF73 */
@@ -299,10 +320,10 @@ char burm_arity[] = {
 	2,	/* 113=LREM */
 	2,	/* 114=FREM */
 	2,	/* 115=DREM */
-	0,	/* 116=INEG */
-	0,	/* 117=LNEG */
-	0,	/* 118=FNEG */
-	0,	/* 119=DNEG */
+	1,	/* 116=INEG */
+	1,	/* 117=LNEG */
+	1,	/* 118=FNEG */
+	1,	/* 119=DNEG */
 	2,	/* 120=ISHL */
 	2,	/* 121=LSHL */
 	2,	/* 122=ISHR */
@@ -316,55 +337,55 @@ char burm_arity[] = {
 	2,	/* 130=IXOR */
 	2,	/* 131=LXOR */
 	0,	/* 132=IINC */
-	0,	/* 133=I2L */
-	0,	/* 134=I2F */
-	0,	/* 135=I2D */
-	0,	/* 136=L2I */
-	0,	/* 137=L2F */
-	0,	/* 138=L2D */
-	0,	/* 139=F2I */
-	0,	/* 140=F2L */
-	0,	/* 141=F2D */
-	0,	/* 142=D2I */
-	0,	/* 143=D2L */
-	0,	/* 144=D2F */
-	0,	/* 145=INT2BYTE */
-	0,	/* 146=INT2CHAR */
-	0,	/* 147=INT2SHORT */
-	0,	/* 148=LCMP */
-	0,	/* 149=FCMPL */
-	0,	/* 150=FCMPG */
-	0,	/* 151=DCMPL */
-	0,	/* 152=DCMPG */
-	0,	/* 153=IFEQ */
-	0,	/* 154=IFNE */
-	0,	/* 155=IFLT */
-	0,	/* 156=IFGE */
-	0,	/* 157=IFGT */
-	0,	/* 158=IFLE */
-	0,	/* 159=IF_ICMPEQ */
-	0,	/* 160=IF_ICMPNE */
-	0,	/* 161=IF_ICMPLT */
-	0,	/* 162=IF_ICMPGE */
-	0,	/* 163=IF_ICMPGT */
-	0,	/* 164=IF_ICMPLE */
-	0,	/* 165=IF_ACMPEQ */
-	0,	/* 166=IF_ACMPNE */
+	1,	/* 133=I2L */
+	1,	/* 134=I2F */
+	1,	/* 135=I2D */
+	1,	/* 136=L2I */
+	1,	/* 137=L2F */
+	1,	/* 138=L2D */
+	1,	/* 139=F2I */
+	1,	/* 140=F2L */
+	1,	/* 141=F2D */
+	1,	/* 142=D2I */
+	1,	/* 143=D2L */
+	1,	/* 144=D2F */
+	1,	/* 145=INT2BYTE */
+	1,	/* 146=INT2CHAR */
+	1,	/* 147=INT2SHORT */
+	2,	/* 148=LCMP */
+	2,	/* 149=FCMPL */
+	2,	/* 150=FCMPG */
+	2,	/* 151=DCMPL */
+	2,	/* 152=DCMPG */
+	1,	/* 153=IFEQ */
+	1,	/* 154=IFNE */
+	1,	/* 155=IFLT */
+	1,	/* 156=IFGE */
+	1,	/* 157=IFGT */
+	1,	/* 158=IFLE */
+	2,	/* 159=IF_ICMPEQ */
+	2,	/* 160=IF_ICMPNE */
+	2,	/* 161=IF_ICMPLT */
+	2,	/* 162=IF_ICMPGE */
+	2,	/* 163=IF_ICMPGT */
+	2,	/* 164=IF_ICMPLE */
+	2,	/* 165=IF_ACMPEQ */
+	2,	/* 166=IF_ACMPNE */
 	0,	/* 167=GOTO */
 	0,	/* 168=JSR */
 	0,	/* 169=RET */
-	0,	/* 170=TABLESWITCH */
-	0,	/* 171=LOOKUPSWITCH */
-	0,	/* 172=IRETURN */
-	0,	/* 173=LRETURN */
-	0,	/* 174=FRETURN */
-	0,	/* 175=DRETURN */
-	0,	/* 176=ARETURN */
+	1,	/* 170=TABLESWITCH */
+	1,	/* 171=LOOKUPSWITCH */
+	1,	/* 172=IRETURN */
+	1,	/* 173=LRETURN */
+	1,	/* 174=FRETURN */
+	1,	/* 175=DRETURN */
+	1,	/* 176=ARETURN */
 	0,	/* 177=RETURN */
 	0,	/* 178=GETSTATIC */
-	0,	/* 179=PUTSTATIC */
-	0,	/* 180=GETFIELD */
-	0,	/* 181=PUTFIELD */
+	1,	/* 179=PUTSTATIC */
+	1,	/* 180=GETFIELD */
+	2,	/* 181=PUTFIELD */
 	2,	/* 182=INVOKEVIRTUAL */
 	2,	/* 183=INVOKESPECIAL */
 	2,	/* 184=INVOKESTATIC */
@@ -373,16 +394,16 @@ char burm_arity[] = {
 	0,	/* 187=NEW */
 	0,	/* 188=NEWARRAY */
 	0,	/* 189=ANEWARRAY */
-	0,	/* 190=ARRAYLENGTH */
+	1,	/* 190=ARRAYLENGTH */
 	1,	/* 191=ATHROW */
-	0,	/* 192=CHECKCAST */
-	0,	/* 193=INSTANCEOF */
+	1,	/* 192=CHECKCAST */
+	1,	/* 193=INSTANCEOF */
 	0,	/* 194=MONITORENTER */
 	0,	/* 195=MONITOREXIT */
 	0,	/* 196=UNDEF196 */
 	0,	/* 197=MULTIANEWARRAY */
-	0,	/* 198=IFNULL */
-	0,	/* 199=IFNONNULL */
+	1,	/* 198=IFNULL */
+	1,	/* 199=IFNONNULL */
 	0,	/* 200=UNDEF200 */
 	0,	/* 201=UNDEF201 */
 	0,	/* 202=BREAKPOINT */
@@ -792,300 +813,401 @@ char *burm_opname[] = {
 
 short burm_cost[][4] = {
 	{ 0 },	/* 0 */
-	{ 100 },	/* 1 = reg: NOP */
-	{ 100 },	/* 2 = reg: POP */
-	{ 100 },	/* 3 = reg: POP2 */
-	{ 100 },	/* 4 = reg: RESULT */
-	{ 100 },	/* 5 = reg: ACONST */
-	{ 100 },	/* 6 = reg: ICONST */
-	{ 100 },	/* 7 = reg: LCONST */
-	{ 100 },	/* 8 = reg: FCONST */
-	{ 100 },	/* 9 = reg: DCONST */
-	{ 100 },	/* 10 = reg: CHECKNULL(reg) */
-	{ 100 },	/* 11 = reg: COPY */
-	{ 100 },	/* 12 = reg: MOVE */
-	{ 100 },	/* 13 = reg: ILOAD */
-	{ 100 },	/* 14 = reg: LLOAD */
-	{ 100 },	/* 15 = reg: FLOAD */
-	{ 100 },	/* 16 = reg: DLOAD */
-	{ 100 },	/* 17 = reg: ALOAD */
-	{ 100 },	/* 18 = reg: IALOAD */
-	{ 100 },	/* 19 = reg: LALOAD */
-	{ 100 },	/* 20 = reg: FALOAD */
-	{ 100 },	/* 21 = reg: DALOAD */
-	{ 100 },	/* 22 = reg: AALOAD */
-	{ 100 },	/* 23 = reg: BALOAD */
-	{ 100 },	/* 24 = reg: CALOAD */
-	{ 100 },	/* 25 = reg: SALOAD */
-	{ 100 },	/* 26 = reg: ISTORE */
-	{ 100 },	/* 27 = reg: LSTORE */
-	{ 100 },	/* 28 = reg: FSTORE */
-	{ 100 },	/* 29 = reg: DSTORE */
-	{ 100 },	/* 30 = reg: ASTORE */
-	{ 100 },	/* 31 = reg: IASTORE */
-	{ 100 },	/* 32 = reg: LASTORE */
-	{ 100 },	/* 33 = reg: FASTORE */
-	{ 100 },	/* 34 = reg: DASTORE */
-	{ 100 },	/* 35 = reg: AASTORE */
-	{ 100 },	/* 36 = reg: BASTORE */
-	{ 100 },	/* 37 = reg: CASTORE */
-	{ 100 },	/* 38 = reg: SASTORE */
-	{ 100 },	/* 39 = reg: IADD(reg,reg) */
-	{ 100 },	/* 40 = reg: LADD(reg,reg) */
-	{ 100 },	/* 41 = reg: FADD(reg,reg) */
-	{ 100 },	/* 42 = reg: DADD(reg,reg) */
-	{ 100 },	/* 43 = reg: ISUB(reg,reg) */
-	{ 100 },	/* 44 = reg: LSUB(reg,reg) */
-	{ 100 },	/* 45 = reg: FSUB(reg,reg) */
-	{ 100 },	/* 46 = reg: DSUB(reg,reg) */
-	{ 100 },	/* 47 = reg: IMUL(reg,reg) */
-	{ 100 },	/* 48 = reg: LMUL(reg,reg) */
-	{ 100 },	/* 49 = reg: FMUL(reg,reg) */
-	{ 100 },	/* 50 = reg: DMUL(reg,reg) */
-	{ 100 },	/* 51 = reg: IDIV(reg,reg) */
-	{ 100 },	/* 52 = reg: LDIV(reg,reg) */
-	{ 100 },	/* 53 = reg: FDIV(reg,reg) */
-	{ 100 },	/* 54 = reg: DDIV(reg,reg) */
-	{ 100 },	/* 55 = reg: IREM(reg,reg) */
-	{ 100 },	/* 56 = reg: LREM(reg,reg) */
-	{ 100 },	/* 57 = reg: FREM(reg,reg) */
-	{ 100 },	/* 58 = reg: DREM(reg,reg) */
-	{ 100 },	/* 59 = reg: INEG */
-	{ 100 },	/* 60 = reg: LNEG */
-	{ 100 },	/* 61 = reg: FNEG */
-	{ 100 },	/* 62 = reg: DNEG */
-	{ 100 },	/* 63 = reg: ISHL(reg,reg) */
-	{ 100 },	/* 64 = reg: LSHL(reg,reg) */
-	{ 100 },	/* 65 = reg: ISHR(reg,reg) */
-	{ 100 },	/* 66 = reg: LSHR(reg,reg) */
-	{ 100 },	/* 67 = reg: IUSHR(reg,reg) */
-	{ 100 },	/* 68 = reg: LUSHR(reg,reg) */
-	{ 100 },	/* 69 = reg: IAND(reg,reg) */
-	{ 100 },	/* 70 = reg: LAND(reg,reg) */
-	{ 100 },	/* 71 = reg: IOR(reg,reg) */
-	{ 100 },	/* 72 = reg: LOR(reg,reg) */
-	{ 100 },	/* 73 = reg: IXOR(reg,reg) */
-	{ 100 },	/* 74 = reg: LXOR(reg,reg) */
-	{ 100 },	/* 75 = reg: IINC */
-	{ 100 },	/* 76 = reg: I2L */
-	{ 100 },	/* 77 = reg: I2F */
-	{ 100 },	/* 78 = reg: I2D */
-	{ 100 },	/* 79 = reg: L2I */
-	{ 100 },	/* 80 = reg: L2F */
-	{ 100 },	/* 81 = reg: L2D */
-	{ 100 },	/* 82 = reg: F2I */
-	{ 100 },	/* 83 = reg: F2L */
-	{ 100 },	/* 84 = reg: F2D */
-	{ 100 },	/* 85 = reg: D2I */
-	{ 100 },	/* 86 = reg: D2L */
-	{ 100 },	/* 87 = reg: D2F */
-	{ 100 },	/* 88 = reg: INT2BYTE */
-	{ 100 },	/* 89 = reg: INT2CHAR */
-	{ 100 },	/* 90 = reg: INT2SHORT */
-	{ 100 },	/* 91 = reg: LCMP */
-	{ 100 },	/* 92 = reg: FCMPL */
-	{ 100 },	/* 93 = reg: FCMPG */
-	{ 100 },	/* 94 = reg: DCMPL */
-	{ 100 },	/* 95 = reg: DCMPG */
-	{ 100 },	/* 96 = reg: IFEQ */
-	{ 100 },	/* 97 = reg: IFNE */
-	{ 100 },	/* 98 = reg: IFLT */
-	{ 100 },	/* 99 = reg: IFGE */
-	{ 100 },	/* 100 = reg: IFGT */
-	{ 100 },	/* 101 = reg: IFLE */
-	{ 100 },	/* 102 = reg: IF_ICMPEQ */
-	{ 100 },	/* 103 = reg: IF_ICMPNE */
-	{ 100 },	/* 104 = reg: IF_ICMPLT */
-	{ 100 },	/* 105 = reg: IF_ICMPGE */
-	{ 100 },	/* 106 = reg: IF_ICMPGT */
-	{ 100 },	/* 107 = reg: IF_ICMPLE */
-	{ 100 },	/* 108 = reg: IF_ACMPEQ */
-	{ 100 },	/* 109 = reg: IF_ACMPNE */
-	{ 100 },	/* 110 = reg: GOTO */
-	{ 100 },	/* 111 = reg: JSR */
-	{ 100 },	/* 112 = reg: RET */
-	{ 100 },	/* 113 = reg: TABLESWITCH */
-	{ 100 },	/* 114 = reg: LOOKUPSWITCH */
-	{ 100 },	/* 115 = reg: IRETURN */
-	{ 100 },	/* 116 = reg: LRETURN */
-	{ 100 },	/* 117 = reg: FRETURN */
-	{ 100 },	/* 118 = reg: DRETURN */
-	{ 100 },	/* 119 = reg: ARETURN */
-	{ 100 },	/* 120 = reg: RETURN */
-	{ 100 },	/* 121 = reg: GETSTATIC */
-	{ 100 },	/* 122 = reg: PUTSTATIC */
-	{ 100 },	/* 123 = reg: GETFIELD */
-	{ 100 },	/* 124 = reg: PUTFIELD */
-	{ 100 },	/* 125 = reg: INVOKEVIRTUAL(reg,reg) */
-	{ 100 },	/* 126 = reg: INVOKESPECIAL(reg,reg) */
-	{ 100 },	/* 127 = reg: INVOKESTATIC(reg,reg) */
-	{ 100 },	/* 128 = reg: INVOKEINTERFACE(reg,reg) */
-	{ 100 },	/* 129 = reg: CHECKCAST */
-	{ 100 },	/* 130 = reg: INSTANCEOF */
-	{ 100 },	/* 131 = reg: MULTIANEWARRAY */
-	{ 100 },	/* 132 = reg: ATHROW(reg) */
-	{ 100 },	/* 133 = reg: IFNULL */
-	{ 100 },	/* 134 = reg: IFNONNULL */
-	{ 100 },	/* 135 = reg: BREAKPOINT */
-	{ 100 },	/* 136 = reg: GETEXCEPTION */
-	{ 100 },	/* 137 = reg: PHI */
-	{ 100 },	/* 138 = reg: INLINE_START */
-	{ 100 },	/* 139 = reg: INLINE_END */
-	{ 100 },	/* 140 = reg: INLINE_BODY */
-	{ 100 },	/* 141 = reg: BUILTIN(reg,reg) */
+	{ 100 },	/* 1 = root: reg */
+	{ 100 },	/* 2 = reg: NOP */
+	{ 100 },	/* 3 = root: POP */
+	{ 100 },	/* 4 = root: POP2 */
+	{ 100 },	/* 5 = reg: RESULT */
+	{ 100 },	/* 6 = reg: ACONST */
+	{ 100 },	/* 7 = reg: ICONST */
+	{ 100 },	/* 8 = reg: LCONST */
+	{ 100 },	/* 9 = reg: FCONST */
+	{ 100 },	/* 10 = reg: DCONST */
+	{ 100 },	/* 11 = reg: CHECKNULL(reg) */
+	{ 100 },	/* 12 = reg: COPY */
+	{ 100 },	/* 13 = reg: MOVE */
+	{ 100 },	/* 14 = reg: ILOAD */
+	{ 100 },	/* 15 = reg: LLOAD */
+	{ 100 },	/* 16 = reg: FLOAD */
+	{ 100 },	/* 17 = reg: DLOAD */
+	{ 100 },	/* 18 = reg: ALOAD */
+	{ 100 },	/* 19 = reg: IALOAD(reg,reg) */
+	{ 100 },	/* 20 = reg: LALOAD(reg,reg) */
+	{ 100 },	/* 21 = reg: FALOAD(reg,reg) */
+	{ 100 },	/* 22 = reg: DALOAD(reg,reg) */
+	{ 100 },	/* 23 = reg: AALOAD(reg,reg) */
+	{ 100 },	/* 24 = reg: BALOAD(reg,reg) */
+	{ 100 },	/* 25 = reg: CALOAD(reg,reg) */
+	{ 100 },	/* 26 = reg: SALOAD(reg,reg) */
+	{ 100 },	/* 27 = root: ISTORE(reg) */
+	{ 100 },	/* 28 = root: LSTORE(reg) */
+	{ 100 },	/* 29 = root: FSTORE(reg) */
+	{ 100 },	/* 30 = root: DSTORE(reg) */
+	{ 100 },	/* 31 = root: ASTORE(reg) */
+	{ 100 },	/* 32 = root: IASTORE */
+	{ 100 },	/* 33 = root: LASTORE */
+	{ 100 },	/* 34 = root: FASTORE */
+	{ 100 },	/* 35 = root: DASTORE */
+	{ 100 },	/* 36 = root: AASTORE */
+	{ 100 },	/* 37 = root: BASTORE */
+	{ 100 },	/* 38 = root: CASTORE */
+	{ 100 },	/* 39 = root: SASTORE */
+	{ 100 },	/* 40 = reg: IADD(reg,reg) */
+	{ 10 },	/* 41 = reg: IADD(reg,ICONST) */
+	{ 10 },	/* 42 = reg: IADD(ICONST,reg) */
+	{ 100 },	/* 43 = reg: LADD(reg,reg) */
+	{ 100 },	/* 44 = reg: FADD(reg,reg) */
+	{ 100 },	/* 45 = reg: DADD(reg,reg) */
+	{ 100 },	/* 46 = reg: ISUB(reg,reg) */
+	{ 100 },	/* 47 = reg: LSUB(reg,reg) */
+	{ 100 },	/* 48 = reg: FSUB(reg,reg) */
+	{ 100 },	/* 49 = reg: DSUB(reg,reg) */
+	{ 100 },	/* 50 = reg: IMUL(reg,reg) */
+	{ 100 },	/* 51 = reg: LMUL(reg,reg) */
+	{ 100 },	/* 52 = reg: FMUL(reg,reg) */
+	{ 100 },	/* 53 = reg: DMUL(reg,reg) */
+	{ 100 },	/* 54 = reg: IDIV(reg,reg) */
+	{ 100 },	/* 55 = reg: LDIV(reg,reg) */
+	{ 100 },	/* 56 = reg: FDIV(reg,reg) */
+	{ 100 },	/* 57 = reg: DDIV(reg,reg) */
+	{ 100 },	/* 58 = reg: IREM(reg,reg) */
+	{ 100 },	/* 59 = reg: LREM(reg,reg) */
+	{ 100 },	/* 60 = reg: FREM(reg,reg) */
+	{ 100 },	/* 61 = reg: DREM(reg,reg) */
+	{ 100 },	/* 62 = reg: INEG(reg) */
+	{ 100 },	/* 63 = reg: LNEG(reg) */
+	{ 100 },	/* 64 = reg: FNEG(reg) */
+	{ 100 },	/* 65 = reg: DNEG(reg) */
+	{ 100 },	/* 66 = reg: ISHL(reg,reg) */
+	{ 100 },	/* 67 = reg: LSHL(reg,reg) */
+	{ 100 },	/* 68 = reg: ISHR(reg,reg) */
+	{ 100 },	/* 69 = reg: LSHR(reg,reg) */
+	{ 100 },	/* 70 = reg: IUSHR(reg,reg) */
+	{ 100 },	/* 71 = reg: LUSHR(reg,reg) */
+	{ 100 },	/* 72 = reg: IAND(reg,reg) */
+	{ 100 },	/* 73 = reg: LAND(reg,reg) */
+	{ 100 },	/* 74 = reg: IOR(reg,reg) */
+	{ 100 },	/* 75 = reg: LOR(reg,reg) */
+	{ 100 },	/* 76 = reg: IXOR(reg,reg) */
+	{ 100 },	/* 77 = reg: LXOR(reg,reg) */
+	{ 100 },	/* 78 = root: IINC */
+	{ 100 },	/* 79 = reg: I2L(reg) */
+	{ 100 },	/* 80 = reg: I2F(reg) */
+	{ 100 },	/* 81 = reg: I2D(reg) */
+	{ 100 },	/* 82 = reg: L2I(reg) */
+	{ 100 },	/* 83 = reg: L2F(reg) */
+	{ 100 },	/* 84 = reg: L2D(reg) */
+	{ 100 },	/* 85 = reg: F2I(reg) */
+	{ 100 },	/* 86 = reg: F2L(reg) */
+	{ 100 },	/* 87 = reg: F2D(reg) */
+	{ 100 },	/* 88 = reg: D2I(reg) */
+	{ 100 },	/* 89 = reg: D2L(reg) */
+	{ 100 },	/* 90 = reg: D2F(reg) */
+	{ 100 },	/* 91 = reg: INT2BYTE(reg) */
+	{ 100 },	/* 92 = reg: INT2CHAR(reg) */
+	{ 100 },	/* 93 = reg: INT2SHORT(reg) */
+	{ 100 },	/* 94 = reg: LCMP(reg,reg) */
+	{ 100 },	/* 95 = reg: FCMPL(reg,reg) */
+	{ 100 },	/* 96 = reg: FCMPG(reg,reg) */
+	{ 100 },	/* 97 = reg: DCMPL(reg,reg) */
+	{ 100 },	/* 98 = reg: DCMPG(reg,reg) */
+	{ 100 },	/* 99 = root: IFEQ(reg) */
+	{ 100 },	/* 100 = root: IFEQ(reg) */
+	{ 100 },	/* 101 = root: IFNE(reg) */
+	{ 100 },	/* 102 = root: IFLT(reg) */
+	{ 100 },	/* 103 = root: IFGE(reg) */
+	{ 100 },	/* 104 = root: IFGT(reg) */
+	{ 100 },	/* 105 = root: IFLE(reg) */
+	{ 100 },	/* 106 = root: IF_LEQ(reg) */
+	{ 100 },	/* 107 = root: IF_LEQ(reg) */
+	{ 100 },	/* 108 = root: IF_LNE(reg) */
+	{ 100 },	/* 109 = root: IF_LLT(reg) */
+	{ 100 },	/* 110 = root: IF_LGE(reg) */
+	{ 100 },	/* 111 = root: IF_LGT(reg) */
+	{ 100 },	/* 112 = root: IF_LLE(reg) */
+	{ 100 },	/* 113 = root: IF_ICMPEQ(reg,reg) */
+	{ 100 },	/* 114 = root: IF_ICMPNE(reg,reg) */
+	{ 100 },	/* 115 = root: IF_ICMPLT(reg,reg) */
+	{ 100 },	/* 116 = root: IF_ICMPGE(reg,reg) */
+	{ 100 },	/* 117 = root: IF_ICMPGT(reg,reg) */
+	{ 100 },	/* 118 = root: IF_ICMPLE(reg,reg) */
+	{ 100 },	/* 119 = root: IF_LCMPEQ(reg,reg) */
+	{ 100 },	/* 120 = root: IF_LCMPNE(reg,reg) */
+	{ 100 },	/* 121 = root: IF_LCMPLT(reg,reg) */
+	{ 100 },	/* 122 = root: IF_LCMPGE(reg,reg) */
+	{ 100 },	/* 123 = root: IF_LCMPGT(reg,reg) */
+	{ 100 },	/* 124 = root: IF_LCMPLE(reg,reg) */
+	{ 100 },	/* 125 = root: IF_ACMPEQ(reg,reg) */
+	{ 100 },	/* 126 = root: IF_ACMPNE(reg,reg) */
+	{ 100 },	/* 127 = root: GOTO */
+	{ 100 },	/* 128 = reg: JSR */
+	{ 100 },	/* 129 = root: RET */
+	{ 100 },	/* 130 = root: TABLESWITCH(reg) */
+	{ 100 },	/* 131 = root: LOOKUPSWITCH(reg) */
+	{ 100 },	/* 132 = root: IRETURN(reg) */
+	{ 100 },	/* 133 = root: LRETURN(reg) */
+	{ 100 },	/* 134 = root: FRETURN(reg) */
+	{ 100 },	/* 135 = root: DRETURN(reg) */
+	{ 100 },	/* 136 = root: ARETURN(reg) */
+	{ 100 },	/* 137 = root: RETURN */
+	{ 100 },	/* 138 = reg: GETSTATIC */
+	{ 100 },	/* 139 = root: PUTSTATIC(reg) */
+	{ 100 },	/* 140 = reg: GETFIELD(reg) */
+	{ 100 },	/* 141 = root: PUTFIELD(reg,reg) */
+	{ 100 },	/* 142 = reg: INVOKEVIRTUAL(reg,reg) */
+	{ 100 },	/* 143 = reg: INVOKESPECIAL(reg,reg) */
+	{ 100 },	/* 144 = reg: INVOKESTATIC(reg,reg) */
+	{ 100 },	/* 145 = reg: INVOKEINTERFACE(reg,reg) */
+	{ 100 },	/* 146 = reg: CHECKCAST(reg) */
+	{ 100 },	/* 147 = reg: INSTANCEOF(reg) */
+	{ 100 },	/* 148 = reg: MULTIANEWARRAY */
+	{ 100 },	/* 149 = reg: ARRAYLENGTH(reg) */
+	{ 100 },	/* 150 = root: ATHROW(reg) */
+	{ 100 },	/* 151 = root: IFNULL(reg) */
+	{ 100 },	/* 152 = root: IFNONNULL(reg) */
+	{ 100 },	/* 153 = root: BREAKPOINT */
+	{ 100 },	/* 154 = reg: GETEXCEPTION */
+	{ 100 },	/* 155 = reg: PHI */
+	{ 100 },	/* 156 = root: INLINE_START */
+	{ 100 },	/* 157 = root: INLINE_END */
+	{ 100 },	/* 158 = root: INLINE_BODY */
+	{ 100 },	/* 159 = reg: BUILTIN(reg,reg) */
 };
 
 char *burm_string[] = {
 	/* 0 */	0,
-	/* 1 */	"reg: NOP",
-	/* 2 */	"reg: POP",
-	/* 3 */	"reg: POP2",
-	/* 4 */	"reg: RESULT",
-	/* 5 */	"reg: ACONST",
-	/* 6 */	"reg: ICONST",
-	/* 7 */	"reg: LCONST",
-	/* 8 */	"reg: FCONST",
-	/* 9 */	"reg: DCONST",
-	/* 10 */	"reg: CHECKNULL(reg)",
-	/* 11 */	"reg: COPY",
-	/* 12 */	"reg: MOVE",
-	/* 13 */	"reg: ILOAD",
-	/* 14 */	"reg: LLOAD",
-	/* 15 */	"reg: FLOAD",
-	/* 16 */	"reg: DLOAD",
-	/* 17 */	"reg: ALOAD",
-	/* 18 */	"reg: IALOAD",
-	/* 19 */	"reg: LALOAD",
-	/* 20 */	"reg: FALOAD",
-	/* 21 */	"reg: DALOAD",
-	/* 22 */	"reg: AALOAD",
-	/* 23 */	"reg: BALOAD",
-	/* 24 */	"reg: CALOAD",
-	/* 25 */	"reg: SALOAD",
-	/* 26 */	"reg: ISTORE",
-	/* 27 */	"reg: LSTORE",
-	/* 28 */	"reg: FSTORE",
-	/* 29 */	"reg: DSTORE",
-	/* 30 */	"reg: ASTORE",
-	/* 31 */	"reg: IASTORE",
-	/* 32 */	"reg: LASTORE",
-	/* 33 */	"reg: FASTORE",
-	/* 34 */	"reg: DASTORE",
-	/* 35 */	"reg: AASTORE",
-	/* 36 */	"reg: BASTORE",
-	/* 37 */	"reg: CASTORE",
-	/* 38 */	"reg: SASTORE",
-	/* 39 */	"reg: IADD(reg,reg)",
-	/* 40 */	"reg: LADD(reg,reg)",
-	/* 41 */	"reg: FADD(reg,reg)",
-	/* 42 */	"reg: DADD(reg,reg)",
-	/* 43 */	"reg: ISUB(reg,reg)",
-	/* 44 */	"reg: LSUB(reg,reg)",
-	/* 45 */	"reg: FSUB(reg,reg)",
-	/* 46 */	"reg: DSUB(reg,reg)",
-	/* 47 */	"reg: IMUL(reg,reg)",
-	/* 48 */	"reg: LMUL(reg,reg)",
-	/* 49 */	"reg: FMUL(reg,reg)",
-	/* 50 */	"reg: DMUL(reg,reg)",
-	/* 51 */	"reg: IDIV(reg,reg)",
-	/* 52 */	"reg: LDIV(reg,reg)",
-	/* 53 */	"reg: FDIV(reg,reg)",
-	/* 54 */	"reg: DDIV(reg,reg)",
-	/* 55 */	"reg: IREM(reg,reg)",
-	/* 56 */	"reg: LREM(reg,reg)",
-	/* 57 */	"reg: FREM(reg,reg)",
-	/* 58 */	"reg: DREM(reg,reg)",
-	/* 59 */	"reg: INEG",
-	/* 60 */	"reg: LNEG",
-	/* 61 */	"reg: FNEG",
-	/* 62 */	"reg: DNEG",
-	/* 63 */	"reg: ISHL(reg,reg)",
-	/* 64 */	"reg: LSHL(reg,reg)",
-	/* 65 */	"reg: ISHR(reg,reg)",
-	/* 66 */	"reg: LSHR(reg,reg)",
-	/* 67 */	"reg: IUSHR(reg,reg)",
-	/* 68 */	"reg: LUSHR(reg,reg)",
-	/* 69 */	"reg: IAND(reg,reg)",
-	/* 70 */	"reg: LAND(reg,reg)",
-	/* 71 */	"reg: IOR(reg,reg)",
-	/* 72 */	"reg: LOR(reg,reg)",
-	/* 73 */	"reg: IXOR(reg,reg)",
-	/* 74 */	"reg: LXOR(reg,reg)",
-	/* 75 */	"reg: IINC",
-	/* 76 */	"reg: I2L",
-	/* 77 */	"reg: I2F",
-	/* 78 */	"reg: I2D",
-	/* 79 */	"reg: L2I",
-	/* 80 */	"reg: L2F",
-	/* 81 */	"reg: L2D",
-	/* 82 */	"reg: F2I",
-	/* 83 */	"reg: F2L",
-	/* 84 */	"reg: F2D",
-	/* 85 */	"reg: D2I",
-	/* 86 */	"reg: D2L",
-	/* 87 */	"reg: D2F",
-	/* 88 */	"reg: INT2BYTE",
-	/* 89 */	"reg: INT2CHAR",
-	/* 90 */	"reg: INT2SHORT",
-	/* 91 */	"reg: LCMP",
-	/* 92 */	"reg: FCMPL",
-	/* 93 */	"reg: FCMPG",
-	/* 94 */	"reg: DCMPL",
-	/* 95 */	"reg: DCMPG",
-	/* 96 */	"reg: IFEQ",
-	/* 97 */	"reg: IFNE",
-	/* 98 */	"reg: IFLT",
-	/* 99 */	"reg: IFGE",
-	/* 100 */	"reg: IFGT",
-	/* 101 */	"reg: IFLE",
-	/* 102 */	"reg: IF_ICMPEQ",
-	/* 103 */	"reg: IF_ICMPNE",
-	/* 104 */	"reg: IF_ICMPLT",
-	/* 105 */	"reg: IF_ICMPGE",
-	/* 106 */	"reg: IF_ICMPGT",
-	/* 107 */	"reg: IF_ICMPLE",
-	/* 108 */	"reg: IF_ACMPEQ",
-	/* 109 */	"reg: IF_ACMPNE",
-	/* 110 */	"reg: GOTO",
-	/* 111 */	"reg: JSR",
-	/* 112 */	"reg: RET",
-	/* 113 */	"reg: TABLESWITCH",
-	/* 114 */	"reg: LOOKUPSWITCH",
-	/* 115 */	"reg: IRETURN",
-	/* 116 */	"reg: LRETURN",
-	/* 117 */	"reg: FRETURN",
-	/* 118 */	"reg: DRETURN",
-	/* 119 */	"reg: ARETURN",
-	/* 120 */	"reg: RETURN",
-	/* 121 */	"reg: GETSTATIC",
-	/* 122 */	"reg: PUTSTATIC",
-	/* 123 */	"reg: GETFIELD",
-	/* 124 */	"reg: PUTFIELD",
-	/* 125 */	"reg: INVOKEVIRTUAL(reg,reg)",
-	/* 126 */	"reg: INVOKESPECIAL(reg,reg)",
-	/* 127 */	"reg: INVOKESTATIC(reg,reg)",
-	/* 128 */	"reg: INVOKEINTERFACE(reg,reg)",
-	/* 129 */	"reg: CHECKCAST",
-	/* 130 */	"reg: INSTANCEOF",
-	/* 131 */	"reg: MULTIANEWARRAY",
-	/* 132 */	"reg: ATHROW(reg)",
-	/* 133 */	"reg: IFNULL",
-	/* 134 */	"reg: IFNONNULL",
-	/* 135 */	"reg: BREAKPOINT",
-	/* 136 */	"reg: GETEXCEPTION",
-	/* 137 */	"reg: PHI",
-	/* 138 */	"reg: INLINE_START",
-	/* 139 */	"reg: INLINE_END",
-	/* 140 */	"reg: INLINE_BODY",
-	/* 141 */	"reg: BUILTIN(reg,reg)",
+	/* 1 */	"root: reg",
+	/* 2 */	"reg: NOP",
+	/* 3 */	"root: POP",
+	/* 4 */	"root: POP2",
+	/* 5 */	"reg: RESULT",
+	/* 6 */	"reg: ACONST",
+	/* 7 */	"reg: ICONST",
+	/* 8 */	"reg: LCONST",
+	/* 9 */	"reg: FCONST",
+	/* 10 */	"reg: DCONST",
+	/* 11 */	"reg: CHECKNULL(reg)",
+	/* 12 */	"reg: COPY",
+	/* 13 */	"reg: MOVE",
+	/* 14 */	"reg: ILOAD",
+	/* 15 */	"reg: LLOAD",
+	/* 16 */	"reg: FLOAD",
+	/* 17 */	"reg: DLOAD",
+	/* 18 */	"reg: ALOAD",
+	/* 19 */	"reg: IALOAD(reg,reg)",
+	/* 20 */	"reg: LALOAD(reg,reg)",
+	/* 21 */	"reg: FALOAD(reg,reg)",
+	/* 22 */	"reg: DALOAD(reg,reg)",
+	/* 23 */	"reg: AALOAD(reg,reg)",
+	/* 24 */	"reg: BALOAD(reg,reg)",
+	/* 25 */	"reg: CALOAD(reg,reg)",
+	/* 26 */	"reg: SALOAD(reg,reg)",
+	/* 27 */	"root: ISTORE(reg)",
+	/* 28 */	"root: LSTORE(reg)",
+	/* 29 */	"root: FSTORE(reg)",
+	/* 30 */	"root: DSTORE(reg)",
+	/* 31 */	"root: ASTORE(reg)",
+	/* 32 */	"root: IASTORE",
+	/* 33 */	"root: LASTORE",
+	/* 34 */	"root: FASTORE",
+	/* 35 */	"root: DASTORE",
+	/* 36 */	"root: AASTORE",
+	/* 37 */	"root: BASTORE",
+	/* 38 */	"root: CASTORE",
+	/* 39 */	"root: SASTORE",
+	/* 40 */	"reg: IADD(reg,reg)",
+	/* 41 */	"reg: IADD(reg,ICONST)",
+	/* 42 */	"reg: IADD(ICONST,reg)",
+	/* 43 */	"reg: LADD(reg,reg)",
+	/* 44 */	"reg: FADD(reg,reg)",
+	/* 45 */	"reg: DADD(reg,reg)",
+	/* 46 */	"reg: ISUB(reg,reg)",
+	/* 47 */	"reg: LSUB(reg,reg)",
+	/* 48 */	"reg: FSUB(reg,reg)",
+	/* 49 */	"reg: DSUB(reg,reg)",
+	/* 50 */	"reg: IMUL(reg,reg)",
+	/* 51 */	"reg: LMUL(reg,reg)",
+	/* 52 */	"reg: FMUL(reg,reg)",
+	/* 53 */	"reg: DMUL(reg,reg)",
+	/* 54 */	"reg: IDIV(reg,reg)",
+	/* 55 */	"reg: LDIV(reg,reg)",
+	/* 56 */	"reg: FDIV(reg,reg)",
+	/* 57 */	"reg: DDIV(reg,reg)",
+	/* 58 */	"reg: IREM(reg,reg)",
+	/* 59 */	"reg: LREM(reg,reg)",
+	/* 60 */	"reg: FREM(reg,reg)",
+	/* 61 */	"reg: DREM(reg,reg)",
+	/* 62 */	"reg: INEG(reg)",
+	/* 63 */	"reg: LNEG(reg)",
+	/* 64 */	"reg: FNEG(reg)",
+	/* 65 */	"reg: DNEG(reg)",
+	/* 66 */	"reg: ISHL(reg,reg)",
+	/* 67 */	"reg: LSHL(reg,reg)",
+	/* 68 */	"reg: ISHR(reg,reg)",
+	/* 69 */	"reg: LSHR(reg,reg)",
+	/* 70 */	"reg: IUSHR(reg,reg)",
+	/* 71 */	"reg: LUSHR(reg,reg)",
+	/* 72 */	"reg: IAND(reg,reg)",
+	/* 73 */	"reg: LAND(reg,reg)",
+	/* 74 */	"reg: IOR(reg,reg)",
+	/* 75 */	"reg: LOR(reg,reg)",
+	/* 76 */	"reg: IXOR(reg,reg)",
+	/* 77 */	"reg: LXOR(reg,reg)",
+	/* 78 */	"root: IINC",
+	/* 79 */	"reg: I2L(reg)",
+	/* 80 */	"reg: I2F(reg)",
+	/* 81 */	"reg: I2D(reg)",
+	/* 82 */	"reg: L2I(reg)",
+	/* 83 */	"reg: L2F(reg)",
+	/* 84 */	"reg: L2D(reg)",
+	/* 85 */	"reg: F2I(reg)",
+	/* 86 */	"reg: F2L(reg)",
+	/* 87 */	"reg: F2D(reg)",
+	/* 88 */	"reg: D2I(reg)",
+	/* 89 */	"reg: D2L(reg)",
+	/* 90 */	"reg: D2F(reg)",
+	/* 91 */	"reg: INT2BYTE(reg)",
+	/* 92 */	"reg: INT2CHAR(reg)",
+	/* 93 */	"reg: INT2SHORT(reg)",
+	/* 94 */	"reg: LCMP(reg,reg)",
+	/* 95 */	"reg: FCMPL(reg,reg)",
+	/* 96 */	"reg: FCMPG(reg,reg)",
+	/* 97 */	"reg: DCMPL(reg,reg)",
+	/* 98 */	"reg: DCMPG(reg,reg)",
+	/* 99 */	"root: IFEQ(reg)",
+	/* 100 */	"root: IFEQ(reg)",
+	/* 101 */	"root: IFNE(reg)",
+	/* 102 */	"root: IFLT(reg)",
+	/* 103 */	"root: IFGE(reg)",
+	/* 104 */	"root: IFGT(reg)",
+	/* 105 */	"root: IFLE(reg)",
+	/* 106 */	"root: IF_LEQ(reg)",
+	/* 107 */	"root: IF_LEQ(reg)",
+	/* 108 */	"root: IF_LNE(reg)",
+	/* 109 */	"root: IF_LLT(reg)",
+	/* 110 */	"root: IF_LGE(reg)",
+	/* 111 */	"root: IF_LGT(reg)",
+	/* 112 */	"root: IF_LLE(reg)",
+	/* 113 */	"root: IF_ICMPEQ(reg,reg)",
+	/* 114 */	"root: IF_ICMPNE(reg,reg)",
+	/* 115 */	"root: IF_ICMPLT(reg,reg)",
+	/* 116 */	"root: IF_ICMPGE(reg,reg)",
+	/* 117 */	"root: IF_ICMPGT(reg,reg)",
+	/* 118 */	"root: IF_ICMPLE(reg,reg)",
+	/* 119 */	"root: IF_LCMPEQ(reg,reg)",
+	/* 120 */	"root: IF_LCMPNE(reg,reg)",
+	/* 121 */	"root: IF_LCMPLT(reg,reg)",
+	/* 122 */	"root: IF_LCMPGE(reg,reg)",
+	/* 123 */	"root: IF_LCMPGT(reg,reg)",
+	/* 124 */	"root: IF_LCMPLE(reg,reg)",
+	/* 125 */	"root: IF_ACMPEQ(reg,reg)",
+	/* 126 */	"root: IF_ACMPNE(reg,reg)",
+	/* 127 */	"root: GOTO",
+	/* 128 */	"reg: JSR",
+	/* 129 */	"root: RET",
+	/* 130 */	"root: TABLESWITCH(reg)",
+	/* 131 */	"root: LOOKUPSWITCH(reg)",
+	/* 132 */	"root: IRETURN(reg)",
+	/* 133 */	"root: LRETURN(reg)",
+	/* 134 */	"root: FRETURN(reg)",
+	/* 135 */	"root: DRETURN(reg)",
+	/* 136 */	"root: ARETURN(reg)",
+	/* 137 */	"root: RETURN",
+	/* 138 */	"reg: GETSTATIC",
+	/* 139 */	"root: PUTSTATIC(reg)",
+	/* 140 */	"reg: GETFIELD(reg)",
+	/* 141 */	"root: PUTFIELD(reg,reg)",
+	/* 142 */	"reg: INVOKEVIRTUAL(reg,reg)",
+	/* 143 */	"reg: INVOKESPECIAL(reg,reg)",
+	/* 144 */	"reg: INVOKESTATIC(reg,reg)",
+	/* 145 */	"reg: INVOKEINTERFACE(reg,reg)",
+	/* 146 */	"reg: CHECKCAST(reg)",
+	/* 147 */	"reg: INSTANCEOF(reg)",
+	/* 148 */	"reg: MULTIANEWARRAY",
+	/* 149 */	"reg: ARRAYLENGTH(reg)",
+	/* 150 */	"root: ATHROW(reg)",
+	/* 151 */	"root: IFNULL(reg)",
+	/* 152 */	"root: IFNONNULL(reg)",
+	/* 153 */	"root: BREAKPOINT",
+	/* 154 */	"reg: GETEXCEPTION",
+	/* 155 */	"reg: PHI",
+	/* 156 */	"root: INLINE_START",
+	/* 157 */	"root: INLINE_END",
+	/* 158 */	"root: INLINE_BODY",
+	/* 159 */	"reg: BUILTIN(reg,reg)",
+};
+
+static short burm_decode_root[] = {
+	0,
+	1,
+	3,
+	4,
+	27,
+	28,
+	29,
+	30,
+	31,
+	32,
+	33,
+	34,
+	35,
+	36,
+	37,
+	38,
+	39,
+	78,
+	99,
+	100,
+	101,
+	102,
+	103,
+	104,
+	105,
+	106,
+	107,
+	108,
+	109,
+	110,
+	111,
+	112,
+	113,
+	114,
+	115,
+	116,
+	117,
+	118,
+	119,
+	120,
+	121,
+	122,
+	123,
+	124,
+	125,
+	126,
+	127,
+	129,
+	130,
+	131,
+	132,
+	133,
+	134,
+	135,
+	136,
+	137,
+	139,
+	141,
+	150,
+	151,
+	152,
+	153,
+	156,
+	157,
+	158,
 };
 
 static short burm_decode_reg[] = {
 	0,
-	1,
 	2,
-	3,
-	4,
 	5,
 	6,
 	7,
@@ -1108,19 +1230,6 @@ static short burm_decode_reg[] = {
 	24,
 	25,
 	26,
-	27,
-	28,
-	29,
-	30,
-	31,
-	32,
-	33,
-	34,
-	35,
-	36,
-	37,
-	38,
-	39,
 	40,
 	41,
 	42,
@@ -1159,7 +1268,6 @@ static short burm_decode_reg[] = {
 	75,
 	76,
 	77,
-	78,
 	79,
 	80,
 	81,
@@ -1180,56 +1288,29 @@ static short burm_decode_reg[] = {
 	96,
 	97,
 	98,
-	99,
-	100,
-	101,
-	102,
-	103,
-	104,
-	105,
-	106,
-	107,
-	108,
-	109,
-	110,
-	111,
-	112,
-	113,
-	114,
-	115,
-	116,
-	117,
-	118,
-	119,
-	120,
-	121,
-	122,
-	123,
-	124,
-	125,
-	126,
-	127,
 	128,
-	129,
-	130,
-	131,
-	132,
-	133,
-	134,
-	135,
-	136,
-	137,
 	138,
-	139,
 	140,
-	141,
+	142,
+	143,
+	144,
+	145,
+	146,
+	147,
+	148,
+	149,
+	154,
+	155,
+	159,
 };
 
 int burm_rule(STATEPTR_TYPE state, int goalnt) {
-	burm_assert(goalnt >= 1 && goalnt <= 1, PANIC("Bad goal nonterminal %d in burm_rule\n", goalnt));
+	burm_assert(goalnt >= 1 && goalnt <= 2, PANIC("Bad goal nonterminal %d in burm_rule\n", goalnt));
 	if (!state)
 		return 0;
 	switch (goalnt) {
+	case burm_root_NT:
+		return burm_decode_root[state->rule.burm_root];
 	case burm_reg_NT:
 		return burm_decode_reg[state->rule.burm_reg];
 	default:
@@ -1238,6 +1319,14 @@ int burm_rule(STATEPTR_TYPE state, int goalnt) {
 	return 0;
 }
 
+static void burm_closure_reg(STATEPTR_TYPE, int);
+
+static void burm_closure_reg(STATEPTR_TYPE p, int c) {
+	if (c + 100 < p->cost[burm_root_NT]) {
+		p->cost[burm_root_NT] = c + 100;
+		p->rule.burm_root = 1;
+	}
+}
 
 STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 	int c;
@@ -1249,8 +1338,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		p->op = op;
 		p->left = l;
 		p->right = r;
-		p->rule.burm_reg = 0;
+		p->rule.burm_root = 0;
 		p->cost[1] =
+		p->cost[2] =
 			32767;
 	}
 	switch (op) {
@@ -1258,8 +1348,10 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 0, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: NOP */
 				},{
+					1,	/* root: reg */
 					1,	/* reg: NOP */
 				}
 			};
@@ -1269,9 +1361,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 1, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: ACONST */
 				},{
-					5,	/* reg: ACONST */
+					1,	/* root: reg */
+					3,	/* reg: ACONST */
 				}
 			};
 			return &z;
@@ -1282,7 +1376,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 10;
+				p->rule.burm_reg = 8;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -1290,9 +1385,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 3, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: ICONST */
 				},{
-					6,	/* reg: ICONST */
+					1,	/* root: reg */
+					4,	/* reg: ICONST */
 				}
 			};
 			return &z;
@@ -1302,7 +1399,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 4, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1313,7 +1412,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 5, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1324,7 +1425,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 6, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1335,7 +1438,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 7, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1346,7 +1451,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 8, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1356,9 +1463,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 9, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: LCONST */
 				},{
-					7,	/* reg: LCONST */
+					1,	/* root: reg */
+					5,	/* reg: LCONST */
 				}
 			};
 			return &z;
@@ -1368,7 +1477,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 10, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1378,9 +1489,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 11, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: FCONST */
 				},{
-					8,	/* reg: FCONST */
+					1,	/* root: reg */
+					6,	/* reg: FCONST */
 				}
 			};
 			return &z;
@@ -1390,7 +1503,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 12, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1401,7 +1516,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 13, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1411,9 +1528,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 14, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: DCONST */
 				},{
-					9,	/* reg: DCONST */
+					1,	/* root: reg */
+					7,	/* reg: DCONST */
 				}
 			};
 			return &z;
@@ -1422,9 +1541,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 15, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: COPY */
 				},{
-					11,	/* reg: COPY */
+					1,	/* root: reg */
+					9,	/* reg: COPY */
 				}
 			};
 			return &z;
@@ -1433,9 +1554,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 16, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: MOVE */
 				},{
-					12,	/* reg: MOVE */
+					1,	/* root: reg */
+					10,	/* reg: MOVE */
 				}
 			};
 			return &z;
@@ -1445,7 +1568,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 17, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1456,7 +1581,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 18, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1467,7 +1594,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 19, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1478,7 +1607,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 20, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1488,9 +1619,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 21, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: ILOAD */
 				},{
-					13,	/* reg: ILOAD */
+					1,	/* root: reg */
+					11,	/* reg: ILOAD */
 				}
 			};
 			return &z;
@@ -1499,9 +1632,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 22, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: LLOAD */
 				},{
-					14,	/* reg: LLOAD */
+					1,	/* root: reg */
+					12,	/* reg: LLOAD */
 				}
 			};
 			return &z;
@@ -1510,9 +1645,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 23, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: FLOAD */
 				},{
-					15,	/* reg: FLOAD */
+					1,	/* root: reg */
+					13,	/* reg: FLOAD */
 				}
 			};
 			return &z;
@@ -1521,9 +1658,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 24, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: DLOAD */
 				},{
-					16,	/* reg: DLOAD */
+					1,	/* root: reg */
+					14,	/* reg: DLOAD */
 				}
 			};
 			return &z;
@@ -1532,9 +1671,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 25, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: ALOAD */
 				},{
-					17,	/* reg: ALOAD */
+					1,	/* root: reg */
+					15,	/* reg: ALOAD */
 				}
 			};
 			return &z;
@@ -1544,7 +1685,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 26, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1555,7 +1698,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 27, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1566,7 +1711,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 28, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1577,7 +1724,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 29, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1588,7 +1737,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 30, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1599,7 +1750,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 31, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1610,7 +1763,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 32, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1621,7 +1776,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 33, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1632,7 +1789,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 34, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1643,7 +1802,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 35, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1654,7 +1815,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 36, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1665,7 +1828,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 37, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1676,7 +1841,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 38, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1687,7 +1854,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 39, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1698,7 +1867,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 40, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1709,7 +1880,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 41, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1720,7 +1893,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 42, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1731,7 +1906,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 43, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1742,7 +1919,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 44, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -1753,293 +1932,287 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 45, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
 			return &z;
 		}
 	case 46: /* IALOAD */
-		{
-			static struct burm_state z = { 46, 0, 0,
-				{	0,
-					100,	/* reg: IALOAD */
-				},{
-					18,	/* reg: IALOAD */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* reg: IALOAD(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 16;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 47: /* LALOAD */
-		{
-			static struct burm_state z = { 47, 0, 0,
-				{	0,
-					100,	/* reg: LALOAD */
-				},{
-					19,	/* reg: LALOAD */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* reg: LALOAD(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 17;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 48: /* FALOAD */
-		{
-			static struct burm_state z = { 48, 0, 0,
-				{	0,
-					100,	/* reg: FALOAD */
-				},{
-					20,	/* reg: FALOAD */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* reg: FALOAD(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 18;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 49: /* DALOAD */
-		{
-			static struct burm_state z = { 49, 0, 0,
-				{	0,
-					100,	/* reg: DALOAD */
-				},{
-					21,	/* reg: DALOAD */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* reg: DALOAD(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 19;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 50: /* AALOAD */
-		{
-			static struct burm_state z = { 50, 0, 0,
-				{	0,
-					100,	/* reg: AALOAD */
-				},{
-					22,	/* reg: AALOAD */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* reg: AALOAD(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 20;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 51: /* BALOAD */
-		{
-			static struct burm_state z = { 51, 0, 0,
-				{	0,
-					100,	/* reg: BALOAD */
-				},{
-					23,	/* reg: BALOAD */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* reg: BALOAD(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 21;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 52: /* CALOAD */
-		{
-			static struct burm_state z = { 52, 0, 0,
-				{	0,
-					100,	/* reg: CALOAD */
-				},{
-					24,	/* reg: CALOAD */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* reg: CALOAD(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 22;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 53: /* SALOAD */
-		{
-			static struct burm_state z = { 53, 0, 0,
-				{	0,
-					100,	/* reg: SALOAD */
-				},{
-					25,	/* reg: SALOAD */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* reg: SALOAD(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 23;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 54: /* ISTORE */
-		{
-			static struct burm_state z = { 54, 0, 0,
-				{	0,
-					100,	/* reg: ISTORE */
-				},{
-					26,	/* reg: ISTORE */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: ISTORE(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 4;
+			}
 		}
+		break;
 	case 55: /* LSTORE */
-		{
-			static struct burm_state z = { 55, 0, 0,
-				{	0,
-					100,	/* reg: LSTORE */
-				},{
-					27,	/* reg: LSTORE */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: LSTORE(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 5;
+			}
 		}
+		break;
 	case 56: /* FSTORE */
-		{
-			static struct burm_state z = { 56, 0, 0,
-				{	0,
-					100,	/* reg: FSTORE */
-				},{
-					28,	/* reg: FSTORE */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: FSTORE(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 6;
+			}
 		}
+		break;
 	case 57: /* DSTORE */
-		{
-			static struct burm_state z = { 57, 0, 0,
-				{	0,
-					100,	/* reg: DSTORE */
-				},{
-					29,	/* reg: DSTORE */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: DSTORE(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 7;
+			}
 		}
+		break;
 	case 58: /* ASTORE */
-		{
-			static struct burm_state z = { 58, 0, 0,
-				{	0,
-					100,	/* reg: ASTORE */
-				},{
-					30,	/* reg: ASTORE */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: ASTORE(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 8;
+			}
 		}
+		break;
 	case 59: /* IF_LEQ */
-		{
-			static struct burm_state z = { 59, 0, 0,
-				{	0,
-					32767,
-				},{
-					0,
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: IF_LEQ(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 26;
+			}
 		}
+		{	/* root: IF_LEQ(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 25;
+			}
+		}
+		break;
 	case 60: /* IF_LNE */
-		{
-			static struct burm_state z = { 60, 0, 0,
-				{	0,
-					32767,
-				},{
-					0,
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: IF_LNE(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 27;
+			}
 		}
+		break;
 	case 61: /* IF_LLT */
-		{
-			static struct burm_state z = { 61, 0, 0,
-				{	0,
-					32767,
-				},{
-					0,
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: IF_LLT(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 28;
+			}
 		}
+		break;
 	case 62: /* IF_LGE */
-		{
-			static struct burm_state z = { 62, 0, 0,
-				{	0,
-					32767,
-				},{
-					0,
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: IF_LGE(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 29;
+			}
 		}
+		break;
 	case 63: /* IF_LGT */
-		{
-			static struct burm_state z = { 63, 0, 0,
-				{	0,
-					32767,
-				},{
-					0,
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: IF_LGT(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 30;
+			}
 		}
+		break;
 	case 64: /* IF_LLE */
-		{
-			static struct burm_state z = { 64, 0, 0,
-				{	0,
-					32767,
-				},{
-					0,
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: IF_LLE(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 31;
+			}
 		}
+		break;
 	case 65: /* IF_LCMPEQ */
-		{
-			static struct burm_state z = { 65, 0, 0,
-				{	0,
-					32767,
-				},{
-					0,
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: IF_LCMPEQ(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 38;
+			}
 		}
+		break;
 	case 66: /* IF_LCMPNE */
-		{
-			static struct burm_state z = { 66, 0, 0,
-				{	0,
-					32767,
-				},{
-					0,
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: IF_LCMPNE(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 39;
+			}
 		}
+		break;
 	case 67: /* IF_LCMPLT */
-		{
-			static struct burm_state z = { 67, 0, 0,
-				{	0,
-					32767,
-				},{
-					0,
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: IF_LCMPLT(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 40;
+			}
 		}
+		break;
 	case 68: /* IF_LCMPGE */
-		{
-			static struct burm_state z = { 68, 0, 0,
-				{	0,
-					32767,
-				},{
-					0,
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: IF_LCMPGE(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 41;
+			}
 		}
+		break;
 	case 69: /* IF_LCMPGT */
-		{
-			static struct burm_state z = { 69, 0, 0,
-				{	0,
-					32767,
-				},{
-					0,
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: IF_LCMPGT(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 42;
+			}
 		}
+		break;
 	case 70: /* IF_LCMPLE */
-		{
-			static struct burm_state z = { 70, 0, 0,
-				{	0,
-					32767,
-				},{
-					0,
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: IF_LCMPLE(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 43;
+			}
 		}
+		break;
 	case 71: /* UNDEF71 */
 		{
 			static struct burm_state z = { 71, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -2050,7 +2223,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 72, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -2061,7 +2236,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 73, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -2072,7 +2249,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 74, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -2083,7 +2262,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 75, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -2094,7 +2275,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 76, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -2105,7 +2288,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 77, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -2116,7 +2301,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 78, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -2126,9 +2313,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 79, 0, 0,
 				{	0,
-					100,	/* reg: IASTORE */
+					100,	/* root: IASTORE */
+					32767,
 				},{
-					31,	/* reg: IASTORE */
+					9,	/* root: IASTORE */
+					0,
 				}
 			};
 			return &z;
@@ -2137,9 +2326,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 80, 0, 0,
 				{	0,
-					100,	/* reg: LASTORE */
+					100,	/* root: LASTORE */
+					32767,
 				},{
-					32,	/* reg: LASTORE */
+					10,	/* root: LASTORE */
+					0,
 				}
 			};
 			return &z;
@@ -2148,9 +2339,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 81, 0, 0,
 				{	0,
-					100,	/* reg: FASTORE */
+					100,	/* root: FASTORE */
+					32767,
 				},{
-					33,	/* reg: FASTORE */
+					11,	/* root: FASTORE */
+					0,
 				}
 			};
 			return &z;
@@ -2159,9 +2352,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 82, 0, 0,
 				{	0,
-					100,	/* reg: DASTORE */
+					100,	/* root: DASTORE */
+					32767,
 				},{
-					34,	/* reg: DASTORE */
+					12,	/* root: DASTORE */
+					0,
 				}
 			};
 			return &z;
@@ -2170,9 +2365,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 83, 0, 0,
 				{	0,
-					100,	/* reg: AASTORE */
+					100,	/* root: AASTORE */
+					32767,
 				},{
-					35,	/* reg: AASTORE */
+					13,	/* root: AASTORE */
+					0,
 				}
 			};
 			return &z;
@@ -2181,9 +2378,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 84, 0, 0,
 				{	0,
-					100,	/* reg: BASTORE */
+					100,	/* root: BASTORE */
+					32767,
 				},{
-					36,	/* reg: BASTORE */
+					14,	/* root: BASTORE */
+					0,
 				}
 			};
 			return &z;
@@ -2192,9 +2391,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 85, 0, 0,
 				{	0,
-					100,	/* reg: CASTORE */
+					100,	/* root: CASTORE */
+					32767,
 				},{
-					37,	/* reg: CASTORE */
+					15,	/* root: CASTORE */
+					0,
 				}
 			};
 			return &z;
@@ -2203,9 +2404,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 86, 0, 0,
 				{	0,
-					100,	/* reg: SASTORE */
+					100,	/* root: SASTORE */
+					32767,
 				},{
-					38,	/* reg: SASTORE */
+					16,	/* root: SASTORE */
+					0,
 				}
 			};
 			return &z;
@@ -2214,9 +2417,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 87, 0, 0,
 				{	0,
-					100,	/* reg: POP */
+					100,	/* root: POP */
+					32767,
 				},{
-					2,	/* reg: POP */
+					2,	/* root: POP */
+					0,
 				}
 			};
 			return &z;
@@ -2225,9 +2430,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 88, 0, 0,
 				{	0,
-					100,	/* reg: POP2 */
+					100,	/* root: POP2 */
+					32767,
 				},{
-					3,	/* reg: POP2 */
+					3,	/* root: POP2 */
+					0,
 				}
 			};
 			return &z;
@@ -2237,7 +2444,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 89, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -2248,7 +2457,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 90, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -2259,7 +2470,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 91, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -2270,7 +2483,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 92, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -2281,7 +2496,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 93, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -2292,7 +2509,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 94, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -2303,7 +2522,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 95, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -2311,11 +2532,32 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		}
 	case 96: /* IADD */
 		assert(l && r);
+		if (	/* reg: IADD(ICONST,reg) */
+			l->op == 3 /* ICONST */
+		) {
+			c = r->cost[burm_reg_NT] + 10;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 26;
+				burm_closure_reg(p, c + 0);
+			}
+		}
+		if (	/* reg: IADD(reg,ICONST) */
+			r->op == 3 /* ICONST */
+		) {
+			c = l->cost[burm_reg_NT] + 10;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 25;
+				burm_closure_reg(p, c + 0);
+			}
+		}
 		{	/* reg: IADD(reg,reg) */
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 39;
+				p->rule.burm_reg = 24;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2325,7 +2567,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 40;
+				p->rule.burm_reg = 27;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2335,7 +2578,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 41;
+				p->rule.burm_reg = 28;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2345,7 +2589,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 42;
+				p->rule.burm_reg = 29;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2355,7 +2600,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 43;
+				p->rule.burm_reg = 30;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2365,7 +2611,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 44;
+				p->rule.burm_reg = 31;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2375,7 +2622,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 45;
+				p->rule.burm_reg = 32;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2385,7 +2633,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 46;
+				p->rule.burm_reg = 33;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2395,7 +2644,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 47;
+				p->rule.burm_reg = 34;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2405,7 +2655,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 48;
+				p->rule.burm_reg = 35;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2415,7 +2666,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 49;
+				p->rule.burm_reg = 36;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2425,7 +2677,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 50;
+				p->rule.burm_reg = 37;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2435,7 +2688,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 51;
+				p->rule.burm_reg = 38;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2445,7 +2699,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 52;
+				p->rule.burm_reg = 39;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2455,7 +2710,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 53;
+				p->rule.burm_reg = 40;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2465,7 +2721,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 54;
+				p->rule.burm_reg = 41;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2475,7 +2732,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 55;
+				p->rule.burm_reg = 42;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2485,7 +2743,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 56;
+				p->rule.burm_reg = 43;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2495,7 +2754,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 57;
+				p->rule.burm_reg = 44;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2505,61 +2765,63 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 58;
+				p->rule.burm_reg = 45;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
 	case 116: /* INEG */
-		{
-			static struct burm_state z = { 116, 0, 0,
-				{	0,
-					100,	/* reg: INEG */
-				},{
-					59,	/* reg: INEG */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: INEG(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 46;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 117: /* LNEG */
-		{
-			static struct burm_state z = { 117, 0, 0,
-				{	0,
-					100,	/* reg: LNEG */
-				},{
-					60,	/* reg: LNEG */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: LNEG(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 47;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 118: /* FNEG */
-		{
-			static struct burm_state z = { 118, 0, 0,
-				{	0,
-					100,	/* reg: FNEG */
-				},{
-					61,	/* reg: FNEG */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: FNEG(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 48;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 119: /* DNEG */
-		{
-			static struct burm_state z = { 119, 0, 0,
-				{	0,
-					100,	/* reg: DNEG */
-				},{
-					62,	/* reg: DNEG */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: DNEG(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 49;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 120: /* ISHL */
 		assert(l && r);
 		{	/* reg: ISHL(reg,reg) */
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 63;
+				p->rule.burm_reg = 50;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2569,7 +2831,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 64;
+				p->rule.burm_reg = 51;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2579,7 +2842,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 65;
+				p->rule.burm_reg = 52;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2589,7 +2853,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 66;
+				p->rule.burm_reg = 53;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2599,7 +2864,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 67;
+				p->rule.burm_reg = 54;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2609,7 +2875,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 68;
+				p->rule.burm_reg = 55;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2619,7 +2886,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 69;
+				p->rule.burm_reg = 56;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2629,7 +2897,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 70;
+				p->rule.burm_reg = 57;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2639,7 +2908,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 71;
+				p->rule.burm_reg = 58;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2649,7 +2919,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 72;
+				p->rule.burm_reg = 59;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2659,7 +2930,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 73;
+				p->rule.burm_reg = 60;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2669,7 +2941,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 74;
+				p->rule.burm_reg = 61;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -2677,394 +2950,391 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 132, 0, 0,
 				{	0,
-					100,	/* reg: IINC */
+					100,	/* root: IINC */
+					32767,
 				},{
-					75,	/* reg: IINC */
+					17,	/* root: IINC */
+					0,
 				}
 			};
 			return &z;
 		}
 	case 133: /* I2L */
-		{
-			static struct burm_state z = { 133, 0, 0,
-				{	0,
-					100,	/* reg: I2L */
-				},{
-					76,	/* reg: I2L */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: I2L(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 62;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 134: /* I2F */
-		{
-			static struct burm_state z = { 134, 0, 0,
-				{	0,
-					100,	/* reg: I2F */
-				},{
-					77,	/* reg: I2F */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: I2F(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 63;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 135: /* I2D */
-		{
-			static struct burm_state z = { 135, 0, 0,
-				{	0,
-					100,	/* reg: I2D */
-				},{
-					78,	/* reg: I2D */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: I2D(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 64;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 136: /* L2I */
-		{
-			static struct burm_state z = { 136, 0, 0,
-				{	0,
-					100,	/* reg: L2I */
-				},{
-					79,	/* reg: L2I */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: L2I(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 65;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 137: /* L2F */
-		{
-			static struct burm_state z = { 137, 0, 0,
-				{	0,
-					100,	/* reg: L2F */
-				},{
-					80,	/* reg: L2F */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: L2F(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 66;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 138: /* L2D */
-		{
-			static struct burm_state z = { 138, 0, 0,
-				{	0,
-					100,	/* reg: L2D */
-				},{
-					81,	/* reg: L2D */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: L2D(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 67;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 139: /* F2I */
-		{
-			static struct burm_state z = { 139, 0, 0,
-				{	0,
-					100,	/* reg: F2I */
-				},{
-					82,	/* reg: F2I */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: F2I(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 68;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 140: /* F2L */
-		{
-			static struct burm_state z = { 140, 0, 0,
-				{	0,
-					100,	/* reg: F2L */
-				},{
-					83,	/* reg: F2L */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: F2L(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 69;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 141: /* F2D */
-		{
-			static struct burm_state z = { 141, 0, 0,
-				{	0,
-					100,	/* reg: F2D */
-				},{
-					84,	/* reg: F2D */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: F2D(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 70;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 142: /* D2I */
-		{
-			static struct burm_state z = { 142, 0, 0,
-				{	0,
-					100,	/* reg: D2I */
-				},{
-					85,	/* reg: D2I */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: D2I(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 71;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 143: /* D2L */
-		{
-			static struct burm_state z = { 143, 0, 0,
-				{	0,
-					100,	/* reg: D2L */
-				},{
-					86,	/* reg: D2L */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: D2L(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 72;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 144: /* D2F */
-		{
-			static struct burm_state z = { 144, 0, 0,
-				{	0,
-					100,	/* reg: D2F */
-				},{
-					87,	/* reg: D2F */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: D2F(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 73;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 145: /* INT2BYTE */
-		{
-			static struct burm_state z = { 145, 0, 0,
-				{	0,
-					100,	/* reg: INT2BYTE */
-				},{
-					88,	/* reg: INT2BYTE */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: INT2BYTE(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 74;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 146: /* INT2CHAR */
-		{
-			static struct burm_state z = { 146, 0, 0,
-				{	0,
-					100,	/* reg: INT2CHAR */
-				},{
-					89,	/* reg: INT2CHAR */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: INT2CHAR(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 75;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 147: /* INT2SHORT */
-		{
-			static struct burm_state z = { 147, 0, 0,
-				{	0,
-					100,	/* reg: INT2SHORT */
-				},{
-					90,	/* reg: INT2SHORT */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: INT2SHORT(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 76;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 148: /* LCMP */
-		{
-			static struct burm_state z = { 148, 0, 0,
-				{	0,
-					100,	/* reg: LCMP */
-				},{
-					91,	/* reg: LCMP */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* reg: LCMP(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 77;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 149: /* FCMPL */
-		{
-			static struct burm_state z = { 149, 0, 0,
-				{	0,
-					100,	/* reg: FCMPL */
-				},{
-					92,	/* reg: FCMPL */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* reg: FCMPL(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 78;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 150: /* FCMPG */
-		{
-			static struct burm_state z = { 150, 0, 0,
-				{	0,
-					100,	/* reg: FCMPG */
-				},{
-					93,	/* reg: FCMPG */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* reg: FCMPG(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 79;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 151: /* DCMPL */
-		{
-			static struct burm_state z = { 151, 0, 0,
-				{	0,
-					100,	/* reg: DCMPL */
-				},{
-					94,	/* reg: DCMPL */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* reg: DCMPL(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 80;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 152: /* DCMPG */
-		{
-			static struct burm_state z = { 152, 0, 0,
-				{	0,
-					100,	/* reg: DCMPG */
-				},{
-					95,	/* reg: DCMPG */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* reg: DCMPG(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 81;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 153: /* IFEQ */
-		{
-			static struct burm_state z = { 153, 0, 0,
-				{	0,
-					100,	/* reg: IFEQ */
-				},{
-					96,	/* reg: IFEQ */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: IFEQ(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 19;
+			}
 		}
+		{	/* root: IFEQ(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 18;
+			}
+		}
+		break;
 	case 154: /* IFNE */
-		{
-			static struct burm_state z = { 154, 0, 0,
-				{	0,
-					100,	/* reg: IFNE */
-				},{
-					97,	/* reg: IFNE */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: IFNE(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 20;
+			}
 		}
+		break;
 	case 155: /* IFLT */
-		{
-			static struct burm_state z = { 155, 0, 0,
-				{	0,
-					100,	/* reg: IFLT */
-				},{
-					98,	/* reg: IFLT */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: IFLT(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 21;
+			}
 		}
+		break;
 	case 156: /* IFGE */
-		{
-			static struct burm_state z = { 156, 0, 0,
-				{	0,
-					100,	/* reg: IFGE */
-				},{
-					99,	/* reg: IFGE */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: IFGE(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 22;
+			}
 		}
+		break;
 	case 157: /* IFGT */
-		{
-			static struct burm_state z = { 157, 0, 0,
-				{	0,
-					100,	/* reg: IFGT */
-				},{
-					100,	/* reg: IFGT */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: IFGT(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 23;
+			}
 		}
+		break;
 	case 158: /* IFLE */
-		{
-			static struct burm_state z = { 158, 0, 0,
-				{	0,
-					100,	/* reg: IFLE */
-				},{
-					101,	/* reg: IFLE */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: IFLE(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 24;
+			}
 		}
+		break;
 	case 159: /* IF_ICMPEQ */
-		{
-			static struct burm_state z = { 159, 0, 0,
-				{	0,
-					100,	/* reg: IF_ICMPEQ */
-				},{
-					102,	/* reg: IF_ICMPEQ */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: IF_ICMPEQ(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 32;
+			}
 		}
+		break;
 	case 160: /* IF_ICMPNE */
-		{
-			static struct burm_state z = { 160, 0, 0,
-				{	0,
-					100,	/* reg: IF_ICMPNE */
-				},{
-					103,	/* reg: IF_ICMPNE */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: IF_ICMPNE(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 33;
+			}
 		}
+		break;
 	case 161: /* IF_ICMPLT */
-		{
-			static struct burm_state z = { 161, 0, 0,
-				{	0,
-					100,	/* reg: IF_ICMPLT */
-				},{
-					104,	/* reg: IF_ICMPLT */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: IF_ICMPLT(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 34;
+			}
 		}
+		break;
 	case 162: /* IF_ICMPGE */
-		{
-			static struct burm_state z = { 162, 0, 0,
-				{	0,
-					100,	/* reg: IF_ICMPGE */
-				},{
-					105,	/* reg: IF_ICMPGE */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: IF_ICMPGE(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 35;
+			}
 		}
+		break;
 	case 163: /* IF_ICMPGT */
-		{
-			static struct burm_state z = { 163, 0, 0,
-				{	0,
-					100,	/* reg: IF_ICMPGT */
-				},{
-					106,	/* reg: IF_ICMPGT */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: IF_ICMPGT(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 36;
+			}
 		}
+		break;
 	case 164: /* IF_ICMPLE */
-		{
-			static struct burm_state z = { 164, 0, 0,
-				{	0,
-					100,	/* reg: IF_ICMPLE */
-				},{
-					107,	/* reg: IF_ICMPLE */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: IF_ICMPLE(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 37;
+			}
 		}
+		break;
 	case 165: /* IF_ACMPEQ */
-		{
-			static struct burm_state z = { 165, 0, 0,
-				{	0,
-					100,	/* reg: IF_ACMPEQ */
-				},{
-					108,	/* reg: IF_ACMPEQ */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: IF_ACMPEQ(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 44;
+			}
 		}
+		break;
 	case 166: /* IF_ACMPNE */
-		{
-			static struct burm_state z = { 166, 0, 0,
-				{	0,
-					100,	/* reg: IF_ACMPNE */
-				},{
-					109,	/* reg: IF_ACMPNE */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: IF_ACMPNE(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 45;
+			}
 		}
+		break;
 	case 167: /* GOTO */
 		{
 			static struct burm_state z = { 167, 0, 0,
 				{	0,
-					100,	/* reg: GOTO */
+					100,	/* root: GOTO */
+					32767,
 				},{
-					110,	/* reg: GOTO */
+					46,	/* root: GOTO */
+					0,
 				}
 			};
 			return &z;
@@ -3073,9 +3343,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 168, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: JSR */
 				},{
-					111,	/* reg: JSR */
+					1,	/* root: reg */
+					82,	/* reg: JSR */
 				}
 			};
 			return &z;
@@ -3084,97 +3356,94 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 169, 0, 0,
 				{	0,
-					100,	/* reg: RET */
+					100,	/* root: RET */
+					32767,
 				},{
-					112,	/* reg: RET */
+					47,	/* root: RET */
+					0,
 				}
 			};
 			return &z;
 		}
 	case 170: /* TABLESWITCH */
-		{
-			static struct burm_state z = { 170, 0, 0,
-				{	0,
-					100,	/* reg: TABLESWITCH */
-				},{
-					113,	/* reg: TABLESWITCH */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: TABLESWITCH(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 48;
+			}
 		}
+		break;
 	case 171: /* LOOKUPSWITCH */
-		{
-			static struct burm_state z = { 171, 0, 0,
-				{	0,
-					100,	/* reg: LOOKUPSWITCH */
-				},{
-					114,	/* reg: LOOKUPSWITCH */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: LOOKUPSWITCH(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 49;
+			}
 		}
+		break;
 	case 172: /* IRETURN */
-		{
-			static struct burm_state z = { 172, 0, 0,
-				{	0,
-					100,	/* reg: IRETURN */
-				},{
-					115,	/* reg: IRETURN */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: IRETURN(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 50;
+			}
 		}
+		break;
 	case 173: /* LRETURN */
-		{
-			static struct burm_state z = { 173, 0, 0,
-				{	0,
-					100,	/* reg: LRETURN */
-				},{
-					116,	/* reg: LRETURN */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: LRETURN(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 51;
+			}
 		}
+		break;
 	case 174: /* FRETURN */
-		{
-			static struct burm_state z = { 174, 0, 0,
-				{	0,
-					100,	/* reg: FRETURN */
-				},{
-					117,	/* reg: FRETURN */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: FRETURN(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 52;
+			}
 		}
+		break;
 	case 175: /* DRETURN */
-		{
-			static struct burm_state z = { 175, 0, 0,
-				{	0,
-					100,	/* reg: DRETURN */
-				},{
-					118,	/* reg: DRETURN */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: DRETURN(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 53;
+			}
 		}
+		break;
 	case 176: /* ARETURN */
-		{
-			static struct burm_state z = { 176, 0, 0,
-				{	0,
-					100,	/* reg: ARETURN */
-				},{
-					119,	/* reg: ARETURN */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: ARETURN(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 54;
+			}
 		}
+		break;
 	case 177: /* RETURN */
 		{
 			static struct burm_state z = { 177, 0, 0,
 				{	0,
-					100,	/* reg: RETURN */
+					100,	/* root: RETURN */
+					32767,
 				},{
-					120,	/* reg: RETURN */
+					55,	/* root: RETURN */
+					0,
 				}
 			};
 			return &z;
@@ -3183,53 +3452,54 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 178, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: GETSTATIC */
 				},{
-					121,	/* reg: GETSTATIC */
+					1,	/* root: reg */
+					83,	/* reg: GETSTATIC */
 				}
 			};
 			return &z;
 		}
 	case 179: /* PUTSTATIC */
-		{
-			static struct burm_state z = { 179, 0, 0,
-				{	0,
-					100,	/* reg: PUTSTATIC */
-				},{
-					122,	/* reg: PUTSTATIC */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: PUTSTATIC(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 56;
+			}
 		}
+		break;
 	case 180: /* GETFIELD */
-		{
-			static struct burm_state z = { 180, 0, 0,
-				{	0,
-					100,	/* reg: GETFIELD */
-				},{
-					123,	/* reg: GETFIELD */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: GETFIELD(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 84;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 181: /* PUTFIELD */
-		{
-			static struct burm_state z = { 181, 0, 0,
-				{	0,
-					100,	/* reg: PUTFIELD */
-				},{
-					124,	/* reg: PUTFIELD */
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: PUTFIELD(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 57;
+			}
 		}
+		break;
 	case 182: /* INVOKEVIRTUAL */
 		assert(l && r);
 		{	/* reg: INVOKEVIRTUAL(reg,reg) */
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 125;
+				p->rule.burm_reg = 85;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -3239,7 +3509,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 126;
+				p->rule.burm_reg = 86;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -3249,7 +3520,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 127;
+				p->rule.burm_reg = 87;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -3259,7 +3531,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 128;
+				p->rule.burm_reg = 88;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -3268,7 +3541,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 186, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3279,7 +3554,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 187, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3290,7 +3567,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 188, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3301,61 +3580,65 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 189, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
 			return &z;
 		}
 	case 190: /* ARRAYLENGTH */
-		{
-			static struct burm_state z = { 190, 0, 0,
-				{	0,
-					32767,
-				},{
-					0,
-				}
-			};
-			return &z;
-		}
-	case 191: /* ATHROW */
 		assert(l);
-		{	/* reg: ATHROW(reg) */
+		{	/* reg: ARRAYLENGTH(reg) */
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 132;
+				p->rule.burm_reg = 92;
+				burm_closure_reg(p, c + 0);
+			}
+		}
+		break;
+	case 191: /* ATHROW */
+		assert(l);
+		{	/* root: ATHROW(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 58;
 			}
 		}
 		break;
 	case 192: /* CHECKCAST */
-		{
-			static struct burm_state z = { 192, 0, 0,
-				{	0,
-					100,	/* reg: CHECKCAST */
-				},{
-					129,	/* reg: CHECKCAST */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: CHECKCAST(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 89;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 193: /* INSTANCEOF */
-		{
-			static struct burm_state z = { 193, 0, 0,
-				{	0,
-					100,	/* reg: INSTANCEOF */
-				},{
-					130,	/* reg: INSTANCEOF */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* reg: INSTANCEOF(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 90;
+				burm_closure_reg(p, c + 0);
+			}
 		}
+		break;
 	case 194: /* MONITORENTER */
 		{
 			static struct burm_state z = { 194, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3366,7 +3649,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 195, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3377,7 +3662,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 196, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3387,41 +3674,43 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 197, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: MULTIANEWARRAY */
 				},{
-					131,	/* reg: MULTIANEWARRAY */
+					1,	/* root: reg */
+					91,	/* reg: MULTIANEWARRAY */
 				}
 			};
 			return &z;
 		}
 	case 198: /* IFNULL */
-		{
-			static struct burm_state z = { 198, 0, 0,
-				{	0,
-					100,	/* reg: IFNULL */
-				},{
-					133,	/* reg: IFNULL */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: IFNULL(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 59;
+			}
 		}
+		break;
 	case 199: /* IFNONNULL */
-		{
-			static struct burm_state z = { 199, 0, 0,
-				{	0,
-					100,	/* reg: IFNONNULL */
-				},{
-					134,	/* reg: IFNONNULL */
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: IFNONNULL(reg) */
+			c = l->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 60;
+			}
 		}
+		break;
 	case 200: /* UNDEF200 */
 		{
 			static struct burm_state z = { 200, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3432,7 +3721,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 201, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3442,9 +3733,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 202, 0, 0,
 				{	0,
-					100,	/* reg: BREAKPOINT */
+					100,	/* root: BREAKPOINT */
+					32767,
 				},{
-					135,	/* reg: BREAKPOINT */
+					61,	/* root: BREAKPOINT */
+					0,
 				}
 			};
 			return &z;
@@ -3454,7 +3747,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 203, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3465,7 +3760,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 204, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3476,7 +3773,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 205, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3487,7 +3786,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 206, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3498,7 +3799,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 207, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3509,7 +3812,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 208, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3520,7 +3825,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 209, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3531,7 +3838,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 210, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3542,7 +3851,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 211, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3553,7 +3864,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 212, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3564,7 +3877,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 213, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3575,7 +3890,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 214, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3586,7 +3903,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 215, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3597,7 +3916,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 216, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3608,7 +3929,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 217, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3619,7 +3942,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 218, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3630,7 +3955,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 219, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3641,7 +3968,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 220, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3652,7 +3981,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 221, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3663,7 +3994,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 222, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3674,7 +4007,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 223, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3685,7 +4020,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 224, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3696,7 +4033,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 225, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3707,7 +4046,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 226, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3718,7 +4059,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 227, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3729,7 +4072,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 228, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3740,7 +4085,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 229, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3751,7 +4098,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 230, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3762,7 +4111,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 231, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3773,7 +4124,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 232, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3784,7 +4137,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 233, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3795,7 +4150,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 234, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3806,7 +4163,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 235, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3817,7 +4176,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 236, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3828,7 +4189,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 237, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3839,7 +4202,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 238, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3850,7 +4215,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 239, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3861,7 +4228,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 240, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3872,7 +4241,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 241, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3883,7 +4254,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 242, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3894,7 +4267,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 243, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3905,7 +4280,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 244, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3916,7 +4293,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 245, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3927,7 +4306,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 246, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3938,7 +4319,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 247, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3949,7 +4332,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 248, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -3959,9 +4344,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 249, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: GETEXCEPTION */
 				},{
-					136,	/* reg: GETEXCEPTION */
+					1,	/* root: reg */
+					93,	/* reg: GETEXCEPTION */
 				}
 			};
 			return &z;
@@ -3970,9 +4357,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 250, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: PHI */
 				},{
-					137,	/* reg: PHI */
+					1,	/* root: reg */
+					94,	/* reg: PHI */
 				}
 			};
 			return &z;
@@ -3981,9 +4370,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 251, 0, 0,
 				{	0,
-					100,	/* reg: INLINE_START */
+					100,	/* root: INLINE_START */
+					32767,
 				},{
-					138,	/* reg: INLINE_START */
+					62,	/* root: INLINE_START */
+					0,
 				}
 			};
 			return &z;
@@ -3992,9 +4383,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 252, 0, 0,
 				{	0,
-					100,	/* reg: INLINE_END */
+					100,	/* root: INLINE_END */
+					32767,
 				},{
-					139,	/* reg: INLINE_END */
+					63,	/* root: INLINE_END */
+					0,
 				}
 			};
 			return &z;
@@ -4003,9 +4396,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 253, 0, 0,
 				{	0,
-					100,	/* reg: INLINE_BODY */
+					100,	/* root: INLINE_BODY */
+					32767,
 				},{
-					140,	/* reg: INLINE_BODY */
+					64,	/* root: INLINE_BODY */
+					0,
 				}
 			};
 			return &z;
@@ -4015,7 +4410,9 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 254, 0, 0,
 				{	0,
 					32767,
+					32767,
 				},{
+					0,
 					0,
 				}
 			};
@@ -4027,7 +4424,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 141;
+				p->rule.burm_reg = 95;
+				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
@@ -4035,9 +4433,11 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 300, 0, 0,
 				{	0,
+					200,	/* root: reg */
 					100,	/* reg: RESULT */
 				},{
-					4,	/* reg: RESULT */
+					1,	/* root: reg */
+					2,	/* reg: RESULT */
 				}
 			};
 			return &z;
@@ -4072,159 +4472,181 @@ static void burm_label1(NODEPTR_TYPE p) {
 
 STATEPTR_TYPE burm_label(NODEPTR_TYPE p) {
 	burm_label1(p);
-	return STATE_LABEL(p)->rule.burm_reg ? STATE_LABEL(p) : 0;
+	return STATE_LABEL(p)->rule.burm_root ? STATE_LABEL(p) : 0;
 }
 
 NODEPTR_TYPE *burm_kids(NODEPTR_TYPE p, int eruleno, NODEPTR_TYPE kids[]) {
 	burm_assert(p, PANIC("NULL tree in burm_kids\n"));
 	burm_assert(kids, PANIC("NULL kids in burm_kids\n"));
 	switch (eruleno) {
-	case 140: /* reg: INLINE_BODY */
-	case 139: /* reg: INLINE_END */
-	case 138: /* reg: INLINE_START */
-	case 137: /* reg: PHI */
-	case 136: /* reg: GETEXCEPTION */
-	case 135: /* reg: BREAKPOINT */
-	case 134: /* reg: IFNONNULL */
-	case 133: /* reg: IFNULL */
-	case 131: /* reg: MULTIANEWARRAY */
-	case 130: /* reg: INSTANCEOF */
-	case 129: /* reg: CHECKCAST */
-	case 124: /* reg: PUTFIELD */
-	case 123: /* reg: GETFIELD */
-	case 122: /* reg: PUTSTATIC */
-	case 121: /* reg: GETSTATIC */
-	case 120: /* reg: RETURN */
-	case 119: /* reg: ARETURN */
-	case 118: /* reg: DRETURN */
-	case 117: /* reg: FRETURN */
-	case 116: /* reg: LRETURN */
-	case 115: /* reg: IRETURN */
-	case 114: /* reg: LOOKUPSWITCH */
-	case 113: /* reg: TABLESWITCH */
-	case 112: /* reg: RET */
-	case 111: /* reg: JSR */
-	case 110: /* reg: GOTO */
-	case 109: /* reg: IF_ACMPNE */
-	case 108: /* reg: IF_ACMPEQ */
-	case 107: /* reg: IF_ICMPLE */
-	case 106: /* reg: IF_ICMPGT */
-	case 105: /* reg: IF_ICMPGE */
-	case 104: /* reg: IF_ICMPLT */
-	case 103: /* reg: IF_ICMPNE */
-	case 102: /* reg: IF_ICMPEQ */
-	case 101: /* reg: IFLE */
-	case 100: /* reg: IFGT */
-	case 99: /* reg: IFGE */
-	case 98: /* reg: IFLT */
-	case 97: /* reg: IFNE */
-	case 96: /* reg: IFEQ */
-	case 95: /* reg: DCMPG */
-	case 94: /* reg: DCMPL */
-	case 93: /* reg: FCMPG */
-	case 92: /* reg: FCMPL */
-	case 91: /* reg: LCMP */
-	case 90: /* reg: INT2SHORT */
-	case 89: /* reg: INT2CHAR */
-	case 88: /* reg: INT2BYTE */
-	case 87: /* reg: D2F */
-	case 86: /* reg: D2L */
-	case 85: /* reg: D2I */
-	case 84: /* reg: F2D */
-	case 83: /* reg: F2L */
-	case 82: /* reg: F2I */
-	case 81: /* reg: L2D */
-	case 80: /* reg: L2F */
-	case 79: /* reg: L2I */
-	case 78: /* reg: I2D */
-	case 77: /* reg: I2F */
-	case 76: /* reg: I2L */
-	case 75: /* reg: IINC */
-	case 62: /* reg: DNEG */
-	case 61: /* reg: FNEG */
-	case 60: /* reg: LNEG */
-	case 59: /* reg: INEG */
-	case 38: /* reg: SASTORE */
-	case 37: /* reg: CASTORE */
-	case 36: /* reg: BASTORE */
-	case 35: /* reg: AASTORE */
-	case 34: /* reg: DASTORE */
-	case 33: /* reg: FASTORE */
-	case 32: /* reg: LASTORE */
-	case 31: /* reg: IASTORE */
-	case 30: /* reg: ASTORE */
-	case 29: /* reg: DSTORE */
-	case 28: /* reg: FSTORE */
-	case 27: /* reg: LSTORE */
-	case 26: /* reg: ISTORE */
-	case 25: /* reg: SALOAD */
-	case 24: /* reg: CALOAD */
-	case 23: /* reg: BALOAD */
-	case 22: /* reg: AALOAD */
-	case 21: /* reg: DALOAD */
-	case 20: /* reg: FALOAD */
-	case 19: /* reg: LALOAD */
-	case 18: /* reg: IALOAD */
-	case 17: /* reg: ALOAD */
-	case 16: /* reg: DLOAD */
-	case 15: /* reg: FLOAD */
-	case 14: /* reg: LLOAD */
-	case 13: /* reg: ILOAD */
-	case 12: /* reg: MOVE */
-	case 11: /* reg: COPY */
-	case 9: /* reg: DCONST */
-	case 8: /* reg: FCONST */
-	case 7: /* reg: LCONST */
-	case 6: /* reg: ICONST */
-	case 5: /* reg: ACONST */
-	case 4: /* reg: RESULT */
-	case 3: /* reg: POP2 */
-	case 2: /* reg: POP */
-	case 1: /* reg: NOP */
+	case 1: /* root: reg */
+		kids[0] = p;
 		break;
-	case 132: /* reg: ATHROW(reg) */
-	case 10: /* reg: CHECKNULL(reg) */
+	case 158: /* root: INLINE_BODY */
+	case 157: /* root: INLINE_END */
+	case 156: /* root: INLINE_START */
+	case 155: /* reg: PHI */
+	case 154: /* reg: GETEXCEPTION */
+	case 153: /* root: BREAKPOINT */
+	case 148: /* reg: MULTIANEWARRAY */
+	case 138: /* reg: GETSTATIC */
+	case 137: /* root: RETURN */
+	case 129: /* root: RET */
+	case 128: /* reg: JSR */
+	case 127: /* root: GOTO */
+	case 78: /* root: IINC */
+	case 39: /* root: SASTORE */
+	case 38: /* root: CASTORE */
+	case 37: /* root: BASTORE */
+	case 36: /* root: AASTORE */
+	case 35: /* root: DASTORE */
+	case 34: /* root: FASTORE */
+	case 33: /* root: LASTORE */
+	case 32: /* root: IASTORE */
+	case 18: /* reg: ALOAD */
+	case 17: /* reg: DLOAD */
+	case 16: /* reg: FLOAD */
+	case 15: /* reg: LLOAD */
+	case 14: /* reg: ILOAD */
+	case 13: /* reg: MOVE */
+	case 12: /* reg: COPY */
+	case 10: /* reg: DCONST */
+	case 9: /* reg: FCONST */
+	case 8: /* reg: LCONST */
+	case 7: /* reg: ICONST */
+	case 6: /* reg: ACONST */
+	case 5: /* reg: RESULT */
+	case 4: /* root: POP2 */
+	case 3: /* root: POP */
+	case 2: /* reg: NOP */
+		break;
+	case 152: /* root: IFNONNULL(reg) */
+	case 151: /* root: IFNULL(reg) */
+	case 150: /* root: ATHROW(reg) */
+	case 149: /* reg: ARRAYLENGTH(reg) */
+	case 147: /* reg: INSTANCEOF(reg) */
+	case 146: /* reg: CHECKCAST(reg) */
+	case 140: /* reg: GETFIELD(reg) */
+	case 139: /* root: PUTSTATIC(reg) */
+	case 136: /* root: ARETURN(reg) */
+	case 135: /* root: DRETURN(reg) */
+	case 134: /* root: FRETURN(reg) */
+	case 133: /* root: LRETURN(reg) */
+	case 132: /* root: IRETURN(reg) */
+	case 131: /* root: LOOKUPSWITCH(reg) */
+	case 130: /* root: TABLESWITCH(reg) */
+	case 112: /* root: IF_LLE(reg) */
+	case 111: /* root: IF_LGT(reg) */
+	case 110: /* root: IF_LGE(reg) */
+	case 109: /* root: IF_LLT(reg) */
+	case 108: /* root: IF_LNE(reg) */
+	case 107: /* root: IF_LEQ(reg) */
+	case 106: /* root: IF_LEQ(reg) */
+	case 105: /* root: IFLE(reg) */
+	case 104: /* root: IFGT(reg) */
+	case 103: /* root: IFGE(reg) */
+	case 102: /* root: IFLT(reg) */
+	case 101: /* root: IFNE(reg) */
+	case 100: /* root: IFEQ(reg) */
+	case 99: /* root: IFEQ(reg) */
+	case 93: /* reg: INT2SHORT(reg) */
+	case 92: /* reg: INT2CHAR(reg) */
+	case 91: /* reg: INT2BYTE(reg) */
+	case 90: /* reg: D2F(reg) */
+	case 89: /* reg: D2L(reg) */
+	case 88: /* reg: D2I(reg) */
+	case 87: /* reg: F2D(reg) */
+	case 86: /* reg: F2L(reg) */
+	case 85: /* reg: F2I(reg) */
+	case 84: /* reg: L2D(reg) */
+	case 83: /* reg: L2F(reg) */
+	case 82: /* reg: L2I(reg) */
+	case 81: /* reg: I2D(reg) */
+	case 80: /* reg: I2F(reg) */
+	case 79: /* reg: I2L(reg) */
+	case 65: /* reg: DNEG(reg) */
+	case 64: /* reg: FNEG(reg) */
+	case 63: /* reg: LNEG(reg) */
+	case 62: /* reg: INEG(reg) */
+	case 41: /* reg: IADD(reg,ICONST) */
+	case 31: /* root: ASTORE(reg) */
+	case 30: /* root: DSTORE(reg) */
+	case 29: /* root: FSTORE(reg) */
+	case 28: /* root: LSTORE(reg) */
+	case 27: /* root: ISTORE(reg) */
+	case 11: /* reg: CHECKNULL(reg) */
 		kids[0] = LEFT_CHILD(p);
 		break;
-	case 141: /* reg: BUILTIN(reg,reg) */
-	case 128: /* reg: INVOKEINTERFACE(reg,reg) */
-	case 127: /* reg: INVOKESTATIC(reg,reg) */
-	case 126: /* reg: INVOKESPECIAL(reg,reg) */
-	case 125: /* reg: INVOKEVIRTUAL(reg,reg) */
-	case 74: /* reg: LXOR(reg,reg) */
-	case 73: /* reg: IXOR(reg,reg) */
-	case 72: /* reg: LOR(reg,reg) */
-	case 71: /* reg: IOR(reg,reg) */
-	case 70: /* reg: LAND(reg,reg) */
-	case 69: /* reg: IAND(reg,reg) */
-	case 68: /* reg: LUSHR(reg,reg) */
-	case 67: /* reg: IUSHR(reg,reg) */
-	case 66: /* reg: LSHR(reg,reg) */
-	case 65: /* reg: ISHR(reg,reg) */
-	case 64: /* reg: LSHL(reg,reg) */
-	case 63: /* reg: ISHL(reg,reg) */
-	case 58: /* reg: DREM(reg,reg) */
-	case 57: /* reg: FREM(reg,reg) */
-	case 56: /* reg: LREM(reg,reg) */
-	case 55: /* reg: IREM(reg,reg) */
-	case 54: /* reg: DDIV(reg,reg) */
-	case 53: /* reg: FDIV(reg,reg) */
-	case 52: /* reg: LDIV(reg,reg) */
-	case 51: /* reg: IDIV(reg,reg) */
-	case 50: /* reg: DMUL(reg,reg) */
-	case 49: /* reg: FMUL(reg,reg) */
-	case 48: /* reg: LMUL(reg,reg) */
-	case 47: /* reg: IMUL(reg,reg) */
-	case 46: /* reg: DSUB(reg,reg) */
-	case 45: /* reg: FSUB(reg,reg) */
-	case 44: /* reg: LSUB(reg,reg) */
-	case 43: /* reg: ISUB(reg,reg) */
-	case 42: /* reg: DADD(reg,reg) */
-	case 41: /* reg: FADD(reg,reg) */
-	case 40: /* reg: LADD(reg,reg) */
-	case 39: /* reg: IADD(reg,reg) */
+	case 159: /* reg: BUILTIN(reg,reg) */
+	case 145: /* reg: INVOKEINTERFACE(reg,reg) */
+	case 144: /* reg: INVOKESTATIC(reg,reg) */
+	case 143: /* reg: INVOKESPECIAL(reg,reg) */
+	case 142: /* reg: INVOKEVIRTUAL(reg,reg) */
+	case 141: /* root: PUTFIELD(reg,reg) */
+	case 126: /* root: IF_ACMPNE(reg,reg) */
+	case 125: /* root: IF_ACMPEQ(reg,reg) */
+	case 124: /* root: IF_LCMPLE(reg,reg) */
+	case 123: /* root: IF_LCMPGT(reg,reg) */
+	case 122: /* root: IF_LCMPGE(reg,reg) */
+	case 121: /* root: IF_LCMPLT(reg,reg) */
+	case 120: /* root: IF_LCMPNE(reg,reg) */
+	case 119: /* root: IF_LCMPEQ(reg,reg) */
+	case 118: /* root: IF_ICMPLE(reg,reg) */
+	case 117: /* root: IF_ICMPGT(reg,reg) */
+	case 116: /* root: IF_ICMPGE(reg,reg) */
+	case 115: /* root: IF_ICMPLT(reg,reg) */
+	case 114: /* root: IF_ICMPNE(reg,reg) */
+	case 113: /* root: IF_ICMPEQ(reg,reg) */
+	case 98: /* reg: DCMPG(reg,reg) */
+	case 97: /* reg: DCMPL(reg,reg) */
+	case 96: /* reg: FCMPG(reg,reg) */
+	case 95: /* reg: FCMPL(reg,reg) */
+	case 94: /* reg: LCMP(reg,reg) */
+	case 77: /* reg: LXOR(reg,reg) */
+	case 76: /* reg: IXOR(reg,reg) */
+	case 75: /* reg: LOR(reg,reg) */
+	case 74: /* reg: IOR(reg,reg) */
+	case 73: /* reg: LAND(reg,reg) */
+	case 72: /* reg: IAND(reg,reg) */
+	case 71: /* reg: LUSHR(reg,reg) */
+	case 70: /* reg: IUSHR(reg,reg) */
+	case 69: /* reg: LSHR(reg,reg) */
+	case 68: /* reg: ISHR(reg,reg) */
+	case 67: /* reg: LSHL(reg,reg) */
+	case 66: /* reg: ISHL(reg,reg) */
+	case 61: /* reg: DREM(reg,reg) */
+	case 60: /* reg: FREM(reg,reg) */
+	case 59: /* reg: LREM(reg,reg) */
+	case 58: /* reg: IREM(reg,reg) */
+	case 57: /* reg: DDIV(reg,reg) */
+	case 56: /* reg: FDIV(reg,reg) */
+	case 55: /* reg: LDIV(reg,reg) */
+	case 54: /* reg: IDIV(reg,reg) */
+	case 53: /* reg: DMUL(reg,reg) */
+	case 52: /* reg: FMUL(reg,reg) */
+	case 51: /* reg: LMUL(reg,reg) */
+	case 50: /* reg: IMUL(reg,reg) */
+	case 49: /* reg: DSUB(reg,reg) */
+	case 48: /* reg: FSUB(reg,reg) */
+	case 47: /* reg: LSUB(reg,reg) */
+	case 46: /* reg: ISUB(reg,reg) */
+	case 45: /* reg: DADD(reg,reg) */
+	case 44: /* reg: FADD(reg,reg) */
+	case 43: /* reg: LADD(reg,reg) */
+	case 40: /* reg: IADD(reg,reg) */
+	case 26: /* reg: SALOAD(reg,reg) */
+	case 25: /* reg: CALOAD(reg,reg) */
+	case 24: /* reg: BALOAD(reg,reg) */
+	case 23: /* reg: AALOAD(reg,reg) */
+	case 22: /* reg: DALOAD(reg,reg) */
+	case 21: /* reg: FALOAD(reg,reg) */
+	case 20: /* reg: LALOAD(reg,reg) */
+	case 19: /* reg: IALOAD(reg,reg) */
 		kids[0] = LEFT_CHILD(p);
 		kids[1] = RIGHT_CHILD(p);
+		break;
+	case 42: /* reg: IADD(ICONST,reg) */
+		kids[0] = RIGHT_CHILD(p);
 		break;
 	default:
 		burm_assert(0, PANIC("Bad external rule number %d in burm_kids\n", eruleno));
@@ -4278,9 +4700,6 @@ void burm_reduce(NODEPTR_TYPE bnode, int goalnt)
 
 
   switch (ruleNo) {
-  case 1:
-    codegen_nop(bnode);
-    break;
   case 2:
     codegen_nop(bnode);
     break;
@@ -4288,28 +4707,28 @@ void burm_reduce(NODEPTR_TYPE bnode, int goalnt)
     codegen_nop(bnode);
     break;
   case 4:
-    codegen_emit_result(bnode);
+    codegen_nop(bnode);
     break;
   case 5:
-    codegen_emit_instruction(bnode);
+    codegen_emit_result(bnode);
     break;
   case 6:
-    codegen_emit_iconst(bnode);
+    codegen_emit_instruction(bnode);
     break;
   case 7:
-    codegen_emit_lconst(bnode);
+    codegen_emit_iconst(bnode);
     break;
   case 8:
-    codegen_emit_instruction(bnode);
+    codegen_emit_lconst(bnode);
     break;
   case 9:
     codegen_emit_instruction(bnode);
     break;
   case 10:
-    codegen_emit_checknull(bnode);
+    codegen_emit_instruction(bnode);
     break;
   case 11:
-    codegen_emit_copy(bnode);
+    codegen_emit_checknull(bnode);
     break;
   case 12:
     codegen_emit_copy(bnode);
@@ -4330,7 +4749,7 @@ void burm_reduce(NODEPTR_TYPE bnode, int goalnt)
     codegen_emit_copy(bnode);
     break;
   case 18:
-    codegen_emit_instruction(bnode);
+    codegen_emit_copy(bnode);
     break;
   case 19:
     codegen_emit_instruction(bnode);
@@ -4366,10 +4785,10 @@ void burm_reduce(NODEPTR_TYPE bnode, int goalnt)
     codegen_emit_copy(bnode);
     break;
   case 30:
-    codegen_emit_astore(bnode);
+    codegen_emit_copy(bnode);
     break;
   case 31:
-    codegen_emit_instruction(bnode);
+    codegen_emit_astore(bnode);
     break;
   case 32:
     codegen_emit_instruction(bnode);
@@ -4399,10 +4818,10 @@ void burm_reduce(NODEPTR_TYPE bnode, int goalnt)
     codegen_emit_instruction(bnode);
     break;
   case 41:
-    codegen_emit_instruction(bnode);
+    codegen_emit_const_instruction(bnode);
     break;
   case 42:
-    codegen_emit_instruction(bnode);
+    codegen_emit_const_instruction(bnode);
     break;
   case 43:
     codegen_emit_instruction(bnode);
@@ -4564,13 +4983,13 @@ void burm_reduce(NODEPTR_TYPE bnode, int goalnt)
     codegen_emit_instruction(bnode);
     break;
   case 96:
-    codegen_emit_branch(bnode);
+    codegen_emit_instruction(bnode);
     break;
   case 97:
-    codegen_emit_branch(bnode);
+    codegen_emit_instruction(bnode);
     break;
   case 98:
-    codegen_emit_branch(bnode);
+    codegen_emit_instruction(bnode);
     break;
   case 99:
     codegen_emit_branch(bnode);
@@ -4606,99 +5025,153 @@ void burm_reduce(NODEPTR_TYPE bnode, int goalnt)
     codegen_emit_branch(bnode);
     break;
   case 110:
-    codegen_emit_jump(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 111:
-    codegen_emit_jump(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 112:
-    codegen_emit_jump(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 113:
-    codegen_emit_instruction(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 114:
-    codegen_emit_lookup(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 115:
-    codegen_emit_return(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 116:
-    codegen_emit_return(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 117:
-    codegen_emit_return(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 118:
-    codegen_emit_return(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 119:
-    codegen_emit_return(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 120:
-    codegen_emit_return(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 121:
-    codegen_emit_getstatic(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 122:
-    codegen_emit_putstatic(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 123:
-    codegen_emit_instruction(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 124:
-    codegen_emit_instruction(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 125:
-    codegen_emit_invoke(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 126:
-    codegen_emit_invoke(bnode);
+    codegen_emit_branch(bnode);
     break;
   case 127:
-    codegen_emit_invoke(bnode);
+    codegen_emit_jump(bnode);
     break;
   case 128:
-    codegen_emit_invoke(bnode);
+    codegen_emit_jump(bnode);
     break;
   case 129:
-    codegen_emit_instruction(bnode);
+    codegen_emit_jump(bnode);
     break;
   case 130:
     codegen_emit_instruction(bnode);
     break;
   case 131:
-    codegen_emit_instruction(bnode);
+    codegen_emit_lookup(bnode);
     break;
   case 132:
-    codegen_emit_throw(bnode);
+    codegen_emit_return(bnode);
     break;
   case 133:
-    codegen_emit_ifnull(bnode);
+    codegen_emit_return(bnode);
     break;
   case 134:
-    codegen_emit_ifnull(bnode);
+    codegen_emit_return(bnode);
     break;
   case 135:
-    codegen_emit_breakpoint(bnode);
+    codegen_emit_return(bnode);
     break;
   case 136:
-    codegen_emit_getexception(bnode);
+    codegen_emit_return(bnode);
     break;
   case 137:
-    codegen_emit_phi(bnode);
+    codegen_emit_return(bnode);
     break;
   case 138:
-    codegen_emit_inline_start(bnode);
+    codegen_emit_getstatic(bnode);
     break;
   case 139:
-    codegen_emit_inline_end(bnode);
+    codegen_emit_putstatic(bnode);
     break;
   case 140:
-    codegen_emit_inline_body(bnode);
+    codegen_emit_instruction(bnode);
     break;
   case 141:
+    codegen_emit_instruction(bnode);
+    break;
+  case 142:
+    codegen_emit_invoke(bnode);
+    break;
+  case 143:
+    codegen_emit_invoke(bnode);
+    break;
+  case 144:
+    codegen_emit_invoke(bnode);
+    break;
+  case 145:
+    codegen_emit_invoke(bnode);
+    break;
+  case 146:
+    codegen_emit_instruction(bnode);
+    break;
+  case 147:
+    codegen_emit_instruction(bnode);
+    break;
+  case 148:
+    codegen_emit_instruction(bnode);
+    break;
+  case 149:
+    codegen_emit_arraylength(bnode);
+    break;
+  case 150:
+    codegen_emit_throw(bnode);
+    break;
+  case 151:
+    codegen_emit_ifnull(bnode);
+    break;
+  case 152:
+    codegen_emit_ifnull(bnode);
+    break;
+  case 153:
+    codegen_emit_breakpoint(bnode);
+    break;
+  case 154:
+    codegen_emit_getexception(bnode);
+    break;
+  case 155:
+    codegen_emit_phi(bnode);
+    break;
+  case 156:
+    codegen_emit_inline_start(bnode);
+    break;
+  case 157:
+    codegen_emit_inline_end(bnode);
+    break;
+  case 158:
+    codegen_emit_inline_body(bnode);
+    break;
+  case 159:
     codegen_emit_builtin(bnode);
     break;
   }

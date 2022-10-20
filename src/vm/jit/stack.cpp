@@ -4114,6 +4114,7 @@ icmd_DUP_X2:
 
 					case ICMD_LCMP:
 						STATISTICS(count_pcmd_op++);
+//#if !defined(USE_AUTOMATON)
 						if ((len == 0) || (iptr[1].sx.val.i != 0))
 							goto normal_LCMP;
 
@@ -4149,6 +4150,7 @@ icmd_DUP_X2:
 						}
 						break;
 normal_LCMP:
+//#endif
 						bte = builtintable_get_internal(BUILTIN_lcmp);
 
 						iptr->opc            = ICMD_BUILTIN;
