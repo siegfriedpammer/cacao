@@ -119,6 +119,21 @@ void emit(node n) {
     burm_reduce(n, 1);
 }
 
+bool ignore(ICMD opc) {
+    switch (opc) {
+        case ICMD_BUILTIN:
+        case ICMD_INVOKEINTERFACE:
+        case ICMD_INVOKESPECIAL:
+        case ICMD_INVOKESTATIC:
+        case ICMD_INVOKEVIRTUAL:
+        case ICMD_MULTIANEWARRAY:
+        case ICMD_POP2:
+            return true;
+        default:
+            return false;
+    }
+}
+
 void automaton_run(basicblock *bptr, jitdata *jd)
 {
     log("-------------------\n");
@@ -172,8 +187,7 @@ void automaton_run(basicblock *bptr, jitdata *jd)
         node root = &nodes[end++];
         fill_node(root, iptr, jd);
         root->offset = iptr - bptr->iinstr;
-        if (!(iptr->opc == ICMD_BUILTIN || iptr->opc == ICMD_INVOKEINTERFACE || iptr->opc == ICMD_INVOKESPECIAL || iptr->opc == ICMD_INVOKESTATIC || iptr->opc == ICMD_INVOKEVIRTUAL
-        || iptr->opc == ICMD_MULTIANEWARRAY || pop == burm_arity[iptr->opc] || pop > 2)) {
+        if (!ignore(iptr->opc) && pop != burm_arity[iptr->opc] && pop <= 2) {
             log("%s has incompatible pop count; expected %d; got arity %d\n", burm_opname[iptr->opc], pop, burm_arity[iptr->opc]);
             assert(false);
         }
