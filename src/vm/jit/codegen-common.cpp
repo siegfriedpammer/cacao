@@ -1651,6 +1651,11 @@ bool codegen_emit(jitdata *jd)
 		// Walk through all instructions.
 		int32_t len = bptr->icount;
 		uint16_t currentline = 0;
+
+#if defined(USE_AUTOMATON)
+		automaton_initialize(bptr);
+#endif
+
 		for (instruction* iptr = bptr->iinstr; len > 0; len--, iptr++) {
 
 			// Add line number.
@@ -1666,7 +1671,7 @@ bool codegen_emit(jitdata *jd)
 			MCODECHECK(1024);  // I386, X86_64, S390      /* 1kB should be enough */
 
 #if defined(USE_AUTOMATON)
-			hello();
+			automaton_next(jd, iptr);
 #else
 			// The big switch.
 			switch (iptr->opc) {
@@ -2694,6 +2699,10 @@ gen_method:
 #endif
 
 		} // for all instructions
+
+#if defined(USE_AUTOMATON)
+		automaton_cleanup();
+#endif
 
 #if defined(ENABLE_SSA)
 		// By edge splitting, in blocks with phi moves there can only
