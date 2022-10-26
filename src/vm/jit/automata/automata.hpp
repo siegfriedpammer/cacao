@@ -12,6 +12,8 @@
 #include "vm/method.hpp"
 #include "automata-codegen.hpp"
 
+void log(const char *format, ...);
+
 
 extern char burm_arity[];
 extern char *burm_opname[];

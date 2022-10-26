@@ -22,7 +22,7 @@
 void gen_method(jitdata *jd, instruction* iptr, builtintable_entry* bte, methoddesc *md);
 
 extern "C" void codegen_emit_throw(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;
@@ -47,8 +47,8 @@ extern "C" void codegen_emit_throw(node bnode) {
 }
 
 extern "C" void codegen_emit_arraylength(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    //printf("emitting arraylength\n");
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    //log("emitting arraylength\n");
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;
@@ -63,8 +63,8 @@ extern "C" void codegen_emit_arraylength(node bnode) {
 }
 
 extern "C" void codegen_emit_inline_end(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    //printf("emitting inline_end\n");
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    //log("emitting inline_end\n");
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;
@@ -73,18 +73,18 @@ extern "C" void codegen_emit_inline_end(node bnode) {
 }
 
 extern "C" void codegen_emit_instruction(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    //printf("emitting simple instruction: %d\n", bnode->iptr->opc);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    //log("emitting simple instruction: %d\n", bnode->iptr->opc);
     codegen_emit_instruction(bnode->jd, bnode->iptr);
 }
 
 extern "C" void codegen_nop(node bnode) {
-    //printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    //printf("emitting nop\n");
+    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    //log("emitting nop\n");
 }
 
 extern "C" void codegen_emit_breakpoint(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;
@@ -93,7 +93,7 @@ extern "C" void codegen_emit_breakpoint(node bnode) {
 }
 
 extern "C" void codegen_emit_checknull(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;
@@ -102,7 +102,7 @@ extern "C" void codegen_emit_checknull(node bnode) {
 }
 
 extern "C" void codegen_emit_iconst(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;
@@ -112,7 +112,7 @@ extern "C" void codegen_emit_iconst(node bnode) {
 }
 
 extern "C" void codegen_emit_lconst(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;
@@ -122,18 +122,18 @@ extern "C" void codegen_emit_lconst(node bnode) {
 }
 
 extern "C" void codegen_emit_undef(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     assert(false);
 }
 
 extern "C" void codegen_emit_astore(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     if (!(bnode->iptr->flags.bits & INS_FLAG_RETADDR))
 		emit_copy(bnode->jd, bnode->iptr);
 }
 
 extern "C" void codegen_emit_branch(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;
@@ -285,14 +285,14 @@ extern "C" void codegen_emit_branch(node bnode) {
 }
 
 extern "C" void codegen_emit_copy(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
     emit_copy(bnode->jd, bnode->iptr);
 }
 
 extern "C" void codegen_emit_getexception(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;
@@ -302,7 +302,7 @@ extern "C" void codegen_emit_getexception(node bnode) {
 }
 
 extern "C" void codegen_emit_getstatic(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;
@@ -389,7 +389,7 @@ extern "C" void codegen_emit_getstatic(node bnode) {
 }
 
 extern "C" void codegen_emit_putstatic(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;
@@ -478,7 +478,7 @@ extern "C" void codegen_emit_putstatic(node bnode) {
 }
 
 extern "C" void codegen_emit_ifnull(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;
@@ -497,7 +497,7 @@ extern "C" void codegen_emit_ifnull(node bnode) {
 }
 
 extern "C" void codegen_emit_inline_body(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;
@@ -506,12 +506,12 @@ extern "C" void codegen_emit_inline_body(node bnode) {
 }
 
 extern "C" void codegen_emit_inline_start(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     assert(false);
 }
 
 extern "C" void codegen_emit_invoke(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 
@@ -548,7 +548,7 @@ static void fixup_exc_handler_interface(jitdata *jd, basicblock *bptr)
 }
 
 extern "C" void codegen_emit_jump(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;
@@ -575,7 +575,7 @@ extern "C" void codegen_emit_jump(node bnode) {
 }
 
 extern "C" void codegen_emit_lookup(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;
@@ -609,17 +609,17 @@ extern "C" void codegen_emit_lookup(node bnode) {
 }
 
 extern "C" void codegen_emit_phi(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     assert(false);
 }
 
 extern "C" void codegen_emit_unknown(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     assert(false);
 }
 
 extern "C" void codegen_emit_return(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
 	int32_t             s1;
     instruction *iptr = bnode->iptr;
@@ -716,7 +716,7 @@ extern "C" void codegen_emit_return(node bnode) {
 }
 
 extern "C" void codegen_emit_builtin(node bnode) {
-    printf("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+    log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
     jitdata *jd = bnode->jd;
     instruction *iptr = bnode->iptr;
 	codegendata*  cd   = jd->cd;

@@ -1,9 +1,29 @@
+#include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <assert.h>
 
 #include "automata.hpp"
 
 #define NODE_IS_VALID(n) ((n) != NULL)
+
+FILE *output = NULL;
+
+void log(const char *format, ...)
+{
+    va_list args;
+    char buffer[8096];
+
+    va_start(args, buffer);
+    vsprintf(buffer, format, args);
+    va_end(args);
+
+    if (output == NULL) {
+        output = fopen("/workspaces/masterarbeit/output.log", "a");
+    }
+
+    fprintf(output, buffer);
+}
 
 int get_pop_count(instruction *iptr)
 {
@@ -78,30 +98,30 @@ static void print_node(node n)
     int arity = burm_arity[n->op];
     int push = n->iptr != NULL && n->op != 300 ? get_push_count(n->iptr) : 0;
     int pop = n->iptr != NULL && n->op != 300 ? get_pop_count(n->iptr) : 0;
-    printf("%d: %s[%d--%d]", n->offset, burm_opname[n->op], pop, push);
-    if (arity > 0) { printf("("); }
+    log("%d: %s[%d--%d]", n->offset, burm_opname[n->op], pop, push);
+    if (arity > 0) { log("("); }
     switch (burm_arity[n->op]) {
         case 2:
             print_node(n->kids[0]);
-            printf(", ");
+            log(", ");
             print_node(n->kids[1]);
             break;
         case 1:
             print_node(n->kids[0]);
             break;
     }
-    if (arity > 0) { printf(")"); }
+    if (arity > 0) { log(")"); }
 }
 
 void emit(node n) {
-    if (n->op == 0) { printf("%d: NOP\n", n->offset); }
+    if (n->op == 0) { log("%d: NOP\n", n->offset); }
     burm_label(n);
     burm_reduce(n, 1);
 }
 
 void automaton_run(basicblock *bptr, jitdata *jd)
 {
-    printf("-------------------\n");
+    log("-------------------\n");
     
     // Walk through all instructions.
     int32_t len = bptr->icount;
@@ -153,16 +173,16 @@ void automaton_run(basicblock *bptr, jitdata *jd)
         fill_node(root, iptr, jd);
         root->offset = iptr - bptr->iinstr;
         if (!(iptr->opc == ICMD_BUILTIN || iptr->opc == ICMD_INVOKEINTERFACE || iptr->opc == ICMD_INVOKESPECIAL || iptr->opc == ICMD_INVOKESTATIC || iptr->opc == ICMD_INVOKEVIRTUAL
-        || pop == burm_arity[iptr->opc] || pop > 2)) {
-            printf("%s has incompatible pop count; expected %d; got arity %d\n", burm_opname[iptr->opc], pop, burm_arity[iptr->opc]);
+        || iptr->opc == ICMD_MULTIANEWARRAY || pop == burm_arity[iptr->opc] || pop > 2)) {
+            log("%s has incompatible pop count; expected %d; got arity %d\n", burm_opname[iptr->opc], pop, burm_arity[iptr->opc]);
             assert(false);
         }
         root->kids[0] = &nop;
         root->kids[1] = &nop;
         end %= 32;
         count++;
-        //emit(root);
-        //continue;
+        emit(root);
+        continue;
         switch (pop) {
             case 0:
                 break;
@@ -186,15 +206,16 @@ void automaton_run(basicblock *bptr, jitdata *jd)
         *(tos++) = root;
         // emit instructions if tree is terminated
         if (push == 0 || pop > 2) {
-            printf("// -- stack --\n");
+            log("// -- stack --\n");
             for (node *n = tos - 1; n >= &stack[0]; n--) {
-                printf("// %ld: ", n - &stack[0]);
+                log("// %ld: ", n - &stack[0]);
                 print_node(*n);
-                printf(" %s\n", (*n)->has_side_effects ? "impure" : "pure");
+                log(" %s\n", (*n)->has_side_effects ? "impure" : "pure");
             }
-            printf("// -- stack end --\n");
+            log("// -- stack end --\n");
             // handle side-effects in stack
             for (node *n = &stack[0]; n < tos - 1; n++) {
+                assert(*n != NULL);
                 emit(*n);
                 assert(get_push_count((*n)->iptr) == 1);
                 (*n)->op = 300; // RESULT
@@ -216,5 +237,5 @@ void automaton_run(basicblock *bptr, jitdata *jd)
 #endif
 
     } // for all instructions
-    printf("-------------------\n");
+    log("-------------------\n");
 }

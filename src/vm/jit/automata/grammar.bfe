@@ -45,10 +45,13 @@
 // nop
 reg: NOP                # 100 # # codegen_nop(bnode);
 
+root: POP
+root: POP2
+
 // chains
 root: reg
 reg: const
-
+reg: cmp
 
 // const
 const: ACONST          # 100 # # codegen_emit_instruction(bnode);
@@ -265,17 +268,17 @@ root: INLINE_END      # 100 # # codegen_emit_inline_end(bnode);
 root: INLINE_START    # 100 # # codegen_emit_inline_start(bnode);
 
 // Invoke N -- 0/1
-root: INVOKEINTERFACE(reg, reg) # 100 # # codegen_emit_invoke(bnode);
-root: INVOKESPECIAL(reg, reg)   # 100 # # codegen_emit_invoke(bnode);
-root: INVOKESTATIC(reg, reg)    # 100 # # codegen_emit_invoke(bnode);
-root: INVOKEVIRTUAL(reg, reg)   # 100 # # codegen_emit_invoke(bnode);
+reg: INVOKEINTERFACE(reg, reg) # 100 # # codegen_emit_invoke(bnode);
+reg: INVOKESPECIAL(reg, reg)   # 100 # # codegen_emit_invoke(bnode);
+reg: INVOKESTATIC(reg, reg)    # 100 # # codegen_emit_invoke(bnode);
+reg: INVOKEVIRTUAL(reg, reg)   # 100 # # codegen_emit_invoke(bnode);
 
 // other control flow
 root: GOTO            # 100 # # codegen_emit_jump(bnode);
 root: RET             # 100 # # codegen_emit_jump(bnode);
 
 // builtin
-root: BUILTIN(reg, reg)    # 100 # # codegen_emit_builtin(bnode);
+reg: BUILTIN(reg, reg)    # 100 # # codegen_emit_builtin(bnode);
 
 // Exception statements
 root: ATHROW(reg)     # 100 # # codegen_emit_throw(bnode);
