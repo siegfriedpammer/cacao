@@ -23,10 +23,12 @@ void log(const char *format, ...)
     }
 
     fprintf(output, buffer);
+    fflush(output);
 }
 
 int get_pop_count(instruction *iptr)
 {
+    assert(iptr != NULL);
     methoddesc *md;
     switch (iptr->opc) {
         case ICMD_POP:
@@ -50,8 +52,11 @@ int get_pop_count(instruction *iptr)
 
 int get_push_count(instruction *iptr)
 {
+    assert(iptr != NULL);
     methoddesc *md;
     switch (iptr->opc) {
+        case 300: // RESULT
+            return 1;
         case ICMD_POP:
             return 0;
         case ICMD_BUILTIN:
@@ -94,9 +99,9 @@ static void fill_node(node n, instruction *iptr, jitdata *jd)
 
 static void print_node(node n)
 {
-    if (n == NULL) return;
+    assert(n != NULL);
     int arity = burm_arity[n->op];
-    int push = n->iptr != NULL && n->op != 300 ? get_push_count(n->iptr) : 0;
+    int push = n->iptr != NULL && n->op != 300 ? get_push_count(n->iptr) : 1;
     int pop = n->iptr != NULL && n->op != 300 ? get_pop_count(n->iptr) : 0;
     log("%d: %s[%d--%d]", n->offset, burm_opname[n->op], pop, push);
     if (arity > 0) { log("("); }
@@ -115,6 +120,10 @@ static void print_node(node n)
 
 void emit(node n) {
     if (n->op == 0) { log("%d: NOP\n", n->offset); }
+    log("emitting ");
+    print_node(n);
+    log("...\n");
+    log("start symbol: %s %d\n", burm_opname[n->op], n->op);
     burm_label(n);
     burm_reduce(n, 1);
 }
@@ -137,7 +146,9 @@ bool ignore(ICMD opc) {
 void automaton_run(basicblock *bptr, jitdata *jd)
 {
     log("-------------------\n");
-    
+    log("%s.%s%s\n", Utf8String(jd->m->clazz->name).begin(), Utf8String(jd->m->name).begin(), Utf8String(jd->m->descriptor).begin());
+    log("instruction count: %d\n", bptr->icount);
+    log("stack depth at start: %d\n", bptr->indepth);
     // Walk through all instructions.
     int32_t len = bptr->icount;
     uint16_t currentline = 0;
@@ -195,8 +206,8 @@ void automaton_run(basicblock *bptr, jitdata *jd)
         root->kids[1] = &nop;
         end %= 32;
         count++;
-        emit(root);
-        continue;
+        //emit(root);
+        //continue;
         switch (pop) {
             case 0:
                 break;
@@ -230,18 +241,38 @@ void automaton_run(basicblock *bptr, jitdata *jd)
             // handle side-effects in stack
             for (node *n = &stack[0]; n < tos - 1; n++) {
                 assert(*n != NULL);
+                if ((*n)->op == 300) { continue; }
                 emit(*n);
-                assert(get_push_count((*n)->iptr) == 1);
+                int push_n = get_push_count((*n)->iptr);
+                if (push_n == 0) { continue; }
+                assert(push_n == 1);
                 (*n)->op = 300; // RESULT
                 (*n)->kids[0] = NULL;
                 (*n)->kids[1] = NULL;
                 (*n)->has_side_effects = false;
             }
+            log("root is no. %ld in stack\n", tos - &stack[0]);
             if (pop > 2) {
                 tos -= pop;
             }
+            log("// -- stack after side-effects --\n");
+            for (node *n = tos - 1; n >= &stack[0]; n--) {
+                log("// %ld: ", n - &stack[0]);
+                print_node(*n);
+                log(" %s\n", (*n)->has_side_effects ? "impure" : "pure");
+            }
+            log("// -- stack end --\n");
+            assert(root != NULL);
             emit(root);
-            *(--tos) = NULL;
+            if (push == 0) {
+                tos--;
+            } else {
+                assert(push == 1);
+                root->op = 300; // RESULT
+                root->kids[0] = NULL;
+                root->kids[1] = NULL;
+                root->has_side_effects = false;
+            }
         }
 
 #if defined(ENABLE_REPLACEMENT)
