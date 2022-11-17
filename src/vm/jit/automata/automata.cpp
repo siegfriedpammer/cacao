@@ -2,19 +2,21 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <mutex>          // std::mutex, std::lock
 
 #include "automata.hpp"
 
 #define NODE_IS_VALID(n) ((n) != NULL)
 
 FILE *output = NULL;
+std::mutex l;
 
 void log(const char *format, ...)
 {
     va_list args;
     char buffer[8096];
 
-    va_start(args, buffer);
+    va_start(args, format);
     vsprintf(buffer, format, args);
     va_end(args);
 
@@ -22,7 +24,7 @@ void log(const char *format, ...)
         output = fopen("/workspaces/masterarbeit/output.log", "a");
     }
 
-    fprintf(output, buffer);
+    fprintf(output, "%s", buffer);
     fflush(output);
 }
 
@@ -32,7 +34,9 @@ int get_pop_count(instruction *iptr)
     methoddesc *md;
     switch (iptr->opc) {
         case ICMD_POP:
-            return 0;
+            return 1;
+        case ICMD_POP2:
+            return 2;
         case ICMD_BUILTIN:
             md = iptr->sx.s23.s3.bte->md;
             return md->paramcount;
@@ -54,10 +58,11 @@ int get_push_count(instruction *iptr)
 {
     assert(iptr != NULL);
     methoddesc *md;
-    switch (iptr->opc) {
+    switch ((int)iptr->opc) {
         case 300: // RESULT
             return 1;
         case ICMD_POP:
+        case ICMD_POP2:
             return 0;
         case ICMD_BUILTIN:
             md = iptr->sx.s23.s3.bte->md;
@@ -119,11 +124,10 @@ static void print_node(node n)
 }
 
 void emit(node n) {
-    if (n->op == 0) { log("%d: NOP\n", n->offset); }
-    log("emitting ");
-    print_node(n);
-    log("...\n");
-    log("start symbol: %s %d\n", burm_opname[n->op], n->op);
+    //log("emitting ");
+    //print_node(n);
+    //log("...\n");
+    //log("start symbol: %s %d\n", burm_opname[n->op], n->op);
     burm_label(n);
     burm_reduce(n, 1);
 }
@@ -145,38 +149,36 @@ bool ignore(ICMD opc) {
 
 void automaton_run(basicblock *bptr, jitdata *jd)
 {
+    l.lock();
     log("-------------------\n");
     log("%s.%s%s\n", Utf8String(jd->m->clazz->name).begin(), Utf8String(jd->m->name).begin(), Utf8String(jd->m->descriptor).begin());
     log("instruction count: %d\n", bptr->icount);
+    log("maxstack: %d\n", jd->stackcount);
     log("stack depth at start: %d\n", bptr->indepth);
     // Walk through all instructions.
-    int32_t len = bptr->icount;
     uint16_t currentline = 0;
 
-    node_t nodes[32];
+    auto nodes = std::make_unique<node_t[]>(bptr->icount + bptr->indepth);
+    auto stack = std::make_unique<node[]>(jd->stackcount);
     node_t nop;
-    node stack[8] = { nullptr };
     node *tos = &stack[0];
-    int start = 0;
-    int end = 0;
     int count = 0;
-    codegendata*  cd   = jd->cd;
+    codegendata* cd = jd->cd;
 
-    memset(&nodes, 0, 32 * sizeof(node_t));
     memset(&nop, 0, sizeof(node_t));
 
     for (int i = 0; i < bptr->indepth; i++) {
-        node root = &nodes[end++];
+        node root = &nodes[count++];
         root->has_side_effects = true;
         root->iptr = NULL;
         root->jd = jd;
         root->kids[0] = NULL;
         root->kids[1] = NULL;
         root->op = 300;
-        end %= 32;
-        count++;
         *(tos++) = root;
     }
+
+    int32_t len = bptr->icount;
 
     for (instruction* iptr = bptr->iinstr; len > 0; len--, iptr++) {
         // Add line number.
@@ -194,8 +196,11 @@ void automaton_run(basicblock *bptr, jitdata *jd)
         int pop = get_pop_count(iptr);
         int push = get_push_count(iptr);
 
+        if (iptr->opc == ICMD_NOP)
+            continue;
+
         // Build new tree
-        node root = &nodes[end++];
+        node root = &nodes[count++];
         fill_node(root, iptr, jd);
         root->offset = iptr - bptr->iinstr;
         if (!ignore(iptr->opc) && pop != burm_arity[iptr->opc] && pop <= 2) {
@@ -204,8 +209,6 @@ void automaton_run(basicblock *bptr, jitdata *jd)
         }
         root->kids[0] = &nop;
         root->kids[1] = &nop;
-        end %= 32;
-        count++;
         //emit(root);
         //continue;
         switch (pop) {
@@ -231,14 +234,8 @@ void automaton_run(basicblock *bptr, jitdata *jd)
         *(tos++) = root;
         // emit instructions if tree is terminated
         if (push == 0 || pop > 2) {
-            log("// -- stack --\n");
-            for (node *n = tos - 1; n >= &stack[0]; n--) {
-                log("// %ld: ", n - &stack[0]);
-                print_node(*n);
-                log(" %s\n", (*n)->has_side_effects ? "impure" : "pure");
-            }
-            log("// -- stack end --\n");
             // handle side-effects in stack
+            assert((tos - &stack[0]) > 0);
             for (node *n = &stack[0]; n < tos - 1; n++) {
                 assert(*n != NULL);
                 if ((*n)->op == 300) { continue; }
@@ -251,17 +248,9 @@ void automaton_run(basicblock *bptr, jitdata *jd)
                 (*n)->kids[1] = NULL;
                 (*n)->has_side_effects = false;
             }
-            log("root is no. %ld in stack\n", tos - &stack[0]);
             if (pop > 2) {
                 tos -= pop;
             }
-            log("// -- stack after side-effects --\n");
-            for (node *n = tos - 1; n >= &stack[0]; n--) {
-                log("// %ld: ", n - &stack[0]);
-                print_node(*n);
-                log(" %s\n", (*n)->has_side_effects ? "impure" : "pure");
-            }
-            log("// -- stack end --\n");
             assert(root != NULL);
             emit(root);
             if (push == 0) {
@@ -282,5 +271,13 @@ void automaton_run(basicblock *bptr, jitdata *jd)
 #endif
 
     } // for all instructions
+
+    // emit instructions remaining on stack
+    for (node *n = &stack[0]; n < tos; n++) {
+        assert(*n != NULL);
+        if ((*n)->op == 300) { continue; }
+        emit(*n);
+    }
     log("-------------------\n");
+    l.unlock();
 }

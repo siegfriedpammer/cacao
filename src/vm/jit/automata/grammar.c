@@ -44,20 +44,20 @@ struct burm_state {
 
 static short burm_nts_0[] = { 0 };
 static short burm_nts_1[] = { burm_reg_NT, 0 };
-static short burm_nts_2[] = { burm_const_NT, 0 };
-static short burm_nts_3[] = { burm_cmp_NT, 0 };
-static short burm_nts_4[] = { burm_reg_NT, burm_reg_NT, 0 };
+static short burm_nts_2[] = { burm_reg_NT, burm_reg_NT, 0 };
+static short burm_nts_3[] = { burm_const_NT, 0 };
+static short burm_nts_4[] = { burm_cmp_NT, 0 };
 static short burm_nts_5[] = { burm_const_NT, burm_reg_NT, 0 };
 static short burm_nts_6[] = { burm_reg_NT, burm_const_NT, 0 };
 
 short *burm_nts[] = {
 	0,	/* 0 */
 	burm_nts_0,	/* 1 */
-	burm_nts_0,	/* 2 */
-	burm_nts_0,	/* 3 */
+	burm_nts_1,	/* 2 */
+	burm_nts_2,	/* 3 */
 	burm_nts_1,	/* 4 */
-	burm_nts_2,	/* 5 */
-	burm_nts_3,	/* 6 */
+	burm_nts_3,	/* 5 */
+	burm_nts_4,	/* 6 */
 	burm_nts_0,	/* 7 */
 	burm_nts_0,	/* 8 */
 	burm_nts_0,	/* 9 */
@@ -68,27 +68,27 @@ short *burm_nts[] = {
 	burm_nts_0,	/* 14 */
 	burm_nts_0,	/* 15 */
 	burm_nts_0,	/* 16 */
-	burm_nts_4,	/* 17 */
-	burm_nts_4,	/* 18 */
-	burm_nts_4,	/* 19 */
-	burm_nts_4,	/* 20 */
-	burm_nts_4,	/* 21 */
-	burm_nts_4,	/* 22 */
-	burm_nts_4,	/* 23 */
-	burm_nts_4,	/* 24 */
-	burm_nts_4,	/* 25 */
-	burm_nts_4,	/* 26 */
-	burm_nts_4,	/* 27 */
-	burm_nts_4,	/* 28 */
-	burm_nts_4,	/* 29 */
+	burm_nts_2,	/* 17 */
+	burm_nts_2,	/* 18 */
+	burm_nts_2,	/* 19 */
+	burm_nts_2,	/* 20 */
+	burm_nts_2,	/* 21 */
+	burm_nts_2,	/* 22 */
+	burm_nts_2,	/* 23 */
+	burm_nts_2,	/* 24 */
+	burm_nts_2,	/* 25 */
+	burm_nts_2,	/* 26 */
+	burm_nts_2,	/* 27 */
+	burm_nts_2,	/* 28 */
+	burm_nts_2,	/* 29 */
 	burm_nts_1,	/* 30 */
 	burm_nts_1,	/* 31 */
 	burm_nts_1,	/* 32 */
 	burm_nts_1,	/* 33 */
-	burm_nts_4,	/* 34 */
-	burm_nts_4,	/* 35 */
-	burm_nts_4,	/* 36 */
-	burm_nts_4,	/* 37 */
+	burm_nts_2,	/* 34 */
+	burm_nts_2,	/* 35 */
+	burm_nts_2,	/* 36 */
+	burm_nts_2,	/* 37 */
 	burm_nts_5,	/* 38 */
 	burm_nts_5,	/* 39 */
 	burm_nts_5,	/* 40 */
@@ -97,10 +97,10 @@ short *burm_nts[] = {
 	burm_nts_6,	/* 43 */
 	burm_nts_6,	/* 44 */
 	burm_nts_6,	/* 45 */
-	burm_nts_4,	/* 46 */
-	burm_nts_4,	/* 47 */
-	burm_nts_4,	/* 48 */
-	burm_nts_4,	/* 49 */
+	burm_nts_2,	/* 46 */
+	burm_nts_2,	/* 47 */
+	burm_nts_2,	/* 48 */
+	burm_nts_2,	/* 49 */
 	burm_nts_5,	/* 50 */
 	burm_nts_5,	/* 51 */
 	burm_nts_5,	/* 52 */
@@ -109,10 +109,10 @@ short *burm_nts[] = {
 	burm_nts_6,	/* 55 */
 	burm_nts_6,	/* 56 */
 	burm_nts_6,	/* 57 */
-	burm_nts_4,	/* 58 */
-	burm_nts_4,	/* 59 */
-	burm_nts_4,	/* 60 */
-	burm_nts_4,	/* 61 */
+	burm_nts_2,	/* 58 */
+	burm_nts_2,	/* 59 */
+	burm_nts_2,	/* 60 */
+	burm_nts_2,	/* 61 */
 	burm_nts_5,	/* 62 */
 	burm_nts_5,	/* 63 */
 	burm_nts_5,	/* 64 */
@@ -121,26 +121,26 @@ short *burm_nts[] = {
 	burm_nts_6,	/* 67 */
 	burm_nts_6,	/* 68 */
 	burm_nts_6,	/* 69 */
-	burm_nts_4,	/* 70 */
-	burm_nts_4,	/* 71 */
-	burm_nts_4,	/* 72 */
-	burm_nts_4,	/* 73 */
-	burm_nts_4,	/* 74 */
-	burm_nts_4,	/* 75 */
-	burm_nts_4,	/* 76 */
-	burm_nts_4,	/* 77 */
-	burm_nts_4,	/* 78 */
-	burm_nts_4,	/* 79 */
-	burm_nts_4,	/* 80 */
-	burm_nts_4,	/* 81 */
-	burm_nts_4,	/* 82 */
-	burm_nts_4,	/* 83 */
-	burm_nts_4,	/* 84 */
-	burm_nts_4,	/* 85 */
-	burm_nts_4,	/* 86 */
-	burm_nts_4,	/* 87 */
-	burm_nts_4,	/* 88 */
-	burm_nts_4,	/* 89 */
+	burm_nts_2,	/* 70 */
+	burm_nts_2,	/* 71 */
+	burm_nts_2,	/* 72 */
+	burm_nts_2,	/* 73 */
+	burm_nts_2,	/* 74 */
+	burm_nts_2,	/* 75 */
+	burm_nts_2,	/* 76 */
+	burm_nts_2,	/* 77 */
+	burm_nts_2,	/* 78 */
+	burm_nts_2,	/* 79 */
+	burm_nts_2,	/* 80 */
+	burm_nts_2,	/* 81 */
+	burm_nts_2,	/* 82 */
+	burm_nts_2,	/* 83 */
+	burm_nts_2,	/* 84 */
+	burm_nts_2,	/* 85 */
+	burm_nts_2,	/* 86 */
+	burm_nts_2,	/* 87 */
+	burm_nts_2,	/* 88 */
+	burm_nts_2,	/* 89 */
 	burm_nts_6,	/* 90 */
 	burm_nts_6,	/* 91 */
 	burm_nts_5,	/* 92 */
@@ -166,7 +166,7 @@ short *burm_nts[] = {
 	burm_nts_1,	/* 112 */
 	burm_nts_1,	/* 113 */
 	burm_nts_1,	/* 114 */
-	burm_nts_4,	/* 115 */
+	burm_nts_2,	/* 115 */
 	burm_nts_0,	/* 116 */
 	burm_nts_1,	/* 117 */
 	burm_nts_0,	/* 118 */
@@ -186,7 +186,7 @@ short *burm_nts[] = {
 	burm_nts_1,	/* 132 */
 	burm_nts_1,	/* 133 */
 	burm_nts_1,	/* 134 */
-	burm_nts_4,	/* 135 */
+	burm_nts_2,	/* 135 */
 	burm_nts_1,	/* 136 */
 	burm_nts_0,	/* 137 */
 	burm_nts_1,	/* 138 */
@@ -194,11 +194,11 @@ short *burm_nts[] = {
 	burm_nts_1,	/* 140 */
 	burm_nts_1,	/* 141 */
 	burm_nts_1,	/* 142 */
-	burm_nts_2,	/* 143 */
-	burm_nts_2,	/* 144 */
-	burm_nts_2,	/* 145 */
-	burm_nts_2,	/* 146 */
-	burm_nts_2,	/* 147 */
+	burm_nts_3,	/* 143 */
+	burm_nts_3,	/* 144 */
+	burm_nts_3,	/* 145 */
+	burm_nts_3,	/* 146 */
+	burm_nts_3,	/* 147 */
 	burm_nts_0,	/* 148 */
 	burm_nts_1,	/* 149 */
 	burm_nts_1,	/* 150 */
@@ -209,32 +209,32 @@ short *burm_nts[] = {
 	burm_nts_1,	/* 155 */
 	burm_nts_1,	/* 156 */
 	burm_nts_1,	/* 157 */
-	burm_nts_4,	/* 158 */
-	burm_nts_4,	/* 159 */
-	burm_nts_4,	/* 160 */
-	burm_nts_4,	/* 161 */
-	burm_nts_4,	/* 162 */
-	burm_nts_4,	/* 163 */
-	burm_nts_4,	/* 164 */
-	burm_nts_4,	/* 165 */
-	burm_nts_4,	/* 166 */
-	burm_nts_4,	/* 167 */
-	burm_nts_4,	/* 168 */
-	burm_nts_4,	/* 169 */
-	burm_nts_4,	/* 170 */
-	burm_nts_4,	/* 171 */
+	burm_nts_2,	/* 158 */
+	burm_nts_2,	/* 159 */
+	burm_nts_2,	/* 160 */
+	burm_nts_2,	/* 161 */
+	burm_nts_2,	/* 162 */
+	burm_nts_2,	/* 163 */
+	burm_nts_2,	/* 164 */
+	burm_nts_2,	/* 165 */
+	burm_nts_2,	/* 166 */
+	burm_nts_2,	/* 167 */
+	burm_nts_2,	/* 168 */
+	burm_nts_2,	/* 169 */
+	burm_nts_2,	/* 170 */
+	burm_nts_2,	/* 171 */
 	burm_nts_1,	/* 172 */
 	burm_nts_1,	/* 173 */
 	burm_nts_0,	/* 174 */
 	burm_nts_0,	/* 175 */
 	burm_nts_0,	/* 176 */
-	burm_nts_4,	/* 177 */
-	burm_nts_4,	/* 178 */
-	burm_nts_4,	/* 179 */
-	burm_nts_4,	/* 180 */
+	burm_nts_2,	/* 177 */
+	burm_nts_2,	/* 178 */
+	burm_nts_2,	/* 179 */
+	burm_nts_2,	/* 180 */
 	burm_nts_0,	/* 181 */
 	burm_nts_0,	/* 182 */
-	burm_nts_4,	/* 183 */
+	burm_nts_2,	/* 183 */
 	burm_nts_1,	/* 184 */
 	burm_nts_0,	/* 185 */
 };
@@ -327,8 +327,8 @@ char burm_arity[] = {
 	0,	/* 84=BASTORE */
 	0,	/* 85=CASTORE */
 	0,	/* 86=SASTORE */
-	0,	/* 87=POP */
-	0,	/* 88=POP2 */
+	1,	/* 87=POP */
+	2,	/* 88=POP2 */
 	0,	/* 89=DUP */
 	0,	/* 90=DUP_X1 */
 	0,	/* 91=DUP_X2 */
@@ -850,8 +850,8 @@ char *burm_opname[] = {
 short burm_cost[][4] = {
 	{ 0 },	/* 0 */
 	{ 100 },	/* 1 = reg: NOP */
-	{ 0 },	/* 2 = root: POP */
-	{ 0 },	/* 3 = root: POP2 */
+	{ 0 },	/* 2 = root: POP(reg) */
+	{ 0 },	/* 3 = root: POP2(reg,reg) */
 	{ 0 },	/* 4 = root: reg */
 	{ 0 },	/* 5 = reg: const */
 	{ 0 },	/* 6 = reg: cmp */
@@ -1039,8 +1039,8 @@ short burm_cost[][4] = {
 char *burm_string[] = {
 	/* 0 */	0,
 	/* 1 */	"reg: NOP",
-	/* 2 */	"root: POP",
-	/* 3 */	"root: POP2",
+	/* 2 */	"root: POP(reg)",
+	/* 3 */	"root: POP2(reg,reg)",
 	/* 4 */	"root: reg",
 	/* 5 */	"reg: const",
 	/* 6 */	"reg: cmp",
@@ -2839,39 +2839,25 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			return &z;
 		}
 	case 87: /* POP */
-		{
-			static struct burm_state z = { 87, 0, 0,
-				{	0,
-					0,	/* root: POP */
-					32767,
-					32767,
-					32767,
-				},{
-					1,	/* root: POP */
-					0,
-					0,
-					0,
-				}
-			};
-			return &z;
+		assert(l);
+		{	/* root: POP(reg) */
+			c = l->cost[burm_reg_NT] + 0;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 1;
+			}
 		}
+		break;
 	case 88: /* POP2 */
-		{
-			static struct burm_state z = { 88, 0, 0,
-				{	0,
-					0,	/* root: POP2 */
-					32767,
-					32767,
-					32767,
-				},{
-					2,	/* root: POP2 */
-					0,
-					0,
-					0,
-				}
-			};
-			return &z;
+		assert(l && r);
+		{	/* root: POP2(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 0;
+			if (c + 0 < p->cost[burm_root_NT]) {
+				p->cost[burm_root_NT] = c + 0;
+				p->rule.burm_root = 2;
+			}
 		}
+		break;
 	case 89: /* DUP */
 		{
 			static struct burm_state z = { 89, 0, 0,
@@ -5486,14 +5472,62 @@ NODEPTR_TYPE *burm_kids(NODEPTR_TYPE p, int eruleno, NODEPTR_TYPE kids[]) {
 	case 9: /* const: FCONST */
 	case 8: /* const: DCONST */
 	case 7: /* const: ACONST */
-	case 3: /* root: POP2 */
-	case 2: /* root: POP */
 	case 1: /* reg: NOP */
 		break;
-	case 6: /* reg: cmp */
-	case 5: /* reg: const */
-	case 4: /* root: reg */
-		kids[0] = p;
+	case 184: /* root: ATHROW(reg) */
+	case 173: /* root: TABLESWITCH(reg) */
+	case 172: /* root: LOOKUPSWITCH(reg) */
+	case 157: /* root: IFNULL(reg) */
+	case 156: /* root: IFNONNULL(reg) */
+	case 155: /* root: IFNE(reg) */
+	case 154: /* root: IFLT(reg) */
+	case 153: /* root: IFLE(reg) */
+	case 152: /* root: IFGT(reg) */
+	case 151: /* root: IFGE(reg) */
+	case 150: /* root: IFEQ(reg) */
+	case 149: /* root: IFEQ(reg) */
+	case 147: /* root: LRETURN(const) */
+	case 146: /* root: IRETURN(const) */
+	case 145: /* root: FRETURN(const) */
+	case 144: /* root: DRETURN(const) */
+	case 143: /* root: ARETURN(const) */
+	case 142: /* root: LRETURN(reg) */
+	case 141: /* root: IRETURN(reg) */
+	case 140: /* root: FRETURN(reg) */
+	case 139: /* root: DRETURN(reg) */
+	case 138: /* root: ARETURN(reg) */
+	case 136: /* root: PUTSTATIC(reg) */
+	case 134: /* root: LSTORE(reg) */
+	case 133: /* root: ISTORE(reg) */
+	case 132: /* root: FSTORE(reg) */
+	case 131: /* root: DSTORE(reg) */
+	case 130: /* root: ASTORE(reg) */
+	case 117: /* reg: GETFIELD(reg) */
+	case 114: /* reg: L2I(reg) */
+	case 113: /* reg: L2F(reg) */
+	case 112: /* reg: L2D(reg) */
+	case 111: /* reg: INT2SHORT(reg) */
+	case 110: /* reg: INT2CHAR(reg) */
+	case 109: /* reg: INT2BYTE(reg) */
+	case 108: /* reg: I2L(reg) */
+	case 107: /* reg: I2F(reg) */
+	case 106: /* reg: I2D(reg) */
+	case 105: /* reg: F2L(reg) */
+	case 104: /* reg: F2I(reg) */
+	case 103: /* reg: F2D(reg) */
+	case 102: /* reg: D2L(reg) */
+	case 101: /* reg: D2I(reg) */
+	case 100: /* reg: D2F(reg) */
+	case 97: /* reg: CHECKNULL(reg) */
+	case 96: /* reg: INSTANCEOF(reg) */
+	case 95: /* reg: CHECKCAST(reg) */
+	case 94: /* reg: ARRAYLENGTH(reg) */
+	case 33: /* reg: INEG(reg) */
+	case 32: /* reg: LNEG(reg) */
+	case 31: /* reg: FNEG(reg) */
+	case 30: /* reg: DNEG(reg) */
+	case 2: /* root: POP(reg) */
+		kids[0] = LEFT_CHILD(p);
 		break;
 	case 183: /* reg: BUILTIN(reg,reg) */
 	case 180: /* reg: INVOKEVIRTUAL(reg,reg) */
@@ -5589,62 +5623,14 @@ NODEPTR_TYPE *burm_kids(NODEPTR_TYPE p, int eruleno, NODEPTR_TYPE kids[]) {
 	case 19: /* reg: CALOAD(reg,reg) */
 	case 18: /* reg: BALOAD(reg,reg) */
 	case 17: /* reg: AALOAD(reg,reg) */
+	case 3: /* root: POP2(reg,reg) */
 		kids[0] = LEFT_CHILD(p);
 		kids[1] = RIGHT_CHILD(p);
 		break;
-	case 184: /* root: ATHROW(reg) */
-	case 173: /* root: TABLESWITCH(reg) */
-	case 172: /* root: LOOKUPSWITCH(reg) */
-	case 157: /* root: IFNULL(reg) */
-	case 156: /* root: IFNONNULL(reg) */
-	case 155: /* root: IFNE(reg) */
-	case 154: /* root: IFLT(reg) */
-	case 153: /* root: IFLE(reg) */
-	case 152: /* root: IFGT(reg) */
-	case 151: /* root: IFGE(reg) */
-	case 150: /* root: IFEQ(reg) */
-	case 149: /* root: IFEQ(reg) */
-	case 147: /* root: LRETURN(const) */
-	case 146: /* root: IRETURN(const) */
-	case 145: /* root: FRETURN(const) */
-	case 144: /* root: DRETURN(const) */
-	case 143: /* root: ARETURN(const) */
-	case 142: /* root: LRETURN(reg) */
-	case 141: /* root: IRETURN(reg) */
-	case 140: /* root: FRETURN(reg) */
-	case 139: /* root: DRETURN(reg) */
-	case 138: /* root: ARETURN(reg) */
-	case 136: /* root: PUTSTATIC(reg) */
-	case 134: /* root: LSTORE(reg) */
-	case 133: /* root: ISTORE(reg) */
-	case 132: /* root: FSTORE(reg) */
-	case 131: /* root: DSTORE(reg) */
-	case 130: /* root: ASTORE(reg) */
-	case 117: /* reg: GETFIELD(reg) */
-	case 114: /* reg: L2I(reg) */
-	case 113: /* reg: L2F(reg) */
-	case 112: /* reg: L2D(reg) */
-	case 111: /* reg: INT2SHORT(reg) */
-	case 110: /* reg: INT2CHAR(reg) */
-	case 109: /* reg: INT2BYTE(reg) */
-	case 108: /* reg: I2L(reg) */
-	case 107: /* reg: I2F(reg) */
-	case 106: /* reg: I2D(reg) */
-	case 105: /* reg: F2L(reg) */
-	case 104: /* reg: F2I(reg) */
-	case 103: /* reg: F2D(reg) */
-	case 102: /* reg: D2L(reg) */
-	case 101: /* reg: D2I(reg) */
-	case 100: /* reg: D2F(reg) */
-	case 97: /* reg: CHECKNULL(reg) */
-	case 96: /* reg: INSTANCEOF(reg) */
-	case 95: /* reg: CHECKCAST(reg) */
-	case 94: /* reg: ARRAYLENGTH(reg) */
-	case 33: /* reg: INEG(reg) */
-	case 32: /* reg: LNEG(reg) */
-	case 31: /* reg: FNEG(reg) */
-	case 30: /* reg: DNEG(reg) */
-		kids[0] = LEFT_CHILD(p);
+	case 6: /* reg: cmp */
+	case 5: /* reg: const */
+	case 4: /* root: reg */
+		kids[0] = p;
 		break;
 	default:
 		burm_assert(0, PANIC("Bad external rule number %d in burm_kids\n", eruleno));

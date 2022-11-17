@@ -45,8 +45,8 @@
 // nop
 reg: NOP                # 100 # # codegen_nop(bnode);
 
-root: POP
-root: POP2
+root: POP(reg)
+root: POP2(reg, reg)
 
 // chains
 root: reg
