@@ -5659,8 +5659,14 @@ NODEPTR_TYPE burm_child(NODEPTR_TYPE p, int index) {
 }
 
 #endif
+#if FINITE_STATE_MACHINE
 
+
+
+
+#else
 void burm_reduce(NODEPTR_TYPE bnode, int goalnt);
+#endif
 void burm_reduce(NODEPTR_TYPE bnode, int goalnt)
 {
   int ruleNo = burm_rule (STATE_LABEL(bnode), goalnt);
