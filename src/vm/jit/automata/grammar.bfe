@@ -3,9 +3,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
-//#define DEBUG 1
-
 #include "grammar.h"
+
 %}
 
 %start root
@@ -43,247 +42,238 @@
 %%
 
 // nop
-reg: NOP                # 100 # # codegen_nop(bnode);
+reg: NOP                # 0 # #
 
-root: POP(reg)
-root: POP2(reg, reg)
+root: POP(reg)			# 0 # #
+root: POP2(reg, reg)	# 0 # #
 
 // chains
-root: reg
-reg: const
-reg: cmp
+root: reg				# 0 # #
+reg: const				# 1 # # codegen_push_to_reg(JITDATA(bnode), CURRENT_INST(bnode));
+reg: cmp				# 0 # #
 
 // const
-const: ACONST          # 100 # # codegen_emit_instruction(bnode);
-const: DCONST          # 100 # # codegen_emit_instruction(bnode);
-const: FCONST          # 100 # # codegen_emit_instruction(bnode);
-const: LCONST          # 100 # # codegen_emit_lconst(bnode);
-const: ICONST          # 100 # # codegen_emit_iconst(bnode);
+const: LCONST          # 0 # # remember_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+const: ICONST          # 0 # # remember_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 
-reg: ALOAD           # 100 # # codegen_emit_copy(bnode);
-reg: DLOAD           # 100 # # codegen_emit_copy(bnode);
-reg: FLOAD           # 100 # # codegen_emit_copy(bnode);
-reg: LLOAD           # 100 # # codegen_emit_copy(bnode);
-reg: ILOAD           # 100 # # codegen_emit_copy(bnode);
+reg: ACONST          # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: DCONST          # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: FCONST          # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 
-reg: AALOAD(reg, reg) # 100 # # codegen_emit_instruction(bnode);
-reg: BALOAD(reg, reg) # 100 # # codegen_emit_instruction(bnode);
-reg: CALOAD(reg, reg) # 100 # # codegen_emit_instruction(bnode);
-reg: DALOAD(reg, reg) # 100 # # codegen_emit_instruction(bnode);
-reg: FALOAD(reg, reg) # 100 # # codegen_emit_instruction(bnode);
-reg: LALOAD(reg, reg) # 100 # # codegen_emit_instruction(bnode);
-reg: IALOAD(reg, reg) # 100 # # codegen_emit_instruction(bnode);
-reg: SALOAD(reg, reg) # 100 # # codegen_emit_instruction(bnode);
+reg: ALOAD           # 100 # # codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
+reg: DLOAD           # 100 # # codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
+reg: FLOAD           # 100 # # codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LLOAD           # 100 # # codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
+reg: ILOAD           # 100 # # codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
+
+reg: AALOAD(reg, reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: BALOAD(reg, reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: CALOAD(reg, reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: DALOAD(reg, reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: FALOAD(reg, reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LALOAD(reg, reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: IALOAD(reg, reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: SALOAD(reg, reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 
 // comparisons 2 -- 1
-cmp: DCMPG(reg, reg) # 100 # # codegen_emit_instruction(bnode);
-cmp: DCMPL(reg, reg) # 100 # # codegen_emit_instruction(bnode);
-cmp: FCMPG(reg, reg) # 100 # # codegen_emit_instruction(bnode);
-cmp: FCMPL(reg, reg) # 100 # # codegen_emit_instruction(bnode);
-cmp: LCMP(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+cmp: DCMPG(reg, reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+cmp: DCMPL(reg, reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+cmp: FCMPG(reg, reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+cmp: FCMPL(reg, reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+cmp: LCMP(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 
 // unary arithmetic
-reg: DNEG(reg)       # 100 # # codegen_emit_instruction(bnode);
-reg: FNEG(reg)       # 100 # # codegen_emit_instruction(bnode);
-reg: LNEG(reg)       # 100 # # codegen_emit_instruction(bnode);
-reg: INEG(reg)       # 100 # # codegen_emit_instruction(bnode);
+reg: DNEG(reg)       # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: FNEG(reg)       # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LNEG(reg)       # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: INEG(reg)       # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 
 // binary
-reg: DADD(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: FADD(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: LADD(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: IADD(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: DADD(const, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: FADD(const, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: LADD(const, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: IADD(const, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: DADD(reg, const)  # 100 # # codegen_emit_instruction(bnode);
-reg: FADD(reg, const)  # 100 # # codegen_emit_instruction(bnode);
-reg: LADD(reg, const)  # 100 # # codegen_emit_instruction(bnode);
-reg: IADD(reg, const)  # 100 # # codegen_emit_instruction(bnode);
+reg: DADD(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: FADD(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LADD(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: IADD(reg, reg)  # 100 # # codegen_emit_iadd(JITDATA(bnode), CURRENT_INST(bnode));
 
-reg: DMUL(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: FMUL(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: IMUL(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: LMUL(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: DMUL(const, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: FMUL(const, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: IMUL(const, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: LMUL(const, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: DMUL(reg, const)  # 100 # # codegen_emit_instruction(bnode);
-reg: FMUL(reg, const)  # 100 # # codegen_emit_instruction(bnode);
-reg: IMUL(reg, const)  # 100 # # codegen_emit_instruction(bnode);
-reg: LMUL(reg, const)  # 100 # # codegen_emit_instruction(bnode);
+reg: LADD(const, reg)  # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: IADD(const, reg)  # 10000 # # codegen_emit_iaddconst_right(JITDATA(bnode), CURRENT_INST(bnode), PREV_INST_LEFT(bnode));
+reg: LADD(reg, const)  # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: IADD(reg, const)  # 10000 # # codegen_emit_iaddconst(JITDATA(bnode), CURRENT_INST(bnode), PREV_INST_RIGHT(bnode));
 
-reg: DREM(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: FREM(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: IREM(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: LREM(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: DREM(const, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: FREM(const, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: IREM(const, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: LREM(const, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: DREM(reg, const)  # 100 # # codegen_emit_instruction(bnode);
-reg: FREM(reg, const)  # 100 # # codegen_emit_instruction(bnode);
-reg: IREM(reg, const)  # 100 # # codegen_emit_instruction(bnode);
-reg: LREM(reg, const)  # 100 # # codegen_emit_instruction(bnode);
+reg: DMUL(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: FMUL(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: IMUL(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LMUL(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: IMUL(const, reg)  # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LMUL(const, reg)  # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: IMUL(reg, const)  # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LMUL(reg, const)  # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 
-reg: DSUB(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: FSUB(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: ISUB(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: LSUB(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: DREM(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: FREM(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: IREM(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LREM(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: IREM(const, reg)  # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LREM(const, reg)  # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: IREM(reg, const)  # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LREM(reg, const)  # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 
-reg: DDIV(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: FDIV(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: LDIV(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: IDIV(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: DSUB(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: FSUB(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: ISUB(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LSUB(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 
-reg: IAND(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: LAND(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: IOR(reg, reg)   # 100 # # codegen_emit_instruction(bnode);
-reg: LOR(reg, reg)   # 100 # # codegen_emit_instruction(bnode);
-reg: IXOR(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: LXOR(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: DDIV(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: FDIV(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LDIV(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: IDIV(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 
-reg: ISHL(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: ISHR(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: LSHL(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: LSHR(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
+reg: IAND(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LAND(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: IOR(reg, reg)   # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LOR(reg, reg)   # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: IXOR(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LXOR(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 
-reg: IUSHR(reg, reg) # 100 # # codegen_emit_instruction(bnode);
-reg: LUSHR(reg, reg) # 100 # # codegen_emit_instruction(bnode);
-reg: IUSHR(reg, const) # 100 # # codegen_emit_instruction(bnode);
-reg: LUSHR(reg, const) # 100 # # codegen_emit_instruction(bnode);
-reg: IUSHR(const, reg) # 100 # # codegen_emit_instruction(bnode);
-reg: LUSHR(const, reg) # 100 # # codegen_emit_instruction(bnode);
+reg: ISHL(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: ISHR(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LSHL(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LSHR(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 
-reg: ARRAYLENGTH(reg) # 100 # # codegen_emit_arraylength(bnode);
-reg: CHECKCAST(reg)       # 100 # # codegen_emit_instruction(bnode);
-reg: INSTANCEOF(reg)      # 100 # # codegen_emit_instruction(bnode);
-reg: CHECKNULL(reg)  # 100 # # codegen_emit_checknull(bnode);
-reg: COPY            # 100 # # codegen_emit_copy(bnode);
-reg: MOVE            # 100 # # codegen_emit_copy(bnode);
+reg: IUSHR(reg, reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LUSHR(reg, reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: IUSHR(reg, const) # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LUSHR(reg, const) # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: IUSHR(const, reg) # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: LUSHR(const, reg) # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 
-reg: D2F(reg)        # 100 # # codegen_emit_instruction(bnode);
-reg: D2I(reg)        # 100 # # codegen_emit_instruction(bnode);
-reg: D2L(reg)        # 100 # # codegen_emit_instruction(bnode);
-reg: F2D(reg)        # 100 # # codegen_emit_instruction(bnode);
-reg: F2I(reg)        # 100 # # codegen_emit_instruction(bnode);
-reg: F2L(reg)        # 100 # # codegen_emit_instruction(bnode);
-reg: I2D(reg)        # 100 # # codegen_emit_instruction(bnode);
-reg: I2F(reg)        # 100 # # codegen_emit_instruction(bnode);
-reg: I2L(reg)        # 100 # # codegen_emit_instruction(bnode);
-reg: INT2BYTE(reg)   # 100 # # codegen_emit_instruction(bnode);
-reg: INT2CHAR(reg)   # 100 # # codegen_emit_instruction(bnode);
-reg: INT2SHORT(reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: L2D(reg)        # 100 # # codegen_emit_instruction(bnode);
-reg: L2F(reg)        # 100 # # codegen_emit_instruction(bnode);
-reg: L2I(reg)        # 100 # # codegen_emit_instruction(bnode);
+reg: ARRAYLENGTH(reg) # 100 # # codegen_emit_arraylength(JITDATA(bnode), CURRENT_INST(bnode));
+reg: CHECKCAST(reg)       # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: INSTANCEOF(reg)      # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: CHECKNULL(reg)  # 100 # # codegen_emit_checknull(JITDATA(bnode), CURRENT_INST(bnode));
+reg: COPY            # 100 # # codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
+reg: MOVE            # 100 # # codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
 
-reg: MULTIANEWARRAY(reg, reg)  # 100 # # codegen_emit_instruction(bnode);
-reg: GETEXCEPTION    # 100 # # codegen_emit_getexception(bnode);
-reg: GETFIELD(reg)   # 100 # # codegen_emit_instruction(bnode);
-reg: GETSTATIC       # 100 # # codegen_emit_getstatic(bnode);
+reg: D2F(reg)        # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: D2I(reg)        # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: D2L(reg)        # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: F2D(reg)        # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: F2I(reg)        # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: F2L(reg)        # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: I2D(reg)        # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: I2F(reg)        # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: I2L(reg)        # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: INT2BYTE(reg)   # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: INT2CHAR(reg)   # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: INT2SHORT(reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: L2D(reg)        # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: L2F(reg)        # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: L2I(reg)        # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+
+reg: MULTIANEWARRAY(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: GETEXCEPTION    # 100 # # codegen_emit_getexception(JITDATA(bnode), CURRENT_INST(bnode));
+reg: GETFIELD(reg)   # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+reg: GETSTATIC       # 100 # # codegen_emit_getstatic(JITDATA(bnode), CURRENT_INST(bnode));
 
 // jump
-reg: JSR             # 100 # # codegen_emit_jump(bnode);
+reg: JSR             # 100 # # codegen_emit_jump(JITDATA(bnode), CURRENT_INST(bnode));
 
 // artificial expressions
-reg: PHI             # 100 # # codegen_emit_phi(bnode);
-reg: RESULT             # 100 # # codegen_emit_result(bnode);
+reg: PHI             # 100 # # codegen_emit_phi(JITDATA(bnode), CURRENT_INST(bnode));
+reg: RESULT             # 100 # # codegen_emit_result(JITDATA(bnode), CURRENT_INST(bnode));
 
 // 3 argument store
-root: AASTORE         # 100 # # codegen_emit_instruction(bnode);
-root: BASTORE         # 100 # # codegen_emit_instruction(bnode);
-root: CASTORE         # 100 # # codegen_emit_instruction(bnode);
-root: DASTORE         # 100 # # codegen_emit_instruction(bnode);
-root: FASTORE         # 100 # # codegen_emit_instruction(bnode);
-root: IASTORE         # 100 # # codegen_emit_instruction(bnode);
-root: LASTORE         # 100 # # codegen_emit_instruction(bnode);
-root: SASTORE         # 100 # # codegen_emit_instruction(bnode);
+root: AASTORE         # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+root: BASTORE         # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+root: CASTORE         # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+root: DASTORE         # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+root: FASTORE         # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+root: IASTORE         # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+root: LASTORE         # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+root: SASTORE         # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 
 // simple store
-root: ASTORE(reg)     # 100 # # codegen_emit_astore(bnode);
-root: DSTORE(reg)     # 100 # # codegen_emit_copy(bnode);
-root: FSTORE(reg)     # 100 # # codegen_emit_copy(bnode);
-root: ISTORE(reg)     # 100 # # codegen_emit_copy(bnode);
-root: LSTORE(reg)     # 100 # # codegen_emit_copy(bnode);
+root: ASTORE(reg)     # 100 # # codegen_emit_astore(JITDATA(bnode), CURRENT_INST(bnode));
+root: DSTORE(reg)     # 100 # # codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
+root: FSTORE(reg)     # 100 # # codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
+root: ISTORE(reg)     # 100 # # codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
+root: LSTORE(reg)     # 100 # # codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
 
 // store to field
-root: PUTFIELD(reg, reg) # 100 # # codegen_emit_instruction(bnode);
-root: PUTSTATIC(reg)  # 100 # # codegen_emit_putstatic(bnode);
+root: PUTFIELD(reg, reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+root: PUTSTATIC(reg)  # 100 # # codegen_emit_putstatic(JITDATA(bnode), CURRENT_INST(bnode));
 
 // increment
-root: IINC           # 100 # # codegen_emit_instruction(bnode);
+root: IINC           # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 
 // return
-root: ARETURN(reg)    # 100 # # codegen_emit_return(bnode);
-root: DRETURN(reg)    # 100 # # codegen_emit_return(bnode);
-root: FRETURN(reg)    # 100 # # codegen_emit_return(bnode);
-root: IRETURN(reg)    # 100 # # codegen_emit_return(bnode);
-root: LRETURN(reg)    # 100 # # codegen_emit_return(bnode);
-root: ARETURN(const)    # 100 # # codegen_emit_return(bnode);
-root: DRETURN(const)    # 100 # # codegen_emit_return(bnode);
-root: FRETURN(const)    # 100 # # codegen_emit_return(bnode);
-root: IRETURN(const)    # 100 # # codegen_emit_return(bnode);
-root: LRETURN(const)    # 100 # # codegen_emit_return(bnode);
-root: RETURN          # 100 # # codegen_emit_return(bnode);
+root: ARETURN(reg)    # 100 # # codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
+root: DRETURN(reg)    # 100 # # codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
+root: FRETURN(reg)    # 100 # # codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
+root: IRETURN(reg)    # 100 # # codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
+root: LRETURN(reg)    # 100 # # codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
+root: ARETURN(const)    # 10000 # # codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
+root: DRETURN(const)    # 10000 # # codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
+root: FRETURN(const)    # 10000 # # codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
+root: IRETURN(const)    # 10000 # # codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
+root: LRETURN(const)    # 10000 # # codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
+root: RETURN          # 100 # # codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
 
 // Simple Branches 1 -- 0
-root: IFEQ(reg)       # 100 # # codegen_emit_branch(bnode);
-root: IFEQ(reg)       # 100 # # codegen_emit_branch(bnode);
-root: IFGE(reg)       # 100 # # codegen_emit_branch(bnode);
-root: IFGT(reg)       # 100 # # codegen_emit_branch(bnode);
-root: IFLE(reg)       # 100 # # codegen_emit_branch(bnode);
-root: IFLT(reg)       # 100 # # codegen_emit_branch(bnode);
-root: IFNE(reg)       # 100 # # codegen_emit_branch(bnode);
+root: IFEQ(reg)       # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IFGE(reg)       # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IFGT(reg)       # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IFLE(reg)       # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IFLT(reg)       # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IFNE(reg)       # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
 
-root: IFNONNULL(reg)  # 100 # # codegen_emit_ifnull(bnode);
-root: IFNULL(reg)     # 100 # # codegen_emit_ifnull(bnode);
+root: IFNONNULL(reg)  # 100 # # codegen_emit_ifnull(JITDATA(bnode), CURRENT_INST(bnode));
+root: IFNULL(reg)     # 100 # # codegen_emit_ifnull(JITDATA(bnode), CURRENT_INST(bnode));
 
 // Simple Branches 2 -- 0
-root: IF_ACMPEQ(reg, reg) # 100 # # codegen_emit_branch(bnode);
-root: IF_ACMPNE(reg, reg) # 100 # # codegen_emit_branch(bnode);
+root: IF_ACMPEQ(reg, reg) # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IF_ACMPNE(reg, reg) # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
 
-root: IF_ICMPEQ(reg, reg) # 100 # # codegen_emit_branch(bnode);
-root: IF_ICMPGE(reg, reg) # 100 # # codegen_emit_branch(bnode);
-root: IF_ICMPGT(reg, reg) # 100 # # codegen_emit_branch(bnode);
-root: IF_ICMPLE(reg, reg) # 100 # # codegen_emit_branch(bnode);
-root: IF_ICMPLT(reg, reg) # 100 # # codegen_emit_branch(bnode);
-root: IF_ICMPNE(reg, reg) # 100 # # codegen_emit_branch(bnode);
+root: IF_ICMPEQ(reg, reg) # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IF_ICMPGE(reg, reg) # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IF_ICMPGT(reg, reg) # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IF_ICMPLE(reg, reg) # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IF_ICMPLT(reg, reg) # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IF_ICMPNE(reg, reg) # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
 
-root: IF_LCMPEQ(reg, reg) # 100 # # codegen_emit_branch(bnode);
-root: IF_LCMPGE(reg, reg) # 100 # # codegen_emit_branch(bnode);
-root: IF_LCMPGT(reg, reg) # 100 # # codegen_emit_branch(bnode);
-root: IF_LCMPLE(reg, reg) # 100 # # codegen_emit_branch(bnode);
-root: IF_LCMPLT(reg, reg) # 100 # # codegen_emit_branch(bnode);
-root: IF_LCMPNE(reg, reg) # 100 # # codegen_emit_branch(bnode);
+root: IF_LCMPEQ(reg, reg) # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IF_LCMPGE(reg, reg) # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IF_LCMPGT(reg, reg) # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IF_LCMPLE(reg, reg) # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IF_LCMPLT(reg, reg) # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
+root: IF_LCMPNE(reg, reg) # 100 # # codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
 
 // Table Branch 1 -- 0
-root: LOOKUPSWITCH(reg) # 100 # # codegen_emit_lookup(bnode);
-root: TABLESWITCH(reg) # 100 # # codegen_emit_instruction(bnode);
+root: LOOKUPSWITCH(reg) # 100 # # codegen_emit_lookup(JITDATA(bnode), CURRENT_INST(bnode));
+root: TABLESWITCH(reg) # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 
-root: INLINE_BODY     # 100 # # codegen_emit_inline_body(bnode);
-root: INLINE_END      # 100 # # codegen_emit_inline_end(bnode);
-root: INLINE_START    # 100 # # codegen_emit_inline_start(bnode);
+root: INLINE_BODY     # 100 # # codegen_emit_inline_body(JITDATA(bnode), CURRENT_INST(bnode));
+root: INLINE_END      # 100 # # codegen_emit_inline_end(JITDATA(bnode), CURRENT_INST(bnode));
+root: INLINE_START    # 100 # # codegen_emit_inline_start(JITDATA(bnode), CURRENT_INST(bnode));
 
 // Invoke N -- 0/1
-reg: INVOKEINTERFACE(reg, reg) # 100 # # codegen_emit_invoke(bnode);
-reg: INVOKESPECIAL(reg, reg)   # 100 # # codegen_emit_invoke(bnode);
-reg: INVOKESTATIC(reg, reg)    # 100 # # codegen_emit_invoke(bnode);
-reg: INVOKEVIRTUAL(reg, reg)   # 100 # # codegen_emit_invoke(bnode);
+reg: INVOKEINTERFACE(reg, reg) # 100 # # codegen_emit_invoke(JITDATA(bnode), CURRENT_INST(bnode));
+reg: INVOKESPECIAL(reg, reg)   # 100 # # codegen_emit_invoke(JITDATA(bnode), CURRENT_INST(bnode));
+reg: INVOKESTATIC(reg, reg)    # 100 # # codegen_emit_invoke(JITDATA(bnode), CURRENT_INST(bnode));
+reg: INVOKEVIRTUAL(reg, reg)   # 100 # # codegen_emit_invoke(JITDATA(bnode), CURRENT_INST(bnode));
 
 // other control flow
-root: GOTO            # 100 # # codegen_emit_jump(bnode);
-root: RET             # 100 # # codegen_emit_jump(bnode);
+root: GOTO            # 100 # # codegen_emit_jump(JITDATA(bnode), CURRENT_INST(bnode));
+root: RET             # 100 # # codegen_emit_jump(JITDATA(bnode), CURRENT_INST(bnode));
 
 // builtin
-reg: BUILTIN(reg, reg)    # 100 # # codegen_emit_builtin(bnode);
+reg: BUILTIN(reg, reg)    # 100 # # codegen_emit_builtin(JITDATA(bnode), CURRENT_INST(bnode));
 
 // Exception statements
-root: ATHROW(reg)     # 100 # # codegen_emit_throw(bnode);
-root: BREAKPOINT      # 100 # # codegen_emit_breakpoint(bnode);
+root: ATHROW(reg)     # 100 # # codegen_emit_throw(JITDATA(bnode), CURRENT_INST(bnode));
+root: BREAKPOINT      # 100 # # codegen_emit_breakpoint(JITDATA(bnode), CURRENT_INST(bnode));
 
 %%
-
+#ifdef AUTOMATON_KIND_FSM
+#elif AUTOMATON_KIND_IBURG
 void burm_reduce(NODEPTR_TYPE bnode, int goalnt);
+#endif

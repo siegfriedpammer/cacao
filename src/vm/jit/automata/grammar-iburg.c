@@ -4,9 +4,8 @@ typedef struct burm_state *STATEPTR_TYPE;
 #include <stdlib.h>
 #include <assert.h>
 
-//#define DEBUG 1
-
 #include "grammar.h"
+
 #ifndef ALLOC
 #define ALLOC(n) malloc(n)
 #endif
@@ -37,7 +36,7 @@ struct burm_state {
 	struct {
 		unsigned burm_root:6;
 		unsigned burm_reg:7;
-		unsigned burm_const:3;
+		unsigned burm_const:2;
 		unsigned burm_cmp:3;
 	} rule;
 };
@@ -91,36 +90,36 @@ short *burm_nts[] = {
 	burm_nts_2,	/* 37 */
 	burm_nts_5,	/* 38 */
 	burm_nts_5,	/* 39 */
-	burm_nts_5,	/* 40 */
-	burm_nts_5,	/* 41 */
-	burm_nts_6,	/* 42 */
-	burm_nts_6,	/* 43 */
-	burm_nts_6,	/* 44 */
-	burm_nts_6,	/* 45 */
-	burm_nts_2,	/* 46 */
-	burm_nts_2,	/* 47 */
-	burm_nts_2,	/* 48 */
-	burm_nts_2,	/* 49 */
-	burm_nts_5,	/* 50 */
-	burm_nts_5,	/* 51 */
-	burm_nts_5,	/* 52 */
-	burm_nts_5,	/* 53 */
-	burm_nts_6,	/* 54 */
-	burm_nts_6,	/* 55 */
+	burm_nts_6,	/* 40 */
+	burm_nts_6,	/* 41 */
+	burm_nts_2,	/* 42 */
+	burm_nts_2,	/* 43 */
+	burm_nts_2,	/* 44 */
+	burm_nts_2,	/* 45 */
+	burm_nts_5,	/* 46 */
+	burm_nts_5,	/* 47 */
+	burm_nts_6,	/* 48 */
+	burm_nts_6,	/* 49 */
+	burm_nts_2,	/* 50 */
+	burm_nts_2,	/* 51 */
+	burm_nts_2,	/* 52 */
+	burm_nts_2,	/* 53 */
+	burm_nts_5,	/* 54 */
+	burm_nts_5,	/* 55 */
 	burm_nts_6,	/* 56 */
 	burm_nts_6,	/* 57 */
 	burm_nts_2,	/* 58 */
 	burm_nts_2,	/* 59 */
 	burm_nts_2,	/* 60 */
 	burm_nts_2,	/* 61 */
-	burm_nts_5,	/* 62 */
-	burm_nts_5,	/* 63 */
-	burm_nts_5,	/* 64 */
-	burm_nts_5,	/* 65 */
-	burm_nts_6,	/* 66 */
-	burm_nts_6,	/* 67 */
-	burm_nts_6,	/* 68 */
-	burm_nts_6,	/* 69 */
+	burm_nts_2,	/* 62 */
+	burm_nts_2,	/* 63 */
+	burm_nts_2,	/* 64 */
+	burm_nts_2,	/* 65 */
+	burm_nts_2,	/* 66 */
+	burm_nts_2,	/* 67 */
+	burm_nts_2,	/* 68 */
+	burm_nts_2,	/* 69 */
 	burm_nts_2,	/* 70 */
 	burm_nts_2,	/* 71 */
 	burm_nts_2,	/* 72 */
@@ -129,114 +128,101 @@ short *burm_nts[] = {
 	burm_nts_2,	/* 75 */
 	burm_nts_2,	/* 76 */
 	burm_nts_2,	/* 77 */
-	burm_nts_2,	/* 78 */
-	burm_nts_2,	/* 79 */
-	burm_nts_2,	/* 80 */
-	burm_nts_2,	/* 81 */
-	burm_nts_2,	/* 82 */
-	burm_nts_2,	/* 83 */
-	burm_nts_2,	/* 84 */
-	burm_nts_2,	/* 85 */
-	burm_nts_2,	/* 86 */
-	burm_nts_2,	/* 87 */
-	burm_nts_2,	/* 88 */
-	burm_nts_2,	/* 89 */
-	burm_nts_6,	/* 90 */
-	burm_nts_6,	/* 91 */
-	burm_nts_5,	/* 92 */
-	burm_nts_5,	/* 93 */
+	burm_nts_6,	/* 78 */
+	burm_nts_6,	/* 79 */
+	burm_nts_5,	/* 80 */
+	burm_nts_5,	/* 81 */
+	burm_nts_1,	/* 82 */
+	burm_nts_1,	/* 83 */
+	burm_nts_1,	/* 84 */
+	burm_nts_1,	/* 85 */
+	burm_nts_0,	/* 86 */
+	burm_nts_0,	/* 87 */
+	burm_nts_1,	/* 88 */
+	burm_nts_1,	/* 89 */
+	burm_nts_1,	/* 90 */
+	burm_nts_1,	/* 91 */
+	burm_nts_1,	/* 92 */
+	burm_nts_1,	/* 93 */
 	burm_nts_1,	/* 94 */
 	burm_nts_1,	/* 95 */
 	burm_nts_1,	/* 96 */
 	burm_nts_1,	/* 97 */
-	burm_nts_0,	/* 98 */
-	burm_nts_0,	/* 99 */
+	burm_nts_1,	/* 98 */
+	burm_nts_1,	/* 99 */
 	burm_nts_1,	/* 100 */
 	burm_nts_1,	/* 101 */
 	burm_nts_1,	/* 102 */
-	burm_nts_1,	/* 103 */
-	burm_nts_1,	/* 104 */
+	burm_nts_2,	/* 103 */
+	burm_nts_0,	/* 104 */
 	burm_nts_1,	/* 105 */
-	burm_nts_1,	/* 106 */
-	burm_nts_1,	/* 107 */
-	burm_nts_1,	/* 108 */
-	burm_nts_1,	/* 109 */
-	burm_nts_1,	/* 110 */
-	burm_nts_1,	/* 111 */
-	burm_nts_1,	/* 112 */
-	burm_nts_1,	/* 113 */
-	burm_nts_1,	/* 114 */
-	burm_nts_2,	/* 115 */
+	burm_nts_0,	/* 106 */
+	burm_nts_0,	/* 107 */
+	burm_nts_0,	/* 108 */
+	burm_nts_0,	/* 109 */
+	burm_nts_0,	/* 110 */
+	burm_nts_0,	/* 111 */
+	burm_nts_0,	/* 112 */
+	burm_nts_0,	/* 113 */
+	burm_nts_0,	/* 114 */
+	burm_nts_0,	/* 115 */
 	burm_nts_0,	/* 116 */
-	burm_nts_1,	/* 117 */
-	burm_nts_0,	/* 118 */
-	burm_nts_0,	/* 119 */
-	burm_nts_0,	/* 120 */
-	burm_nts_0,	/* 121 */
-	burm_nts_0,	/* 122 */
-	burm_nts_0,	/* 123 */
-	burm_nts_0,	/* 124 */
+	burm_nts_0,	/* 117 */
+	burm_nts_1,	/* 118 */
+	burm_nts_1,	/* 119 */
+	burm_nts_1,	/* 120 */
+	burm_nts_1,	/* 121 */
+	burm_nts_1,	/* 122 */
+	burm_nts_2,	/* 123 */
+	burm_nts_1,	/* 124 */
 	burm_nts_0,	/* 125 */
-	burm_nts_0,	/* 126 */
-	burm_nts_0,	/* 127 */
-	burm_nts_0,	/* 128 */
-	burm_nts_0,	/* 129 */
+	burm_nts_1,	/* 126 */
+	burm_nts_1,	/* 127 */
+	burm_nts_1,	/* 128 */
+	burm_nts_1,	/* 129 */
 	burm_nts_1,	/* 130 */
-	burm_nts_1,	/* 131 */
-	burm_nts_1,	/* 132 */
-	burm_nts_1,	/* 133 */
-	burm_nts_1,	/* 134 */
-	burm_nts_2,	/* 135 */
-	burm_nts_1,	/* 136 */
-	burm_nts_0,	/* 137 */
+	burm_nts_3,	/* 131 */
+	burm_nts_3,	/* 132 */
+	burm_nts_3,	/* 133 */
+	burm_nts_3,	/* 134 */
+	burm_nts_3,	/* 135 */
+	burm_nts_0,	/* 136 */
+	burm_nts_1,	/* 137 */
 	burm_nts_1,	/* 138 */
 	burm_nts_1,	/* 139 */
 	burm_nts_1,	/* 140 */
 	burm_nts_1,	/* 141 */
 	burm_nts_1,	/* 142 */
-	burm_nts_3,	/* 143 */
-	burm_nts_3,	/* 144 */
-	burm_nts_3,	/* 145 */
-	burm_nts_3,	/* 146 */
-	burm_nts_3,	/* 147 */
-	burm_nts_0,	/* 148 */
-	burm_nts_1,	/* 149 */
-	burm_nts_1,	/* 150 */
-	burm_nts_1,	/* 151 */
-	burm_nts_1,	/* 152 */
-	burm_nts_1,	/* 153 */
-	burm_nts_1,	/* 154 */
-	burm_nts_1,	/* 155 */
-	burm_nts_1,	/* 156 */
-	burm_nts_1,	/* 157 */
+	burm_nts_1,	/* 143 */
+	burm_nts_1,	/* 144 */
+	burm_nts_2,	/* 145 */
+	burm_nts_2,	/* 146 */
+	burm_nts_2,	/* 147 */
+	burm_nts_2,	/* 148 */
+	burm_nts_2,	/* 149 */
+	burm_nts_2,	/* 150 */
+	burm_nts_2,	/* 151 */
+	burm_nts_2,	/* 152 */
+	burm_nts_2,	/* 153 */
+	burm_nts_2,	/* 154 */
+	burm_nts_2,	/* 155 */
+	burm_nts_2,	/* 156 */
+	burm_nts_2,	/* 157 */
 	burm_nts_2,	/* 158 */
-	burm_nts_2,	/* 159 */
-	burm_nts_2,	/* 160 */
-	burm_nts_2,	/* 161 */
-	burm_nts_2,	/* 162 */
-	burm_nts_2,	/* 163 */
+	burm_nts_1,	/* 159 */
+	burm_nts_1,	/* 160 */
+	burm_nts_0,	/* 161 */
+	burm_nts_0,	/* 162 */
+	burm_nts_0,	/* 163 */
 	burm_nts_2,	/* 164 */
 	burm_nts_2,	/* 165 */
 	burm_nts_2,	/* 166 */
 	burm_nts_2,	/* 167 */
-	burm_nts_2,	/* 168 */
-	burm_nts_2,	/* 169 */
+	burm_nts_0,	/* 168 */
+	burm_nts_0,	/* 169 */
 	burm_nts_2,	/* 170 */
-	burm_nts_2,	/* 171 */
-	burm_nts_1,	/* 172 */
-	burm_nts_1,	/* 173 */
-	burm_nts_0,	/* 174 */
-	burm_nts_0,	/* 175 */
-	burm_nts_0,	/* 176 */
-	burm_nts_2,	/* 177 */
-	burm_nts_2,	/* 178 */
-	burm_nts_2,	/* 179 */
-	burm_nts_2,	/* 180 */
-	burm_nts_0,	/* 181 */
-	burm_nts_0,	/* 182 */
-	burm_nts_2,	/* 183 */
-	burm_nts_1,	/* 184 */
-	burm_nts_0,	/* 185 */
+	burm_nts_1,	/* 171 */
+	burm_nts_0,	/* 172 */
 };
 
 char burm_arity[] = {
@@ -849,17 +835,17 @@ char *burm_opname[] = {
 
 short burm_cost[][4] = {
 	{ 0 },	/* 0 */
-	{ 100 },	/* 1 = reg: NOP */
+	{ 0 },	/* 1 = reg: NOP */
 	{ 0 },	/* 2 = root: POP(reg) */
 	{ 0 },	/* 3 = root: POP2(reg,reg) */
 	{ 0 },	/* 4 = root: reg */
-	{ 0 },	/* 5 = reg: const */
+	{ 1 },	/* 5 = reg: const */
 	{ 0 },	/* 6 = reg: cmp */
-	{ 100 },	/* 7 = const: ACONST */
-	{ 100 },	/* 8 = const: DCONST */
-	{ 100 },	/* 9 = const: FCONST */
-	{ 100 },	/* 10 = const: LCONST */
-	{ 100 },	/* 11 = const: ICONST */
+	{ 0 },	/* 7 = const: LCONST */
+	{ 0 },	/* 8 = const: ICONST */
+	{ 100 },	/* 9 = reg: ACONST */
+	{ 100 },	/* 10 = reg: DCONST */
+	{ 100 },	/* 11 = reg: FCONST */
 	{ 100 },	/* 12 = reg: ALOAD */
 	{ 100 },	/* 13 = reg: DLOAD */
 	{ 100 },	/* 14 = reg: FLOAD */
@@ -886,154 +872,141 @@ short burm_cost[][4] = {
 	{ 100 },	/* 35 = reg: FADD(reg,reg) */
 	{ 100 },	/* 36 = reg: LADD(reg,reg) */
 	{ 100 },	/* 37 = reg: IADD(reg,reg) */
-	{ 100 },	/* 38 = reg: DADD(const,reg) */
-	{ 100 },	/* 39 = reg: FADD(const,reg) */
-	{ 100 },	/* 40 = reg: LADD(const,reg) */
-	{ 100 },	/* 41 = reg: IADD(const,reg) */
-	{ 100 },	/* 42 = reg: DADD(reg,const) */
-	{ 100 },	/* 43 = reg: FADD(reg,const) */
-	{ 100 },	/* 44 = reg: LADD(reg,const) */
-	{ 100 },	/* 45 = reg: IADD(reg,const) */
-	{ 100 },	/* 46 = reg: DMUL(reg,reg) */
-	{ 100 },	/* 47 = reg: FMUL(reg,reg) */
-	{ 100 },	/* 48 = reg: IMUL(reg,reg) */
-	{ 100 },	/* 49 = reg: LMUL(reg,reg) */
-	{ 100 },	/* 50 = reg: DMUL(const,reg) */
-	{ 100 },	/* 51 = reg: FMUL(const,reg) */
-	{ 100 },	/* 52 = reg: IMUL(const,reg) */
-	{ 100 },	/* 53 = reg: LMUL(const,reg) */
-	{ 100 },	/* 54 = reg: DMUL(reg,const) */
-	{ 100 },	/* 55 = reg: FMUL(reg,const) */
-	{ 100 },	/* 56 = reg: IMUL(reg,const) */
-	{ 100 },	/* 57 = reg: LMUL(reg,const) */
-	{ 100 },	/* 58 = reg: DREM(reg,reg) */
-	{ 100 },	/* 59 = reg: FREM(reg,reg) */
-	{ 100 },	/* 60 = reg: IREM(reg,reg) */
-	{ 100 },	/* 61 = reg: LREM(reg,reg) */
-	{ 100 },	/* 62 = reg: DREM(const,reg) */
-	{ 100 },	/* 63 = reg: FREM(const,reg) */
-	{ 100 },	/* 64 = reg: IREM(const,reg) */
-	{ 100 },	/* 65 = reg: LREM(const,reg) */
-	{ 100 },	/* 66 = reg: DREM(reg,const) */
-	{ 100 },	/* 67 = reg: FREM(reg,const) */
-	{ 100 },	/* 68 = reg: IREM(reg,const) */
-	{ 100 },	/* 69 = reg: LREM(reg,const) */
-	{ 100 },	/* 70 = reg: DSUB(reg,reg) */
-	{ 100 },	/* 71 = reg: FSUB(reg,reg) */
-	{ 100 },	/* 72 = reg: ISUB(reg,reg) */
-	{ 100 },	/* 73 = reg: LSUB(reg,reg) */
-	{ 100 },	/* 74 = reg: DDIV(reg,reg) */
-	{ 100 },	/* 75 = reg: FDIV(reg,reg) */
-	{ 100 },	/* 76 = reg: LDIV(reg,reg) */
-	{ 100 },	/* 77 = reg: IDIV(reg,reg) */
-	{ 100 },	/* 78 = reg: IAND(reg,reg) */
-	{ 100 },	/* 79 = reg: LAND(reg,reg) */
-	{ 100 },	/* 80 = reg: IOR(reg,reg) */
-	{ 100 },	/* 81 = reg: LOR(reg,reg) */
-	{ 100 },	/* 82 = reg: IXOR(reg,reg) */
-	{ 100 },	/* 83 = reg: LXOR(reg,reg) */
-	{ 100 },	/* 84 = reg: ISHL(reg,reg) */
-	{ 100 },	/* 85 = reg: ISHR(reg,reg) */
-	{ 100 },	/* 86 = reg: LSHL(reg,reg) */
-	{ 100 },	/* 87 = reg: LSHR(reg,reg) */
-	{ 100 },	/* 88 = reg: IUSHR(reg,reg) */
-	{ 100 },	/* 89 = reg: LUSHR(reg,reg) */
-	{ 100 },	/* 90 = reg: IUSHR(reg,const) */
-	{ 100 },	/* 91 = reg: LUSHR(reg,const) */
-	{ 100 },	/* 92 = reg: IUSHR(const,reg) */
-	{ 100 },	/* 93 = reg: LUSHR(const,reg) */
-	{ 100 },	/* 94 = reg: ARRAYLENGTH(reg) */
-	{ 100 },	/* 95 = reg: CHECKCAST(reg) */
-	{ 100 },	/* 96 = reg: INSTANCEOF(reg) */
-	{ 100 },	/* 97 = reg: CHECKNULL(reg) */
-	{ 100 },	/* 98 = reg: COPY */
-	{ 100 },	/* 99 = reg: MOVE */
-	{ 100 },	/* 100 = reg: D2F(reg) */
-	{ 100 },	/* 101 = reg: D2I(reg) */
-	{ 100 },	/* 102 = reg: D2L(reg) */
-	{ 100 },	/* 103 = reg: F2D(reg) */
-	{ 100 },	/* 104 = reg: F2I(reg) */
-	{ 100 },	/* 105 = reg: F2L(reg) */
-	{ 100 },	/* 106 = reg: I2D(reg) */
-	{ 100 },	/* 107 = reg: I2F(reg) */
-	{ 100 },	/* 108 = reg: I2L(reg) */
-	{ 100 },	/* 109 = reg: INT2BYTE(reg) */
-	{ 100 },	/* 110 = reg: INT2CHAR(reg) */
-	{ 100 },	/* 111 = reg: INT2SHORT(reg) */
-	{ 100 },	/* 112 = reg: L2D(reg) */
-	{ 100 },	/* 113 = reg: L2F(reg) */
-	{ 100 },	/* 114 = reg: L2I(reg) */
-	{ 100 },	/* 115 = reg: MULTIANEWARRAY(reg,reg) */
-	{ 100 },	/* 116 = reg: GETEXCEPTION */
-	{ 100 },	/* 117 = reg: GETFIELD(reg) */
-	{ 100 },	/* 118 = reg: GETSTATIC */
-	{ 100 },	/* 119 = reg: JSR */
-	{ 100 },	/* 120 = reg: PHI */
-	{ 100 },	/* 121 = reg: RESULT */
-	{ 100 },	/* 122 = root: AASTORE */
-	{ 100 },	/* 123 = root: BASTORE */
-	{ 100 },	/* 124 = root: CASTORE */
-	{ 100 },	/* 125 = root: DASTORE */
-	{ 100 },	/* 126 = root: FASTORE */
-	{ 100 },	/* 127 = root: IASTORE */
-	{ 100 },	/* 128 = root: LASTORE */
-	{ 100 },	/* 129 = root: SASTORE */
-	{ 100 },	/* 130 = root: ASTORE(reg) */
-	{ 100 },	/* 131 = root: DSTORE(reg) */
-	{ 100 },	/* 132 = root: FSTORE(reg) */
-	{ 100 },	/* 133 = root: ISTORE(reg) */
-	{ 100 },	/* 134 = root: LSTORE(reg) */
-	{ 100 },	/* 135 = root: PUTFIELD(reg,reg) */
-	{ 100 },	/* 136 = root: PUTSTATIC(reg) */
-	{ 100 },	/* 137 = root: IINC */
-	{ 100 },	/* 138 = root: ARETURN(reg) */
-	{ 100 },	/* 139 = root: DRETURN(reg) */
-	{ 100 },	/* 140 = root: FRETURN(reg) */
-	{ 100 },	/* 141 = root: IRETURN(reg) */
-	{ 100 },	/* 142 = root: LRETURN(reg) */
-	{ 100 },	/* 143 = root: ARETURN(const) */
-	{ 100 },	/* 144 = root: DRETURN(const) */
-	{ 100 },	/* 145 = root: FRETURN(const) */
-	{ 100 },	/* 146 = root: IRETURN(const) */
-	{ 100 },	/* 147 = root: LRETURN(const) */
-	{ 100 },	/* 148 = root: RETURN */
-	{ 100 },	/* 149 = root: IFEQ(reg) */
-	{ 100 },	/* 150 = root: IFEQ(reg) */
-	{ 100 },	/* 151 = root: IFGE(reg) */
-	{ 100 },	/* 152 = root: IFGT(reg) */
-	{ 100 },	/* 153 = root: IFLE(reg) */
-	{ 100 },	/* 154 = root: IFLT(reg) */
-	{ 100 },	/* 155 = root: IFNE(reg) */
-	{ 100 },	/* 156 = root: IFNONNULL(reg) */
-	{ 100 },	/* 157 = root: IFNULL(reg) */
-	{ 100 },	/* 158 = root: IF_ACMPEQ(reg,reg) */
-	{ 100 },	/* 159 = root: IF_ACMPNE(reg,reg) */
-	{ 100 },	/* 160 = root: IF_ICMPEQ(reg,reg) */
-	{ 100 },	/* 161 = root: IF_ICMPGE(reg,reg) */
-	{ 100 },	/* 162 = root: IF_ICMPGT(reg,reg) */
-	{ 100 },	/* 163 = root: IF_ICMPLE(reg,reg) */
-	{ 100 },	/* 164 = root: IF_ICMPLT(reg,reg) */
-	{ 100 },	/* 165 = root: IF_ICMPNE(reg,reg) */
-	{ 100 },	/* 166 = root: IF_LCMPEQ(reg,reg) */
-	{ 100 },	/* 167 = root: IF_LCMPGE(reg,reg) */
-	{ 100 },	/* 168 = root: IF_LCMPGT(reg,reg) */
-	{ 100 },	/* 169 = root: IF_LCMPLE(reg,reg) */
-	{ 100 },	/* 170 = root: IF_LCMPLT(reg,reg) */
-	{ 100 },	/* 171 = root: IF_LCMPNE(reg,reg) */
-	{ 100 },	/* 172 = root: LOOKUPSWITCH(reg) */
-	{ 100 },	/* 173 = root: TABLESWITCH(reg) */
-	{ 100 },	/* 174 = root: INLINE_BODY */
-	{ 100 },	/* 175 = root: INLINE_END */
-	{ 100 },	/* 176 = root: INLINE_START */
-	{ 100 },	/* 177 = reg: INVOKEINTERFACE(reg,reg) */
-	{ 100 },	/* 178 = reg: INVOKESPECIAL(reg,reg) */
-	{ 100 },	/* 179 = reg: INVOKESTATIC(reg,reg) */
-	{ 100 },	/* 180 = reg: INVOKEVIRTUAL(reg,reg) */
-	{ 100 },	/* 181 = root: GOTO */
-	{ 100 },	/* 182 = root: RET */
-	{ 100 },	/* 183 = reg: BUILTIN(reg,reg) */
-	{ 100 },	/* 184 = root: ATHROW(reg) */
-	{ 100 },	/* 185 = root: BREAKPOINT */
+	{ 10000 },	/* 38 = reg: LADD(const,reg) */
+	{ 10000 },	/* 39 = reg: IADD(const,reg) */
+	{ 10000 },	/* 40 = reg: LADD(reg,const) */
+	{ 10000 },	/* 41 = reg: IADD(reg,const) */
+	{ 100 },	/* 42 = reg: DMUL(reg,reg) */
+	{ 100 },	/* 43 = reg: FMUL(reg,reg) */
+	{ 100 },	/* 44 = reg: IMUL(reg,reg) */
+	{ 100 },	/* 45 = reg: LMUL(reg,reg) */
+	{ 10000 },	/* 46 = reg: IMUL(const,reg) */
+	{ 10000 },	/* 47 = reg: LMUL(const,reg) */
+	{ 10000 },	/* 48 = reg: IMUL(reg,const) */
+	{ 10000 },	/* 49 = reg: LMUL(reg,const) */
+	{ 100 },	/* 50 = reg: DREM(reg,reg) */
+	{ 100 },	/* 51 = reg: FREM(reg,reg) */
+	{ 100 },	/* 52 = reg: IREM(reg,reg) */
+	{ 100 },	/* 53 = reg: LREM(reg,reg) */
+	{ 10000 },	/* 54 = reg: IREM(const,reg) */
+	{ 10000 },	/* 55 = reg: LREM(const,reg) */
+	{ 10000 },	/* 56 = reg: IREM(reg,const) */
+	{ 10000 },	/* 57 = reg: LREM(reg,const) */
+	{ 100 },	/* 58 = reg: DSUB(reg,reg) */
+	{ 100 },	/* 59 = reg: FSUB(reg,reg) */
+	{ 100 },	/* 60 = reg: ISUB(reg,reg) */
+	{ 100 },	/* 61 = reg: LSUB(reg,reg) */
+	{ 100 },	/* 62 = reg: DDIV(reg,reg) */
+	{ 100 },	/* 63 = reg: FDIV(reg,reg) */
+	{ 100 },	/* 64 = reg: LDIV(reg,reg) */
+	{ 100 },	/* 65 = reg: IDIV(reg,reg) */
+	{ 100 },	/* 66 = reg: IAND(reg,reg) */
+	{ 100 },	/* 67 = reg: LAND(reg,reg) */
+	{ 100 },	/* 68 = reg: IOR(reg,reg) */
+	{ 100 },	/* 69 = reg: LOR(reg,reg) */
+	{ 100 },	/* 70 = reg: IXOR(reg,reg) */
+	{ 100 },	/* 71 = reg: LXOR(reg,reg) */
+	{ 100 },	/* 72 = reg: ISHL(reg,reg) */
+	{ 100 },	/* 73 = reg: ISHR(reg,reg) */
+	{ 100 },	/* 74 = reg: LSHL(reg,reg) */
+	{ 100 },	/* 75 = reg: LSHR(reg,reg) */
+	{ 100 },	/* 76 = reg: IUSHR(reg,reg) */
+	{ 100 },	/* 77 = reg: LUSHR(reg,reg) */
+	{ 10000 },	/* 78 = reg: IUSHR(reg,const) */
+	{ 10000 },	/* 79 = reg: LUSHR(reg,const) */
+	{ 10000 },	/* 80 = reg: IUSHR(const,reg) */
+	{ 10000 },	/* 81 = reg: LUSHR(const,reg) */
+	{ 100 },	/* 82 = reg: ARRAYLENGTH(reg) */
+	{ 100 },	/* 83 = reg: CHECKCAST(reg) */
+	{ 100 },	/* 84 = reg: INSTANCEOF(reg) */
+	{ 100 },	/* 85 = reg: CHECKNULL(reg) */
+	{ 100 },	/* 86 = reg: COPY */
+	{ 100 },	/* 87 = reg: MOVE */
+	{ 100 },	/* 88 = reg: D2F(reg) */
+	{ 100 },	/* 89 = reg: D2I(reg) */
+	{ 100 },	/* 90 = reg: D2L(reg) */
+	{ 100 },	/* 91 = reg: F2D(reg) */
+	{ 100 },	/* 92 = reg: F2I(reg) */
+	{ 100 },	/* 93 = reg: F2L(reg) */
+	{ 100 },	/* 94 = reg: I2D(reg) */
+	{ 100 },	/* 95 = reg: I2F(reg) */
+	{ 100 },	/* 96 = reg: I2L(reg) */
+	{ 100 },	/* 97 = reg: INT2BYTE(reg) */
+	{ 100 },	/* 98 = reg: INT2CHAR(reg) */
+	{ 100 },	/* 99 = reg: INT2SHORT(reg) */
+	{ 100 },	/* 100 = reg: L2D(reg) */
+	{ 100 },	/* 101 = reg: L2F(reg) */
+	{ 100 },	/* 102 = reg: L2I(reg) */
+	{ 100 },	/* 103 = reg: MULTIANEWARRAY(reg,reg) */
+	{ 100 },	/* 104 = reg: GETEXCEPTION */
+	{ 100 },	/* 105 = reg: GETFIELD(reg) */
+	{ 100 },	/* 106 = reg: GETSTATIC */
+	{ 100 },	/* 107 = reg: JSR */
+	{ 100 },	/* 108 = reg: PHI */
+	{ 100 },	/* 109 = reg: RESULT */
+	{ 100 },	/* 110 = root: AASTORE */
+	{ 100 },	/* 111 = root: BASTORE */
+	{ 100 },	/* 112 = root: CASTORE */
+	{ 100 },	/* 113 = root: DASTORE */
+	{ 100 },	/* 114 = root: FASTORE */
+	{ 100 },	/* 115 = root: IASTORE */
+	{ 100 },	/* 116 = root: LASTORE */
+	{ 100 },	/* 117 = root: SASTORE */
+	{ 100 },	/* 118 = root: ASTORE(reg) */
+	{ 100 },	/* 119 = root: DSTORE(reg) */
+	{ 100 },	/* 120 = root: FSTORE(reg) */
+	{ 100 },	/* 121 = root: ISTORE(reg) */
+	{ 100 },	/* 122 = root: LSTORE(reg) */
+	{ 100 },	/* 123 = root: PUTFIELD(reg,reg) */
+	{ 100 },	/* 124 = root: PUTSTATIC(reg) */
+	{ 100 },	/* 125 = root: IINC */
+	{ 100 },	/* 126 = root: ARETURN(reg) */
+	{ 100 },	/* 127 = root: DRETURN(reg) */
+	{ 100 },	/* 128 = root: FRETURN(reg) */
+	{ 100 },	/* 129 = root: IRETURN(reg) */
+	{ 100 },	/* 130 = root: LRETURN(reg) */
+	{ 10000 },	/* 131 = root: ARETURN(const) */
+	{ 10000 },	/* 132 = root: DRETURN(const) */
+	{ 10000 },	/* 133 = root: FRETURN(const) */
+	{ 10000 },	/* 134 = root: IRETURN(const) */
+	{ 10000 },	/* 135 = root: LRETURN(const) */
+	{ 100 },	/* 136 = root: RETURN */
+	{ 100 },	/* 137 = root: IFEQ(reg) */
+	{ 100 },	/* 138 = root: IFGE(reg) */
+	{ 100 },	/* 139 = root: IFGT(reg) */
+	{ 100 },	/* 140 = root: IFLE(reg) */
+	{ 100 },	/* 141 = root: IFLT(reg) */
+	{ 100 },	/* 142 = root: IFNE(reg) */
+	{ 100 },	/* 143 = root: IFNONNULL(reg) */
+	{ 100 },	/* 144 = root: IFNULL(reg) */
+	{ 100 },	/* 145 = root: IF_ACMPEQ(reg,reg) */
+	{ 100 },	/* 146 = root: IF_ACMPNE(reg,reg) */
+	{ 100 },	/* 147 = root: IF_ICMPEQ(reg,reg) */
+	{ 100 },	/* 148 = root: IF_ICMPGE(reg,reg) */
+	{ 100 },	/* 149 = root: IF_ICMPGT(reg,reg) */
+	{ 100 },	/* 150 = root: IF_ICMPLE(reg,reg) */
+	{ 100 },	/* 151 = root: IF_ICMPLT(reg,reg) */
+	{ 100 },	/* 152 = root: IF_ICMPNE(reg,reg) */
+	{ 100 },	/* 153 = root: IF_LCMPEQ(reg,reg) */
+	{ 100 },	/* 154 = root: IF_LCMPGE(reg,reg) */
+	{ 100 },	/* 155 = root: IF_LCMPGT(reg,reg) */
+	{ 100 },	/* 156 = root: IF_LCMPLE(reg,reg) */
+	{ 100 },	/* 157 = root: IF_LCMPLT(reg,reg) */
+	{ 100 },	/* 158 = root: IF_LCMPNE(reg,reg) */
+	{ 100 },	/* 159 = root: LOOKUPSWITCH(reg) */
+	{ 100 },	/* 160 = root: TABLESWITCH(reg) */
+	{ 100 },	/* 161 = root: INLINE_BODY */
+	{ 100 },	/* 162 = root: INLINE_END */
+	{ 100 },	/* 163 = root: INLINE_START */
+	{ 100 },	/* 164 = reg: INVOKEINTERFACE(reg,reg) */
+	{ 100 },	/* 165 = reg: INVOKESPECIAL(reg,reg) */
+	{ 100 },	/* 166 = reg: INVOKESTATIC(reg,reg) */
+	{ 100 },	/* 167 = reg: INVOKEVIRTUAL(reg,reg) */
+	{ 100 },	/* 168 = root: GOTO */
+	{ 100 },	/* 169 = root: RET */
+	{ 100 },	/* 170 = reg: BUILTIN(reg,reg) */
+	{ 100 },	/* 171 = root: ATHROW(reg) */
+	{ 100 },	/* 172 = root: BREAKPOINT */
 };
 
 char *burm_string[] = {
@@ -1044,11 +1017,11 @@ char *burm_string[] = {
 	/* 4 */	"root: reg",
 	/* 5 */	"reg: const",
 	/* 6 */	"reg: cmp",
-	/* 7 */	"const: ACONST",
-	/* 8 */	"const: DCONST",
-	/* 9 */	"const: FCONST",
-	/* 10 */	"const: LCONST",
-	/* 11 */	"const: ICONST",
+	/* 7 */	"const: LCONST",
+	/* 8 */	"const: ICONST",
+	/* 9 */	"reg: ACONST",
+	/* 10 */	"reg: DCONST",
+	/* 11 */	"reg: FCONST",
 	/* 12 */	"reg: ALOAD",
 	/* 13 */	"reg: DLOAD",
 	/* 14 */	"reg: FLOAD",
@@ -1075,154 +1048,141 @@ char *burm_string[] = {
 	/* 35 */	"reg: FADD(reg,reg)",
 	/* 36 */	"reg: LADD(reg,reg)",
 	/* 37 */	"reg: IADD(reg,reg)",
-	/* 38 */	"reg: DADD(const,reg)",
-	/* 39 */	"reg: FADD(const,reg)",
-	/* 40 */	"reg: LADD(const,reg)",
-	/* 41 */	"reg: IADD(const,reg)",
-	/* 42 */	"reg: DADD(reg,const)",
-	/* 43 */	"reg: FADD(reg,const)",
-	/* 44 */	"reg: LADD(reg,const)",
-	/* 45 */	"reg: IADD(reg,const)",
-	/* 46 */	"reg: DMUL(reg,reg)",
-	/* 47 */	"reg: FMUL(reg,reg)",
-	/* 48 */	"reg: IMUL(reg,reg)",
-	/* 49 */	"reg: LMUL(reg,reg)",
-	/* 50 */	"reg: DMUL(const,reg)",
-	/* 51 */	"reg: FMUL(const,reg)",
-	/* 52 */	"reg: IMUL(const,reg)",
-	/* 53 */	"reg: LMUL(const,reg)",
-	/* 54 */	"reg: DMUL(reg,const)",
-	/* 55 */	"reg: FMUL(reg,const)",
-	/* 56 */	"reg: IMUL(reg,const)",
-	/* 57 */	"reg: LMUL(reg,const)",
-	/* 58 */	"reg: DREM(reg,reg)",
-	/* 59 */	"reg: FREM(reg,reg)",
-	/* 60 */	"reg: IREM(reg,reg)",
-	/* 61 */	"reg: LREM(reg,reg)",
-	/* 62 */	"reg: DREM(const,reg)",
-	/* 63 */	"reg: FREM(const,reg)",
-	/* 64 */	"reg: IREM(const,reg)",
-	/* 65 */	"reg: LREM(const,reg)",
-	/* 66 */	"reg: DREM(reg,const)",
-	/* 67 */	"reg: FREM(reg,const)",
-	/* 68 */	"reg: IREM(reg,const)",
-	/* 69 */	"reg: LREM(reg,const)",
-	/* 70 */	"reg: DSUB(reg,reg)",
-	/* 71 */	"reg: FSUB(reg,reg)",
-	/* 72 */	"reg: ISUB(reg,reg)",
-	/* 73 */	"reg: LSUB(reg,reg)",
-	/* 74 */	"reg: DDIV(reg,reg)",
-	/* 75 */	"reg: FDIV(reg,reg)",
-	/* 76 */	"reg: LDIV(reg,reg)",
-	/* 77 */	"reg: IDIV(reg,reg)",
-	/* 78 */	"reg: IAND(reg,reg)",
-	/* 79 */	"reg: LAND(reg,reg)",
-	/* 80 */	"reg: IOR(reg,reg)",
-	/* 81 */	"reg: LOR(reg,reg)",
-	/* 82 */	"reg: IXOR(reg,reg)",
-	/* 83 */	"reg: LXOR(reg,reg)",
-	/* 84 */	"reg: ISHL(reg,reg)",
-	/* 85 */	"reg: ISHR(reg,reg)",
-	/* 86 */	"reg: LSHL(reg,reg)",
-	/* 87 */	"reg: LSHR(reg,reg)",
-	/* 88 */	"reg: IUSHR(reg,reg)",
-	/* 89 */	"reg: LUSHR(reg,reg)",
-	/* 90 */	"reg: IUSHR(reg,const)",
-	/* 91 */	"reg: LUSHR(reg,const)",
-	/* 92 */	"reg: IUSHR(const,reg)",
-	/* 93 */	"reg: LUSHR(const,reg)",
-	/* 94 */	"reg: ARRAYLENGTH(reg)",
-	/* 95 */	"reg: CHECKCAST(reg)",
-	/* 96 */	"reg: INSTANCEOF(reg)",
-	/* 97 */	"reg: CHECKNULL(reg)",
-	/* 98 */	"reg: COPY",
-	/* 99 */	"reg: MOVE",
-	/* 100 */	"reg: D2F(reg)",
-	/* 101 */	"reg: D2I(reg)",
-	/* 102 */	"reg: D2L(reg)",
-	/* 103 */	"reg: F2D(reg)",
-	/* 104 */	"reg: F2I(reg)",
-	/* 105 */	"reg: F2L(reg)",
-	/* 106 */	"reg: I2D(reg)",
-	/* 107 */	"reg: I2F(reg)",
-	/* 108 */	"reg: I2L(reg)",
-	/* 109 */	"reg: INT2BYTE(reg)",
-	/* 110 */	"reg: INT2CHAR(reg)",
-	/* 111 */	"reg: INT2SHORT(reg)",
-	/* 112 */	"reg: L2D(reg)",
-	/* 113 */	"reg: L2F(reg)",
-	/* 114 */	"reg: L2I(reg)",
-	/* 115 */	"reg: MULTIANEWARRAY(reg,reg)",
-	/* 116 */	"reg: GETEXCEPTION",
-	/* 117 */	"reg: GETFIELD(reg)",
-	/* 118 */	"reg: GETSTATIC",
-	/* 119 */	"reg: JSR",
-	/* 120 */	"reg: PHI",
-	/* 121 */	"reg: RESULT",
-	/* 122 */	"root: AASTORE",
-	/* 123 */	"root: BASTORE",
-	/* 124 */	"root: CASTORE",
-	/* 125 */	"root: DASTORE",
-	/* 126 */	"root: FASTORE",
-	/* 127 */	"root: IASTORE",
-	/* 128 */	"root: LASTORE",
-	/* 129 */	"root: SASTORE",
-	/* 130 */	"root: ASTORE(reg)",
-	/* 131 */	"root: DSTORE(reg)",
-	/* 132 */	"root: FSTORE(reg)",
-	/* 133 */	"root: ISTORE(reg)",
-	/* 134 */	"root: LSTORE(reg)",
-	/* 135 */	"root: PUTFIELD(reg,reg)",
-	/* 136 */	"root: PUTSTATIC(reg)",
-	/* 137 */	"root: IINC",
-	/* 138 */	"root: ARETURN(reg)",
-	/* 139 */	"root: DRETURN(reg)",
-	/* 140 */	"root: FRETURN(reg)",
-	/* 141 */	"root: IRETURN(reg)",
-	/* 142 */	"root: LRETURN(reg)",
-	/* 143 */	"root: ARETURN(const)",
-	/* 144 */	"root: DRETURN(const)",
-	/* 145 */	"root: FRETURN(const)",
-	/* 146 */	"root: IRETURN(const)",
-	/* 147 */	"root: LRETURN(const)",
-	/* 148 */	"root: RETURN",
-	/* 149 */	"root: IFEQ(reg)",
-	/* 150 */	"root: IFEQ(reg)",
-	/* 151 */	"root: IFGE(reg)",
-	/* 152 */	"root: IFGT(reg)",
-	/* 153 */	"root: IFLE(reg)",
-	/* 154 */	"root: IFLT(reg)",
-	/* 155 */	"root: IFNE(reg)",
-	/* 156 */	"root: IFNONNULL(reg)",
-	/* 157 */	"root: IFNULL(reg)",
-	/* 158 */	"root: IF_ACMPEQ(reg,reg)",
-	/* 159 */	"root: IF_ACMPNE(reg,reg)",
-	/* 160 */	"root: IF_ICMPEQ(reg,reg)",
-	/* 161 */	"root: IF_ICMPGE(reg,reg)",
-	/* 162 */	"root: IF_ICMPGT(reg,reg)",
-	/* 163 */	"root: IF_ICMPLE(reg,reg)",
-	/* 164 */	"root: IF_ICMPLT(reg,reg)",
-	/* 165 */	"root: IF_ICMPNE(reg,reg)",
-	/* 166 */	"root: IF_LCMPEQ(reg,reg)",
-	/* 167 */	"root: IF_LCMPGE(reg,reg)",
-	/* 168 */	"root: IF_LCMPGT(reg,reg)",
-	/* 169 */	"root: IF_LCMPLE(reg,reg)",
-	/* 170 */	"root: IF_LCMPLT(reg,reg)",
-	/* 171 */	"root: IF_LCMPNE(reg,reg)",
-	/* 172 */	"root: LOOKUPSWITCH(reg)",
-	/* 173 */	"root: TABLESWITCH(reg)",
-	/* 174 */	"root: INLINE_BODY",
-	/* 175 */	"root: INLINE_END",
-	/* 176 */	"root: INLINE_START",
-	/* 177 */	"reg: INVOKEINTERFACE(reg,reg)",
-	/* 178 */	"reg: INVOKESPECIAL(reg,reg)",
-	/* 179 */	"reg: INVOKESTATIC(reg,reg)",
-	/* 180 */	"reg: INVOKEVIRTUAL(reg,reg)",
-	/* 181 */	"root: GOTO",
-	/* 182 */	"root: RET",
-	/* 183 */	"reg: BUILTIN(reg,reg)",
-	/* 184 */	"root: ATHROW(reg)",
-	/* 185 */	"root: BREAKPOINT",
+	/* 38 */	"reg: LADD(const,reg)",
+	/* 39 */	"reg: IADD(const,reg)",
+	/* 40 */	"reg: LADD(reg,const)",
+	/* 41 */	"reg: IADD(reg,const)",
+	/* 42 */	"reg: DMUL(reg,reg)",
+	/* 43 */	"reg: FMUL(reg,reg)",
+	/* 44 */	"reg: IMUL(reg,reg)",
+	/* 45 */	"reg: LMUL(reg,reg)",
+	/* 46 */	"reg: IMUL(const,reg)",
+	/* 47 */	"reg: LMUL(const,reg)",
+	/* 48 */	"reg: IMUL(reg,const)",
+	/* 49 */	"reg: LMUL(reg,const)",
+	/* 50 */	"reg: DREM(reg,reg)",
+	/* 51 */	"reg: FREM(reg,reg)",
+	/* 52 */	"reg: IREM(reg,reg)",
+	/* 53 */	"reg: LREM(reg,reg)",
+	/* 54 */	"reg: IREM(const,reg)",
+	/* 55 */	"reg: LREM(const,reg)",
+	/* 56 */	"reg: IREM(reg,const)",
+	/* 57 */	"reg: LREM(reg,const)",
+	/* 58 */	"reg: DSUB(reg,reg)",
+	/* 59 */	"reg: FSUB(reg,reg)",
+	/* 60 */	"reg: ISUB(reg,reg)",
+	/* 61 */	"reg: LSUB(reg,reg)",
+	/* 62 */	"reg: DDIV(reg,reg)",
+	/* 63 */	"reg: FDIV(reg,reg)",
+	/* 64 */	"reg: LDIV(reg,reg)",
+	/* 65 */	"reg: IDIV(reg,reg)",
+	/* 66 */	"reg: IAND(reg,reg)",
+	/* 67 */	"reg: LAND(reg,reg)",
+	/* 68 */	"reg: IOR(reg,reg)",
+	/* 69 */	"reg: LOR(reg,reg)",
+	/* 70 */	"reg: IXOR(reg,reg)",
+	/* 71 */	"reg: LXOR(reg,reg)",
+	/* 72 */	"reg: ISHL(reg,reg)",
+	/* 73 */	"reg: ISHR(reg,reg)",
+	/* 74 */	"reg: LSHL(reg,reg)",
+	/* 75 */	"reg: LSHR(reg,reg)",
+	/* 76 */	"reg: IUSHR(reg,reg)",
+	/* 77 */	"reg: LUSHR(reg,reg)",
+	/* 78 */	"reg: IUSHR(reg,const)",
+	/* 79 */	"reg: LUSHR(reg,const)",
+	/* 80 */	"reg: IUSHR(const,reg)",
+	/* 81 */	"reg: LUSHR(const,reg)",
+	/* 82 */	"reg: ARRAYLENGTH(reg)",
+	/* 83 */	"reg: CHECKCAST(reg)",
+	/* 84 */	"reg: INSTANCEOF(reg)",
+	/* 85 */	"reg: CHECKNULL(reg)",
+	/* 86 */	"reg: COPY",
+	/* 87 */	"reg: MOVE",
+	/* 88 */	"reg: D2F(reg)",
+	/* 89 */	"reg: D2I(reg)",
+	/* 90 */	"reg: D2L(reg)",
+	/* 91 */	"reg: F2D(reg)",
+	/* 92 */	"reg: F2I(reg)",
+	/* 93 */	"reg: F2L(reg)",
+	/* 94 */	"reg: I2D(reg)",
+	/* 95 */	"reg: I2F(reg)",
+	/* 96 */	"reg: I2L(reg)",
+	/* 97 */	"reg: INT2BYTE(reg)",
+	/* 98 */	"reg: INT2CHAR(reg)",
+	/* 99 */	"reg: INT2SHORT(reg)",
+	/* 100 */	"reg: L2D(reg)",
+	/* 101 */	"reg: L2F(reg)",
+	/* 102 */	"reg: L2I(reg)",
+	/* 103 */	"reg: MULTIANEWARRAY(reg,reg)",
+	/* 104 */	"reg: GETEXCEPTION",
+	/* 105 */	"reg: GETFIELD(reg)",
+	/* 106 */	"reg: GETSTATIC",
+	/* 107 */	"reg: JSR",
+	/* 108 */	"reg: PHI",
+	/* 109 */	"reg: RESULT",
+	/* 110 */	"root: AASTORE",
+	/* 111 */	"root: BASTORE",
+	/* 112 */	"root: CASTORE",
+	/* 113 */	"root: DASTORE",
+	/* 114 */	"root: FASTORE",
+	/* 115 */	"root: IASTORE",
+	/* 116 */	"root: LASTORE",
+	/* 117 */	"root: SASTORE",
+	/* 118 */	"root: ASTORE(reg)",
+	/* 119 */	"root: DSTORE(reg)",
+	/* 120 */	"root: FSTORE(reg)",
+	/* 121 */	"root: ISTORE(reg)",
+	/* 122 */	"root: LSTORE(reg)",
+	/* 123 */	"root: PUTFIELD(reg,reg)",
+	/* 124 */	"root: PUTSTATIC(reg)",
+	/* 125 */	"root: IINC",
+	/* 126 */	"root: ARETURN(reg)",
+	/* 127 */	"root: DRETURN(reg)",
+	/* 128 */	"root: FRETURN(reg)",
+	/* 129 */	"root: IRETURN(reg)",
+	/* 130 */	"root: LRETURN(reg)",
+	/* 131 */	"root: ARETURN(const)",
+	/* 132 */	"root: DRETURN(const)",
+	/* 133 */	"root: FRETURN(const)",
+	/* 134 */	"root: IRETURN(const)",
+	/* 135 */	"root: LRETURN(const)",
+	/* 136 */	"root: RETURN",
+	/* 137 */	"root: IFEQ(reg)",
+	/* 138 */	"root: IFGE(reg)",
+	/* 139 */	"root: IFGT(reg)",
+	/* 140 */	"root: IFLE(reg)",
+	/* 141 */	"root: IFLT(reg)",
+	/* 142 */	"root: IFNE(reg)",
+	/* 143 */	"root: IFNONNULL(reg)",
+	/* 144 */	"root: IFNULL(reg)",
+	/* 145 */	"root: IF_ACMPEQ(reg,reg)",
+	/* 146 */	"root: IF_ACMPNE(reg,reg)",
+	/* 147 */	"root: IF_ICMPEQ(reg,reg)",
+	/* 148 */	"root: IF_ICMPGE(reg,reg)",
+	/* 149 */	"root: IF_ICMPGT(reg,reg)",
+	/* 150 */	"root: IF_ICMPLE(reg,reg)",
+	/* 151 */	"root: IF_ICMPLT(reg,reg)",
+	/* 152 */	"root: IF_ICMPNE(reg,reg)",
+	/* 153 */	"root: IF_LCMPEQ(reg,reg)",
+	/* 154 */	"root: IF_LCMPGE(reg,reg)",
+	/* 155 */	"root: IF_LCMPGT(reg,reg)",
+	/* 156 */	"root: IF_LCMPLE(reg,reg)",
+	/* 157 */	"root: IF_LCMPLT(reg,reg)",
+	/* 158 */	"root: IF_LCMPNE(reg,reg)",
+	/* 159 */	"root: LOOKUPSWITCH(reg)",
+	/* 160 */	"root: TABLESWITCH(reg)",
+	/* 161 */	"root: INLINE_BODY",
+	/* 162 */	"root: INLINE_END",
+	/* 163 */	"root: INLINE_START",
+	/* 164 */	"reg: INVOKEINTERFACE(reg,reg)",
+	/* 165 */	"reg: INVOKESPECIAL(reg,reg)",
+	/* 166 */	"reg: INVOKESTATIC(reg,reg)",
+	/* 167 */	"reg: INVOKEVIRTUAL(reg,reg)",
+	/* 168 */	"root: GOTO",
+	/* 169 */	"root: RET",
+	/* 170 */	"reg: BUILTIN(reg,reg)",
+	/* 171 */	"root: ATHROW(reg)",
+	/* 172 */	"root: BREAKPOINT",
 };
 
 static short burm_decode_root[] = {
@@ -1230,6 +1190,18 @@ static short burm_decode_root[] = {
 	2,
 	3,
 	4,
+	110,
+	111,
+	112,
+	113,
+	114,
+	115,
+	116,
+	117,
+	118,
+	119,
+	120,
+	121,
 	122,
 	123,
 	124,
@@ -1272,23 +1244,10 @@ static short burm_decode_root[] = {
 	161,
 	162,
 	163,
-	164,
-	165,
-	166,
-	167,
 	168,
 	169,
-	170,
 	171,
 	172,
-	173,
-	174,
-	175,
-	176,
-	181,
-	182,
-	184,
-	185,
 };
 
 static short burm_decode_reg[] = {
@@ -1296,6 +1255,9 @@ static short burm_decode_reg[] = {
 	1,
 	5,
 	6,
+	9,
+	10,
+	11,
 	12,
 	13,
 	14,
@@ -1389,32 +1351,17 @@ static short burm_decode_reg[] = {
 	107,
 	108,
 	109,
-	110,
-	111,
-	112,
-	113,
-	114,
-	115,
-	116,
-	117,
-	118,
-	119,
-	120,
-	121,
-	177,
-	178,
-	179,
-	180,
-	183,
+	164,
+	165,
+	166,
+	167,
+	170,
 };
 
 static short burm_decode_const[] = {
 	0,
 	7,
 	8,
-	9,
-	10,
-	11,
 };
 
 static short burm_decode_cmp[] = {
@@ -1457,10 +1404,10 @@ static void burm_closure_reg(STATEPTR_TYPE p, int c) {
 }
 
 static void burm_closure_const(STATEPTR_TYPE p, int c) {
-	if (c + 0 < p->cost[burm_reg_NT]) {
-		p->cost[burm_reg_NT] = c + 0;
+	if (c + 1 < p->cost[burm_reg_NT]) {
+		p->cost[burm_reg_NT] = c + 1;
 		p->rule.burm_reg = 2;
-		burm_closure_reg(p, c + 0);
+		burm_closure_reg(p, c + 1);
 	}
 }
 
@@ -1494,8 +1441,8 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 0, 0, 0,
 				{	0,
-					100,	/* root: reg */
-					100,	/* reg: NOP */
+					0,	/* root: reg */
+					0,	/* reg: NOP */
 					32767,
 					32767,
 				},{
@@ -1512,13 +1459,13 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 1, 0, 0,
 				{	0,
 					100,	/* root: reg */
-					100,	/* reg: const */
-					100,	/* const: ACONST */
+					100,	/* reg: ACONST */
+					32767,
 					32767,
 				},{
 					3,	/* root: reg */
-					2,	/* reg: const */
-					1,	/* const: ACONST */
+					4,	/* reg: ACONST */
+					0,
 					0,
 				}
 			};
@@ -1530,7 +1477,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 84;
+				p->rule.burm_reg = 75;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -1539,14 +1486,14 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 3, 0, 0,
 				{	0,
-					100,	/* root: reg */
-					100,	/* reg: const */
-					100,	/* const: ICONST */
+					1,	/* root: reg */
+					1,	/* reg: const */
+					0,	/* const: ICONST */
 					32767,
 				},{
 					3,	/* root: reg */
 					2,	/* reg: const */
-					5,	/* const: ICONST */
+					2,	/* const: ICONST */
 					0,
 				}
 			};
@@ -1641,14 +1588,14 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 		{
 			static struct burm_state z = { 9, 0, 0,
 				{	0,
-					100,	/* root: reg */
-					100,	/* reg: const */
-					100,	/* const: LCONST */
+					1,	/* root: reg */
+					1,	/* reg: const */
+					0,	/* const: LCONST */
 					32767,
 				},{
 					3,	/* root: reg */
 					2,	/* reg: const */
-					4,	/* const: LCONST */
+					1,	/* const: LCONST */
 					0,
 				}
 			};
@@ -1676,13 +1623,13 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 11, 0, 0,
 				{	0,
 					100,	/* root: reg */
-					100,	/* reg: const */
-					100,	/* const: FCONST */
+					100,	/* reg: FCONST */
+					32767,
 					32767,
 				},{
 					3,	/* root: reg */
-					2,	/* reg: const */
-					3,	/* const: FCONST */
+					6,	/* reg: FCONST */
+					0,
 					0,
 				}
 			};
@@ -1727,13 +1674,13 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			static struct burm_state z = { 14, 0, 0,
 				{	0,
 					100,	/* root: reg */
-					100,	/* reg: const */
-					100,	/* const: DCONST */
+					100,	/* reg: DCONST */
+					32767,
 					32767,
 				},{
 					3,	/* root: reg */
-					2,	/* reg: const */
-					2,	/* const: DCONST */
+					5,	/* reg: DCONST */
+					0,
 					0,
 				}
 			};
@@ -1749,7 +1696,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 				},{
 					3,	/* root: reg */
-					85,	/* reg: COPY */
+					76,	/* reg: COPY */
 					0,
 					0,
 				}
@@ -1766,7 +1713,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 				},{
 					3,	/* root: reg */
-					86,	/* reg: MOVE */
+					77,	/* reg: MOVE */
 					0,
 					0,
 				}
@@ -1851,7 +1798,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 				},{
 					3,	/* root: reg */
-					8,	/* reg: ILOAD */
+					11,	/* reg: ILOAD */
 					0,
 					0,
 				}
@@ -1868,7 +1815,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 				},{
 					3,	/* root: reg */
-					7,	/* reg: LLOAD */
+					10,	/* reg: LLOAD */
 					0,
 					0,
 				}
@@ -1885,7 +1832,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 				},{
 					3,	/* root: reg */
-					6,	/* reg: FLOAD */
+					9,	/* reg: FLOAD */
 					0,
 					0,
 				}
@@ -1902,7 +1849,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 				},{
 					3,	/* root: reg */
-					5,	/* reg: DLOAD */
+					8,	/* reg: DLOAD */
 					0,
 					0,
 				}
@@ -1919,7 +1866,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 				},{
 					3,	/* root: reg */
-					4,	/* reg: ALOAD */
+					7,	/* reg: ALOAD */
 					0,
 					0,
 				}
@@ -2272,7 +2219,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 15;
+				p->rule.burm_reg = 18;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -2283,7 +2230,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 14;
+				p->rule.burm_reg = 17;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -2294,7 +2241,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 13;
+				p->rule.burm_reg = 16;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -2305,7 +2252,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 12;
+				p->rule.burm_reg = 15;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -2316,7 +2263,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 9;
+				p->rule.burm_reg = 12;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -2327,7 +2274,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 10;
+				p->rule.burm_reg = 13;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -2338,7 +2285,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 11;
+				p->rule.burm_reg = 14;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -2349,7 +2296,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 16;
+				p->rule.burm_reg = 19;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -2512,7 +2459,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 48;
+				p->rule.burm_root = 47;
 			}
 		}
 		break;
@@ -2522,7 +2469,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 53;
+				p->rule.burm_root = 52;
 			}
 		}
 		break;
@@ -2532,7 +2479,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 52;
+				p->rule.burm_root = 51;
 			}
 		}
 		break;
@@ -2542,7 +2489,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 49;
+				p->rule.burm_root = 48;
 			}
 		}
 		break;
@@ -2552,7 +2499,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 50;
+				p->rule.burm_root = 49;
 			}
 		}
 		break;
@@ -2562,7 +2509,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 51;
+				p->rule.burm_root = 50;
 			}
 		}
 		break;
@@ -2980,18 +2927,18 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 	case 96: /* IADD */
 		assert(l && r);
 		{	/* reg: IADD(reg,const) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 100;
+			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 10000;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 32;
+				p->rule.burm_reg = 31;
 				burm_closure_reg(p, c + 0);
 			}
 		}
 		{	/* reg: IADD(const,reg) */
-			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 100;
+			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 10000;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 28;
+				p->rule.burm_reg = 29;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -2999,7 +2946,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 24;
+				p->rule.burm_reg = 27;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3007,18 +2954,18 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 	case 97: /* LADD */
 		assert(l && r);
 		{	/* reg: LADD(reg,const) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 100;
+			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 10000;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 31;
+				p->rule.burm_reg = 30;
 				burm_closure_reg(p, c + 0);
 			}
 		}
 		{	/* reg: LADD(const,reg) */
-			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 100;
+			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 10000;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 27;
+				p->rule.burm_reg = 28;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3026,61 +2973,29 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 23;
+				p->rule.burm_reg = 26;
 				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
 	case 98: /* FADD */
 		assert(l && r);
-		{	/* reg: FADD(reg,const) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 100;
-			if (c + 0 < p->cost[burm_reg_NT]) {
-				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 30;
-				burm_closure_reg(p, c + 0);
-			}
-		}
-		{	/* reg: FADD(const,reg) */
-			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 100;
-			if (c + 0 < p->cost[burm_reg_NT]) {
-				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 26;
-				burm_closure_reg(p, c + 0);
-			}
-		}
 		{	/* reg: FADD(reg,reg) */
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
-			if (c + 0 < p->cost[burm_reg_NT]) {
-				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 22;
-				burm_closure_reg(p, c + 0);
-			}
-		}
-		break;
-	case 99: /* DADD */
-		assert(l && r);
-		{	/* reg: DADD(reg,const) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 100;
-			if (c + 0 < p->cost[burm_reg_NT]) {
-				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 29;
-				burm_closure_reg(p, c + 0);
-			}
-		}
-		{	/* reg: DADD(const,reg) */
-			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
 				p->rule.burm_reg = 25;
 				burm_closure_reg(p, c + 0);
 			}
 		}
+		break;
+	case 99: /* DADD */
+		assert(l && r);
 		{	/* reg: DADD(reg,reg) */
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 21;
+				p->rule.burm_reg = 24;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3091,7 +3006,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 59;
+				p->rule.burm_reg = 50;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3102,7 +3017,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 60;
+				p->rule.burm_reg = 51;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3113,7 +3028,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 58;
+				p->rule.burm_reg = 49;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3124,7 +3039,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 57;
+				p->rule.burm_reg = 48;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3132,76 +3047,22 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 	case 104: /* IMUL */
 		assert(l && r);
 		{	/* reg: IMUL(reg,const) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 100;
-			if (c + 0 < p->cost[burm_reg_NT]) {
-				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 43;
-				burm_closure_reg(p, c + 0);
-			}
-		}
-		{	/* reg: IMUL(const,reg) */
-			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 100;
-			if (c + 0 < p->cost[burm_reg_NT]) {
-				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 39;
-				burm_closure_reg(p, c + 0);
-			}
-		}
-		{	/* reg: IMUL(reg,reg) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
-			if (c + 0 < p->cost[burm_reg_NT]) {
-				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 35;
-				burm_closure_reg(p, c + 0);
-			}
-		}
-		break;
-	case 105: /* LMUL */
-		assert(l && r);
-		{	/* reg: LMUL(reg,const) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 100;
-			if (c + 0 < p->cost[burm_reg_NT]) {
-				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 44;
-				burm_closure_reg(p, c + 0);
-			}
-		}
-		{	/* reg: LMUL(const,reg) */
-			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 100;
-			if (c + 0 < p->cost[burm_reg_NT]) {
-				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 40;
-				burm_closure_reg(p, c + 0);
-			}
-		}
-		{	/* reg: LMUL(reg,reg) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
-			if (c + 0 < p->cost[burm_reg_NT]) {
-				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 36;
-				burm_closure_reg(p, c + 0);
-			}
-		}
-		break;
-	case 106: /* FMUL */
-		assert(l && r);
-		{	/* reg: FMUL(reg,const) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 100;
-			if (c + 0 < p->cost[burm_reg_NT]) {
-				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 42;
-				burm_closure_reg(p, c + 0);
-			}
-		}
-		{	/* reg: FMUL(const,reg) */
-			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 100;
+			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 10000;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
 				p->rule.burm_reg = 38;
 				burm_closure_reg(p, c + 0);
 			}
 		}
-		{	/* reg: FMUL(reg,reg) */
+		{	/* reg: IMUL(const,reg) */
+			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 10000;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 36;
+				burm_closure_reg(p, c + 0);
+			}
+		}
+		{	/* reg: IMUL(reg,reg) */
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
@@ -3210,29 +3071,51 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			}
 		}
 		break;
-	case 107: /* DMUL */
+	case 105: /* LMUL */
 		assert(l && r);
-		{	/* reg: DMUL(reg,const) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 100;
+		{	/* reg: LMUL(reg,const) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 10000;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 41;
+				p->rule.burm_reg = 39;
 				burm_closure_reg(p, c + 0);
 			}
 		}
-		{	/* reg: DMUL(const,reg) */
-			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 100;
+		{	/* reg: LMUL(const,reg) */
+			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 10000;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
 				p->rule.burm_reg = 37;
 				burm_closure_reg(p, c + 0);
 			}
 		}
-		{	/* reg: DMUL(reg,reg) */
+		{	/* reg: LMUL(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 35;
+				burm_closure_reg(p, c + 0);
+			}
+		}
+		break;
+	case 106: /* FMUL */
+		assert(l && r);
+		{	/* reg: FMUL(reg,reg) */
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
 				p->rule.burm_reg = 33;
+				burm_closure_reg(p, c + 0);
+			}
+		}
+		break;
+	case 107: /* DMUL */
+		assert(l && r);
+		{	/* reg: DMUL(reg,reg) */
+			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
+			if (c + 0 < p->cost[burm_reg_NT]) {
+				p->cost[burm_reg_NT] = c + 0;
+				p->rule.burm_reg = 32;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3243,7 +3126,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 64;
+				p->rule.burm_reg = 55;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3254,7 +3137,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 63;
+				p->rule.burm_reg = 54;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3265,7 +3148,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 62;
+				p->rule.burm_reg = 53;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3276,7 +3159,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 61;
+				p->rule.burm_reg = 52;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3284,18 +3167,18 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 	case 112: /* IREM */
 		assert(l && r);
 		{	/* reg: IREM(reg,const) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 100;
+			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 10000;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 55;
+				p->rule.burm_reg = 46;
 				burm_closure_reg(p, c + 0);
 			}
 		}
 		{	/* reg: IREM(const,reg) */
-			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 100;
+			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 10000;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 51;
+				p->rule.burm_reg = 44;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3303,7 +3186,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 47;
+				p->rule.burm_reg = 42;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3311,18 +3194,18 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 	case 113: /* LREM */
 		assert(l && r);
 		{	/* reg: LREM(reg,const) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 100;
+			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 10000;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 56;
+				p->rule.burm_reg = 47;
 				burm_closure_reg(p, c + 0);
 			}
 		}
 		{	/* reg: LREM(const,reg) */
-			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 100;
+			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 10000;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 52;
+				p->rule.burm_reg = 45;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3330,61 +3213,29 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 48;
+				p->rule.burm_reg = 43;
 				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
 	case 114: /* FREM */
 		assert(l && r);
-		{	/* reg: FREM(reg,const) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 100;
-			if (c + 0 < p->cost[burm_reg_NT]) {
-				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 54;
-				burm_closure_reg(p, c + 0);
-			}
-		}
-		{	/* reg: FREM(const,reg) */
-			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 100;
-			if (c + 0 < p->cost[burm_reg_NT]) {
-				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 50;
-				burm_closure_reg(p, c + 0);
-			}
-		}
 		{	/* reg: FREM(reg,reg) */
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 46;
+				p->rule.burm_reg = 41;
 				burm_closure_reg(p, c + 0);
 			}
 		}
 		break;
 	case 115: /* DREM */
 		assert(l && r);
-		{	/* reg: DREM(reg,const) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 100;
-			if (c + 0 < p->cost[burm_reg_NT]) {
-				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 53;
-				burm_closure_reg(p, c + 0);
-			}
-		}
-		{	/* reg: DREM(const,reg) */
-			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 100;
-			if (c + 0 < p->cost[burm_reg_NT]) {
-				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 49;
-				burm_closure_reg(p, c + 0);
-			}
-		}
 		{	/* reg: DREM(reg,reg) */
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 45;
+				p->rule.burm_reg = 40;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3395,7 +3246,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 20;
+				p->rule.burm_reg = 23;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3406,7 +3257,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 19;
+				p->rule.burm_reg = 22;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3417,7 +3268,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 18;
+				p->rule.burm_reg = 21;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3428,7 +3279,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 17;
+				p->rule.burm_reg = 20;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3439,7 +3290,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 71;
+				p->rule.burm_reg = 62;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3450,7 +3301,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 73;
+				p->rule.burm_reg = 64;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3461,7 +3312,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 72;
+				p->rule.burm_reg = 63;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3472,7 +3323,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 74;
+				p->rule.burm_reg = 65;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3480,18 +3331,18 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 	case 124: /* IUSHR */
 		assert(l && r);
 		{	/* reg: IUSHR(const,reg) */
-			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 100;
+			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 10000;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 79;
+				p->rule.burm_reg = 70;
 				burm_closure_reg(p, c + 0);
 			}
 		}
 		{	/* reg: IUSHR(reg,const) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 100;
+			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 10000;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 77;
+				p->rule.burm_reg = 68;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3499,7 +3350,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 75;
+				p->rule.burm_reg = 66;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3507,18 +3358,18 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 	case 125: /* LUSHR */
 		assert(l && r);
 		{	/* reg: LUSHR(const,reg) */
-			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 100;
+			c = l->cost[burm_const_NT] + r->cost[burm_reg_NT] + 10000;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 80;
+				p->rule.burm_reg = 71;
 				burm_closure_reg(p, c + 0);
 			}
 		}
 		{	/* reg: LUSHR(reg,const) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 100;
+			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 10000;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 78;
+				p->rule.burm_reg = 69;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3526,7 +3377,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 76;
+				p->rule.burm_reg = 67;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3537,7 +3388,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 65;
+				p->rule.burm_reg = 56;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3548,7 +3399,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 66;
+				p->rule.burm_reg = 57;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3559,7 +3410,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 67;
+				p->rule.burm_reg = 58;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3570,7 +3421,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 68;
+				p->rule.burm_reg = 59;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3581,7 +3432,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 69;
+				p->rule.burm_reg = 60;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3592,7 +3443,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 70;
+				p->rule.burm_reg = 61;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3620,7 +3471,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 95;
+				p->rule.burm_reg = 86;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3631,7 +3482,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 94;
+				p->rule.burm_reg = 85;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3642,7 +3493,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 93;
+				p->rule.burm_reg = 84;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3653,7 +3504,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 101;
+				p->rule.burm_reg = 92;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3664,7 +3515,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 100;
+				p->rule.burm_reg = 91;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3675,7 +3526,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 99;
+				p->rule.burm_reg = 90;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3686,7 +3537,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 91;
+				p->rule.burm_reg = 82;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3697,7 +3548,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 92;
+				p->rule.burm_reg = 83;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3708,7 +3559,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 90;
+				p->rule.burm_reg = 81;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3719,7 +3570,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 88;
+				p->rule.burm_reg = 79;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3730,7 +3581,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 89;
+				p->rule.burm_reg = 80;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3741,7 +3592,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 87;
+				p->rule.burm_reg = 78;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3752,7 +3603,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 96;
+				p->rule.burm_reg = 87;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3763,7 +3614,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 97;
+				p->rule.burm_reg = 88;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3774,7 +3625,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 98;
+				p->rule.burm_reg = 89;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -3840,13 +3691,6 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 32;
-			}
-		}
-		{	/* root: IFEQ(reg) */
-			c = l->cost[burm_reg_NT] + 100;
-			if (c + 0 < p->cost[burm_root_NT]) {
-				p->cost[burm_root_NT] = c + 0;
 				p->rule.burm_root = 31;
 			}
 		}
@@ -3857,7 +3701,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 37;
+				p->rule.burm_root = 36;
 			}
 		}
 		break;
@@ -3867,7 +3711,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 36;
+				p->rule.burm_root = 35;
 			}
 		}
 		break;
@@ -3877,7 +3721,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 33;
+				p->rule.burm_root = 32;
 			}
 		}
 		break;
@@ -3887,7 +3731,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 34;
+				p->rule.burm_root = 33;
 			}
 		}
 		break;
@@ -3897,7 +3741,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 35;
+				p->rule.burm_root = 34;
 			}
 		}
 		break;
@@ -3907,7 +3751,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 42;
+				p->rule.burm_root = 41;
 			}
 		}
 		break;
@@ -3917,7 +3761,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 47;
+				p->rule.burm_root = 46;
 			}
 		}
 		break;
@@ -3927,7 +3771,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 46;
+				p->rule.burm_root = 45;
 			}
 		}
 		break;
@@ -3937,7 +3781,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 43;
+				p->rule.burm_root = 42;
 			}
 		}
 		break;
@@ -3947,7 +3791,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 44;
+				p->rule.burm_root = 43;
 			}
 		}
 		break;
@@ -3957,7 +3801,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 45;
+				p->rule.burm_root = 44;
 			}
 		}
 		break;
@@ -3967,7 +3811,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 40;
+				p->rule.burm_root = 39;
 			}
 		}
 		break;
@@ -3977,7 +3821,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 41;
+				p->rule.burm_root = 40;
 			}
 		}
 		break;
@@ -3990,7 +3834,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 					32767,
 				},{
-					59,	/* root: GOTO */
+					58,	/* root: GOTO */
 					0,
 					0,
 					0,
@@ -4008,7 +3852,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 				},{
 					3,	/* root: reg */
-					106,	/* reg: JSR */
+					97,	/* reg: JSR */
 					0,
 					0,
 				}
@@ -4024,7 +3868,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 					32767,
 				},{
-					60,	/* root: RET */
+					59,	/* root: RET */
 					0,
 					0,
 					0,
@@ -4038,7 +3882,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 55;
+				p->rule.burm_root = 54;
 			}
 		}
 		break;
@@ -4048,14 +3892,14 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 54;
+				p->rule.burm_root = 53;
 			}
 		}
 		break;
 	case 172: /* IRETURN */
 		assert(l);
 		{	/* root: IRETURN(const) */
-			c = l->cost[burm_const_NT] + 100;
+			c = l->cost[burm_const_NT] + 10000;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
 				p->rule.burm_root = 28;
@@ -4072,7 +3916,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 	case 173: /* LRETURN */
 		assert(l);
 		{	/* root: LRETURN(const) */
-			c = l->cost[burm_const_NT] + 100;
+			c = l->cost[burm_const_NT] + 10000;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
 				p->rule.burm_root = 29;
@@ -4089,7 +3933,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 	case 174: /* FRETURN */
 		assert(l);
 		{	/* root: FRETURN(const) */
-			c = l->cost[burm_const_NT] + 100;
+			c = l->cost[burm_const_NT] + 10000;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
 				p->rule.burm_root = 27;
@@ -4106,7 +3950,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 	case 175: /* DRETURN */
 		assert(l);
 		{	/* root: DRETURN(const) */
-			c = l->cost[burm_const_NT] + 100;
+			c = l->cost[burm_const_NT] + 10000;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
 				p->rule.burm_root = 26;
@@ -4123,7 +3967,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 	case 176: /* ARETURN */
 		assert(l);
 		{	/* root: ARETURN(const) */
-			c = l->cost[burm_const_NT] + 100;
+			c = l->cost[burm_const_NT] + 10000;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
 				p->rule.burm_root = 25;
@@ -4164,7 +4008,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 				},{
 					3,	/* root: reg */
-					105,	/* reg: GETSTATIC */
+					96,	/* reg: GETSTATIC */
 					0,
 					0,
 				}
@@ -4187,7 +4031,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 104;
+				p->rule.burm_reg = 95;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -4208,7 +4052,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 112;
+				p->rule.burm_reg = 103;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -4219,7 +4063,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 110;
+				p->rule.burm_reg = 101;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -4230,7 +4074,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 111;
+				p->rule.burm_reg = 102;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -4241,7 +4085,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 109;
+				p->rule.burm_reg = 100;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -4320,7 +4164,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 81;
+				p->rule.burm_reg = 72;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -4331,7 +4175,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 61;
+				p->rule.burm_root = 60;
 			}
 		}
 		break;
@@ -4341,7 +4185,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 82;
+				p->rule.burm_reg = 73;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -4352,7 +4196,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 83;
+				p->rule.burm_reg = 74;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -4414,7 +4258,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 102;
+				p->rule.burm_reg = 93;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -4425,7 +4269,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 39;
+				p->rule.burm_root = 38;
 			}
 		}
 		break;
@@ -4435,7 +4279,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_root_NT]) {
 				p->cost[burm_root_NT] = c + 0;
-				p->rule.burm_root = 38;
+				p->rule.burm_root = 37;
 			}
 		}
 		break;
@@ -4482,7 +4326,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 					32767,
 				},{
-					62,	/* root: BREAKPOINT */
+					61,	/* root: BREAKPOINT */
 					0,
 					0,
 					0,
@@ -5282,7 +5126,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 				},{
 					3,	/* root: reg */
-					103,	/* reg: GETEXCEPTION */
+					94,	/* reg: GETEXCEPTION */
 					0,
 					0,
 				}
@@ -5299,7 +5143,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 				},{
 					3,	/* root: reg */
-					107,	/* reg: PHI */
+					98,	/* reg: PHI */
 					0,
 					0,
 				}
@@ -5315,7 +5159,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 					32767,
 				},{
-					58,	/* root: INLINE_START */
+					57,	/* root: INLINE_START */
 					0,
 					0,
 					0,
@@ -5332,7 +5176,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 					32767,
 				},{
-					57,	/* root: INLINE_END */
+					56,	/* root: INLINE_END */
 					0,
 					0,
 					0,
@@ -5349,7 +5193,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 					32767,
 				},{
-					56,	/* root: INLINE_BODY */
+					55,	/* root: INLINE_BODY */
 					0,
 					0,
 					0,
@@ -5380,7 +5224,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 			c = l->cost[burm_reg_NT] + r->cost[burm_reg_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
-				p->rule.burm_reg = 113;
+				p->rule.burm_reg = 104;
 				burm_closure_reg(p, c + 0);
 			}
 		}
@@ -5395,7 +5239,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 					32767,
 				},{
 					3,	/* root: reg */
-					108,	/* reg: RESULT */
+					99,	/* reg: RESULT */
 					0,
 					0,
 				}
@@ -5439,89 +5283,88 @@ NODEPTR_TYPE *burm_kids(NODEPTR_TYPE p, int eruleno, NODEPTR_TYPE kids[]) {
 	burm_assert(p, PANIC("NULL tree in burm_kids\n"));
 	burm_assert(kids, PANIC("NULL kids in burm_kids\n"));
 	switch (eruleno) {
-	case 185: /* root: BREAKPOINT */
-	case 182: /* root: RET */
-	case 181: /* root: GOTO */
-	case 176: /* root: INLINE_START */
-	case 175: /* root: INLINE_END */
-	case 174: /* root: INLINE_BODY */
-	case 148: /* root: RETURN */
-	case 137: /* root: IINC */
-	case 129: /* root: SASTORE */
-	case 128: /* root: LASTORE */
-	case 127: /* root: IASTORE */
-	case 126: /* root: FASTORE */
-	case 125: /* root: DASTORE */
-	case 124: /* root: CASTORE */
-	case 123: /* root: BASTORE */
-	case 122: /* root: AASTORE */
-	case 121: /* reg: RESULT */
-	case 120: /* reg: PHI */
-	case 119: /* reg: JSR */
-	case 118: /* reg: GETSTATIC */
-	case 116: /* reg: GETEXCEPTION */
-	case 99: /* reg: MOVE */
-	case 98: /* reg: COPY */
+	case 172: /* root: BREAKPOINT */
+	case 169: /* root: RET */
+	case 168: /* root: GOTO */
+	case 163: /* root: INLINE_START */
+	case 162: /* root: INLINE_END */
+	case 161: /* root: INLINE_BODY */
+	case 136: /* root: RETURN */
+	case 125: /* root: IINC */
+	case 117: /* root: SASTORE */
+	case 116: /* root: LASTORE */
+	case 115: /* root: IASTORE */
+	case 114: /* root: FASTORE */
+	case 113: /* root: DASTORE */
+	case 112: /* root: CASTORE */
+	case 111: /* root: BASTORE */
+	case 110: /* root: AASTORE */
+	case 109: /* reg: RESULT */
+	case 108: /* reg: PHI */
+	case 107: /* reg: JSR */
+	case 106: /* reg: GETSTATIC */
+	case 104: /* reg: GETEXCEPTION */
+	case 87: /* reg: MOVE */
+	case 86: /* reg: COPY */
 	case 16: /* reg: ILOAD */
 	case 15: /* reg: LLOAD */
 	case 14: /* reg: FLOAD */
 	case 13: /* reg: DLOAD */
 	case 12: /* reg: ALOAD */
-	case 11: /* const: ICONST */
-	case 10: /* const: LCONST */
-	case 9: /* const: FCONST */
-	case 8: /* const: DCONST */
-	case 7: /* const: ACONST */
+	case 11: /* reg: FCONST */
+	case 10: /* reg: DCONST */
+	case 9: /* reg: ACONST */
+	case 8: /* const: ICONST */
+	case 7: /* const: LCONST */
 	case 1: /* reg: NOP */
 		break;
-	case 184: /* root: ATHROW(reg) */
-	case 173: /* root: TABLESWITCH(reg) */
-	case 172: /* root: LOOKUPSWITCH(reg) */
-	case 157: /* root: IFNULL(reg) */
-	case 156: /* root: IFNONNULL(reg) */
-	case 155: /* root: IFNE(reg) */
-	case 154: /* root: IFLT(reg) */
-	case 153: /* root: IFLE(reg) */
-	case 152: /* root: IFGT(reg) */
-	case 151: /* root: IFGE(reg) */
-	case 150: /* root: IFEQ(reg) */
-	case 149: /* root: IFEQ(reg) */
-	case 147: /* root: LRETURN(const) */
-	case 146: /* root: IRETURN(const) */
-	case 145: /* root: FRETURN(const) */
-	case 144: /* root: DRETURN(const) */
-	case 143: /* root: ARETURN(const) */
-	case 142: /* root: LRETURN(reg) */
-	case 141: /* root: IRETURN(reg) */
-	case 140: /* root: FRETURN(reg) */
-	case 139: /* root: DRETURN(reg) */
-	case 138: /* root: ARETURN(reg) */
-	case 136: /* root: PUTSTATIC(reg) */
-	case 134: /* root: LSTORE(reg) */
-	case 133: /* root: ISTORE(reg) */
-	case 132: /* root: FSTORE(reg) */
-	case 131: /* root: DSTORE(reg) */
-	case 130: /* root: ASTORE(reg) */
-	case 117: /* reg: GETFIELD(reg) */
-	case 114: /* reg: L2I(reg) */
-	case 113: /* reg: L2F(reg) */
-	case 112: /* reg: L2D(reg) */
-	case 111: /* reg: INT2SHORT(reg) */
-	case 110: /* reg: INT2CHAR(reg) */
-	case 109: /* reg: INT2BYTE(reg) */
-	case 108: /* reg: I2L(reg) */
-	case 107: /* reg: I2F(reg) */
-	case 106: /* reg: I2D(reg) */
-	case 105: /* reg: F2L(reg) */
-	case 104: /* reg: F2I(reg) */
-	case 103: /* reg: F2D(reg) */
-	case 102: /* reg: D2L(reg) */
-	case 101: /* reg: D2I(reg) */
-	case 100: /* reg: D2F(reg) */
-	case 97: /* reg: CHECKNULL(reg) */
-	case 96: /* reg: INSTANCEOF(reg) */
-	case 95: /* reg: CHECKCAST(reg) */
-	case 94: /* reg: ARRAYLENGTH(reg) */
+	case 171: /* root: ATHROW(reg) */
+	case 160: /* root: TABLESWITCH(reg) */
+	case 159: /* root: LOOKUPSWITCH(reg) */
+	case 144: /* root: IFNULL(reg) */
+	case 143: /* root: IFNONNULL(reg) */
+	case 142: /* root: IFNE(reg) */
+	case 141: /* root: IFLT(reg) */
+	case 140: /* root: IFLE(reg) */
+	case 139: /* root: IFGT(reg) */
+	case 138: /* root: IFGE(reg) */
+	case 137: /* root: IFEQ(reg) */
+	case 135: /* root: LRETURN(const) */
+	case 134: /* root: IRETURN(const) */
+	case 133: /* root: FRETURN(const) */
+	case 132: /* root: DRETURN(const) */
+	case 131: /* root: ARETURN(const) */
+	case 130: /* root: LRETURN(reg) */
+	case 129: /* root: IRETURN(reg) */
+	case 128: /* root: FRETURN(reg) */
+	case 127: /* root: DRETURN(reg) */
+	case 126: /* root: ARETURN(reg) */
+	case 124: /* root: PUTSTATIC(reg) */
+	case 122: /* root: LSTORE(reg) */
+	case 121: /* root: ISTORE(reg) */
+	case 120: /* root: FSTORE(reg) */
+	case 119: /* root: DSTORE(reg) */
+	case 118: /* root: ASTORE(reg) */
+	case 105: /* reg: GETFIELD(reg) */
+	case 102: /* reg: L2I(reg) */
+	case 101: /* reg: L2F(reg) */
+	case 100: /* reg: L2D(reg) */
+	case 99: /* reg: INT2SHORT(reg) */
+	case 98: /* reg: INT2CHAR(reg) */
+	case 97: /* reg: INT2BYTE(reg) */
+	case 96: /* reg: I2L(reg) */
+	case 95: /* reg: I2F(reg) */
+	case 94: /* reg: I2D(reg) */
+	case 93: /* reg: F2L(reg) */
+	case 92: /* reg: F2I(reg) */
+	case 91: /* reg: F2D(reg) */
+	case 90: /* reg: D2L(reg) */
+	case 89: /* reg: D2I(reg) */
+	case 88: /* reg: D2F(reg) */
+	case 85: /* reg: CHECKNULL(reg) */
+	case 84: /* reg: INSTANCEOF(reg) */
+	case 83: /* reg: CHECKCAST(reg) */
+	case 82: /* reg: ARRAYLENGTH(reg) */
 	case 33: /* reg: INEG(reg) */
 	case 32: /* reg: LNEG(reg) */
 	case 31: /* reg: FNEG(reg) */
@@ -5529,83 +5372,71 @@ NODEPTR_TYPE *burm_kids(NODEPTR_TYPE p, int eruleno, NODEPTR_TYPE kids[]) {
 	case 2: /* root: POP(reg) */
 		kids[0] = LEFT_CHILD(p);
 		break;
-	case 183: /* reg: BUILTIN(reg,reg) */
-	case 180: /* reg: INVOKEVIRTUAL(reg,reg) */
-	case 179: /* reg: INVOKESTATIC(reg,reg) */
-	case 178: /* reg: INVOKESPECIAL(reg,reg) */
-	case 177: /* reg: INVOKEINTERFACE(reg,reg) */
-	case 171: /* root: IF_LCMPNE(reg,reg) */
-	case 170: /* root: IF_LCMPLT(reg,reg) */
-	case 169: /* root: IF_LCMPLE(reg,reg) */
-	case 168: /* root: IF_LCMPGT(reg,reg) */
-	case 167: /* root: IF_LCMPGE(reg,reg) */
-	case 166: /* root: IF_LCMPEQ(reg,reg) */
-	case 165: /* root: IF_ICMPNE(reg,reg) */
-	case 164: /* root: IF_ICMPLT(reg,reg) */
-	case 163: /* root: IF_ICMPLE(reg,reg) */
-	case 162: /* root: IF_ICMPGT(reg,reg) */
-	case 161: /* root: IF_ICMPGE(reg,reg) */
-	case 160: /* root: IF_ICMPEQ(reg,reg) */
-	case 159: /* root: IF_ACMPNE(reg,reg) */
-	case 158: /* root: IF_ACMPEQ(reg,reg) */
-	case 135: /* root: PUTFIELD(reg,reg) */
-	case 115: /* reg: MULTIANEWARRAY(reg,reg) */
-	case 93: /* reg: LUSHR(const,reg) */
-	case 92: /* reg: IUSHR(const,reg) */
-	case 91: /* reg: LUSHR(reg,const) */
-	case 90: /* reg: IUSHR(reg,const) */
-	case 89: /* reg: LUSHR(reg,reg) */
-	case 88: /* reg: IUSHR(reg,reg) */
-	case 87: /* reg: LSHR(reg,reg) */
-	case 86: /* reg: LSHL(reg,reg) */
-	case 85: /* reg: ISHR(reg,reg) */
-	case 84: /* reg: ISHL(reg,reg) */
-	case 83: /* reg: LXOR(reg,reg) */
-	case 82: /* reg: IXOR(reg,reg) */
-	case 81: /* reg: LOR(reg,reg) */
-	case 80: /* reg: IOR(reg,reg) */
-	case 79: /* reg: LAND(reg,reg) */
-	case 78: /* reg: IAND(reg,reg) */
-	case 77: /* reg: IDIV(reg,reg) */
-	case 76: /* reg: LDIV(reg,reg) */
-	case 75: /* reg: FDIV(reg,reg) */
-	case 74: /* reg: DDIV(reg,reg) */
-	case 73: /* reg: LSUB(reg,reg) */
-	case 72: /* reg: ISUB(reg,reg) */
-	case 71: /* reg: FSUB(reg,reg) */
-	case 70: /* reg: DSUB(reg,reg) */
-	case 69: /* reg: LREM(reg,const) */
-	case 68: /* reg: IREM(reg,const) */
-	case 67: /* reg: FREM(reg,const) */
-	case 66: /* reg: DREM(reg,const) */
-	case 65: /* reg: LREM(const,reg) */
-	case 64: /* reg: IREM(const,reg) */
-	case 63: /* reg: FREM(const,reg) */
-	case 62: /* reg: DREM(const,reg) */
-	case 61: /* reg: LREM(reg,reg) */
-	case 60: /* reg: IREM(reg,reg) */
-	case 59: /* reg: FREM(reg,reg) */
-	case 58: /* reg: DREM(reg,reg) */
-	case 57: /* reg: LMUL(reg,const) */
-	case 56: /* reg: IMUL(reg,const) */
-	case 55: /* reg: FMUL(reg,const) */
-	case 54: /* reg: DMUL(reg,const) */
-	case 53: /* reg: LMUL(const,reg) */
-	case 52: /* reg: IMUL(const,reg) */
-	case 51: /* reg: FMUL(const,reg) */
-	case 50: /* reg: DMUL(const,reg) */
-	case 49: /* reg: LMUL(reg,reg) */
-	case 48: /* reg: IMUL(reg,reg) */
-	case 47: /* reg: FMUL(reg,reg) */
-	case 46: /* reg: DMUL(reg,reg) */
-	case 45: /* reg: IADD(reg,const) */
-	case 44: /* reg: LADD(reg,const) */
-	case 43: /* reg: FADD(reg,const) */
-	case 42: /* reg: DADD(reg,const) */
-	case 41: /* reg: IADD(const,reg) */
-	case 40: /* reg: LADD(const,reg) */
-	case 39: /* reg: FADD(const,reg) */
-	case 38: /* reg: DADD(const,reg) */
+	case 170: /* reg: BUILTIN(reg,reg) */
+	case 167: /* reg: INVOKEVIRTUAL(reg,reg) */
+	case 166: /* reg: INVOKESTATIC(reg,reg) */
+	case 165: /* reg: INVOKESPECIAL(reg,reg) */
+	case 164: /* reg: INVOKEINTERFACE(reg,reg) */
+	case 158: /* root: IF_LCMPNE(reg,reg) */
+	case 157: /* root: IF_LCMPLT(reg,reg) */
+	case 156: /* root: IF_LCMPLE(reg,reg) */
+	case 155: /* root: IF_LCMPGT(reg,reg) */
+	case 154: /* root: IF_LCMPGE(reg,reg) */
+	case 153: /* root: IF_LCMPEQ(reg,reg) */
+	case 152: /* root: IF_ICMPNE(reg,reg) */
+	case 151: /* root: IF_ICMPLT(reg,reg) */
+	case 150: /* root: IF_ICMPLE(reg,reg) */
+	case 149: /* root: IF_ICMPGT(reg,reg) */
+	case 148: /* root: IF_ICMPGE(reg,reg) */
+	case 147: /* root: IF_ICMPEQ(reg,reg) */
+	case 146: /* root: IF_ACMPNE(reg,reg) */
+	case 145: /* root: IF_ACMPEQ(reg,reg) */
+	case 123: /* root: PUTFIELD(reg,reg) */
+	case 103: /* reg: MULTIANEWARRAY(reg,reg) */
+	case 81: /* reg: LUSHR(const,reg) */
+	case 80: /* reg: IUSHR(const,reg) */
+	case 79: /* reg: LUSHR(reg,const) */
+	case 78: /* reg: IUSHR(reg,const) */
+	case 77: /* reg: LUSHR(reg,reg) */
+	case 76: /* reg: IUSHR(reg,reg) */
+	case 75: /* reg: LSHR(reg,reg) */
+	case 74: /* reg: LSHL(reg,reg) */
+	case 73: /* reg: ISHR(reg,reg) */
+	case 72: /* reg: ISHL(reg,reg) */
+	case 71: /* reg: LXOR(reg,reg) */
+	case 70: /* reg: IXOR(reg,reg) */
+	case 69: /* reg: LOR(reg,reg) */
+	case 68: /* reg: IOR(reg,reg) */
+	case 67: /* reg: LAND(reg,reg) */
+	case 66: /* reg: IAND(reg,reg) */
+	case 65: /* reg: IDIV(reg,reg) */
+	case 64: /* reg: LDIV(reg,reg) */
+	case 63: /* reg: FDIV(reg,reg) */
+	case 62: /* reg: DDIV(reg,reg) */
+	case 61: /* reg: LSUB(reg,reg) */
+	case 60: /* reg: ISUB(reg,reg) */
+	case 59: /* reg: FSUB(reg,reg) */
+	case 58: /* reg: DSUB(reg,reg) */
+	case 57: /* reg: LREM(reg,const) */
+	case 56: /* reg: IREM(reg,const) */
+	case 55: /* reg: LREM(const,reg) */
+	case 54: /* reg: IREM(const,reg) */
+	case 53: /* reg: LREM(reg,reg) */
+	case 52: /* reg: IREM(reg,reg) */
+	case 51: /* reg: FREM(reg,reg) */
+	case 50: /* reg: DREM(reg,reg) */
+	case 49: /* reg: LMUL(reg,const) */
+	case 48: /* reg: IMUL(reg,const) */
+	case 47: /* reg: LMUL(const,reg) */
+	case 46: /* reg: IMUL(const,reg) */
+	case 45: /* reg: LMUL(reg,reg) */
+	case 44: /* reg: IMUL(reg,reg) */
+	case 43: /* reg: FMUL(reg,reg) */
+	case 42: /* reg: DMUL(reg,reg) */
+	case 41: /* reg: IADD(reg,const) */
+	case 40: /* reg: LADD(reg,const) */
+	case 39: /* reg: IADD(const,reg) */
+	case 38: /* reg: LADD(const,reg) */
 	case 37: /* reg: IADD(reg,reg) */
 	case 36: /* reg: LADD(reg,reg) */
 	case 35: /* reg: FADD(reg,reg) */
@@ -5659,12 +5490,8 @@ NODEPTR_TYPE burm_child(NODEPTR_TYPE p, int index) {
 }
 
 #endif
-#if FINITE_STATE_MACHINE
-
-
-
-
-#else
+#ifdef AUTOMATON_KIND_FSM
+#elif AUTOMATON_KIND_IBURG
 void burm_reduce(NODEPTR_TYPE bnode, int goalnt);
 #endif
 void burm_reduce(NODEPTR_TYPE bnode, int goalnt)
@@ -5690,545 +5517,506 @@ void burm_reduce(NODEPTR_TYPE bnode, int goalnt)
 
 
   switch (ruleNo) {
-  case 1:
-    codegen_nop(bnode);
+  case 5:
+    codegen_push_to_reg(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 7:
-    codegen_emit_instruction(bnode);
+    remember_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 8:
-    codegen_emit_instruction(bnode);
+    remember_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 9:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 10:
-    codegen_emit_lconst(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 11:
-    codegen_emit_iconst(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 12:
-    codegen_emit_copy(bnode);
+    codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 13:
-    codegen_emit_copy(bnode);
+    codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 14:
-    codegen_emit_copy(bnode);
+    codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 15:
-    codegen_emit_copy(bnode);
+    codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 16:
-    codegen_emit_copy(bnode);
+    codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 17:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 18:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 19:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 20:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 21:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 22:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 23:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 24:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 25:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 26:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 27:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 28:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 29:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 30:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 31:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 32:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 33:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 34:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 35:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 36:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 37:
-    codegen_emit_instruction(bnode);
+    codegen_emit_iadd(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 38:
-    codegen_emit_instruction(bnode);
+    codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 39:
-    codegen_emit_instruction(bnode);
+    codegen_emit_iaddconst_right(JITDATA(bnode), CURRENT_INST(bnode), PREV_INST_LEFT(bnode));
     break;
   case 40:
-    codegen_emit_instruction(bnode);
+    codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 41:
-    codegen_emit_instruction(bnode);
+    codegen_emit_iaddconst(JITDATA(bnode), CURRENT_INST(bnode), PREV_INST_RIGHT(bnode));
     break;
   case 42:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 43:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 44:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 45:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 46:
-    codegen_emit_instruction(bnode);
+    codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 47:
-    codegen_emit_instruction(bnode);
+    codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 48:
-    codegen_emit_instruction(bnode);
+    codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 49:
-    codegen_emit_instruction(bnode);
+    codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 50:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 51:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 52:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 53:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 54:
-    codegen_emit_instruction(bnode);
+    codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 55:
-    codegen_emit_instruction(bnode);
+    codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 56:
-    codegen_emit_instruction(bnode);
+    codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 57:
-    codegen_emit_instruction(bnode);
+    codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 58:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 59:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 60:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 61:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 62:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 63:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 64:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 65:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 66:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 67:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 68:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 69:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 70:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 71:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 72:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 73:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 74:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 75:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 76:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 77:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 78:
-    codegen_emit_instruction(bnode);
+    codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 79:
-    codegen_emit_instruction(bnode);
+    codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 80:
-    codegen_emit_instruction(bnode);
+    codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 81:
-    codegen_emit_instruction(bnode);
+    codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 82:
-    codegen_emit_instruction(bnode);
+    codegen_emit_arraylength(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 83:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 84:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 85:
-    codegen_emit_instruction(bnode);
+    codegen_emit_checknull(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 86:
-    codegen_emit_instruction(bnode);
+    codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 87:
-    codegen_emit_instruction(bnode);
+    codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 88:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 89:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 90:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 91:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 92:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 93:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 94:
-    codegen_emit_arraylength(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 95:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 96:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 97:
-    codegen_emit_checknull(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 98:
-    codegen_emit_copy(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 99:
-    codegen_emit_copy(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 100:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 101:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 102:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 103:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 104:
-    codegen_emit_instruction(bnode);
+    codegen_emit_getexception(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 105:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 106:
-    codegen_emit_instruction(bnode);
+    codegen_emit_getstatic(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 107:
-    codegen_emit_instruction(bnode);
+    codegen_emit_jump(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 108:
-    codegen_emit_instruction(bnode);
+    codegen_emit_phi(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 109:
-    codegen_emit_instruction(bnode);
+    codegen_emit_result(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 110:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 111:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 112:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 113:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 114:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 115:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 116:
-    codegen_emit_getexception(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 117:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 118:
-    codegen_emit_getstatic(bnode);
+    codegen_emit_astore(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 119:
-    codegen_emit_jump(bnode);
+    codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 120:
-    codegen_emit_phi(bnode);
+    codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 121:
-    codegen_emit_result(bnode);
+    codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 122:
-    codegen_emit_instruction(bnode);
+    codegen_emit_copy(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 123:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 124:
-    codegen_emit_instruction(bnode);
+    codegen_emit_putstatic(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 125:
-    codegen_emit_instruction(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 126:
-    codegen_emit_instruction(bnode);
+    codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 127:
-    codegen_emit_instruction(bnode);
+    codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 128:
-    codegen_emit_instruction(bnode);
+    codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 129:
-    codegen_emit_instruction(bnode);
+    codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 130:
-    codegen_emit_astore(bnode);
+    codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 131:
-    codegen_emit_copy(bnode);
+    codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 132:
-    codegen_emit_copy(bnode);
+    codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 133:
-    codegen_emit_copy(bnode);
+    codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 134:
-    codegen_emit_copy(bnode);
+    codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 135:
-    codegen_emit_instruction(bnode);
+    codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 136:
-    codegen_emit_putstatic(bnode);
+    codegen_emit_return(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 137:
-    codegen_emit_instruction(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 138:
-    codegen_emit_return(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 139:
-    codegen_emit_return(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 140:
-    codegen_emit_return(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 141:
-    codegen_emit_return(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 142:
-    codegen_emit_return(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 143:
-    codegen_emit_return(bnode);
+    codegen_emit_ifnull(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 144:
-    codegen_emit_return(bnode);
+    codegen_emit_ifnull(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 145:
-    codegen_emit_return(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 146:
-    codegen_emit_return(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 147:
-    codegen_emit_return(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 148:
-    codegen_emit_return(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 149:
-    codegen_emit_branch(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 150:
-    codegen_emit_branch(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 151:
-    codegen_emit_branch(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 152:
-    codegen_emit_branch(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 153:
-    codegen_emit_branch(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 154:
-    codegen_emit_branch(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 155:
-    codegen_emit_branch(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 156:
-    codegen_emit_ifnull(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 157:
-    codegen_emit_ifnull(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 158:
-    codegen_emit_branch(bnode);
+    codegen_emit_branch(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 159:
-    codegen_emit_branch(bnode);
+    codegen_emit_lookup(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 160:
-    codegen_emit_branch(bnode);
+    codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 161:
-    codegen_emit_branch(bnode);
+    codegen_emit_inline_body(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 162:
-    codegen_emit_branch(bnode);
+    codegen_emit_inline_end(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 163:
-    codegen_emit_branch(bnode);
+    codegen_emit_inline_start(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 164:
-    codegen_emit_branch(bnode);
+    codegen_emit_invoke(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 165:
-    codegen_emit_branch(bnode);
+    codegen_emit_invoke(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 166:
-    codegen_emit_branch(bnode);
+    codegen_emit_invoke(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 167:
-    codegen_emit_branch(bnode);
+    codegen_emit_invoke(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 168:
-    codegen_emit_branch(bnode);
+    codegen_emit_jump(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 169:
-    codegen_emit_branch(bnode);
+    codegen_emit_jump(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 170:
-    codegen_emit_branch(bnode);
+    codegen_emit_builtin(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 171:
-    codegen_emit_branch(bnode);
+    codegen_emit_throw(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 172:
-    codegen_emit_lookup(bnode);
-    break;
-  case 173:
-    codegen_emit_instruction(bnode);
-    break;
-  case 174:
-    codegen_emit_inline_body(bnode);
-    break;
-  case 175:
-    codegen_emit_inline_end(bnode);
-    break;
-  case 176:
-    codegen_emit_inline_start(bnode);
-    break;
-  case 177:
-    codegen_emit_invoke(bnode);
-    break;
-  case 178:
-    codegen_emit_invoke(bnode);
-    break;
-  case 179:
-    codegen_emit_invoke(bnode);
-    break;
-  case 180:
-    codegen_emit_invoke(bnode);
-    break;
-  case 181:
-    codegen_emit_jump(bnode);
-    break;
-  case 182:
-    codegen_emit_jump(bnode);
-    break;
-  case 183:
-    codegen_emit_builtin(bnode);
-    break;
-  case 184:
-    codegen_emit_throw(bnode);
-    break;
-  case 185:
-    codegen_emit_breakpoint(bnode);
+    codegen_emit_breakpoint(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   }
 }

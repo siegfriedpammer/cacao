@@ -32,8 +32,10 @@ libautomata_la_SOURCES = \
 	automata.cpp \
 	automata-codegen.hpp \
 	automata-codegen.cpp \
+	automata-common.hpp \
+	automata-common.cpp \
 	grammar.h \
-	grammar-iburg.c
+	grammar.c
 
 
 ## Local variables:

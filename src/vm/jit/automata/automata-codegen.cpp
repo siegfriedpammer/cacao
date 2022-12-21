@@ -1,7 +1,6 @@
 #include "vm/descriptor.hpp"
 #include "vm/field.hpp"
 
-#include "automata-codegen.hpp"
 #include "automata.hpp"
 #include "codegen.hpp"
 #include "vm/jit/code.hpp"
@@ -19,12 +18,12 @@
 
 #include "vm/jit/optimizing/profile.hpp"
 
-void gen_method(jitdata *jd, instruction* iptr, builtintable_entry* bte, methoddesc *md);
+#include "automata-codegen.hpp"
 
-extern "C" void codegen_emit_throw(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+void gen_method(struct jitdata *jd, instruction* iptr, builtintable_entry* bte, methoddesc *md);
+
+extern "C" void codegen_emit_throw(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
 	codegendata*  cd   = jd->cd;
     int32_t s1;
     // We might leave this method, stop profiling.
@@ -46,11 +45,9 @@ extern "C" void codegen_emit_throw(node bnode) {
     ALIGNCODENOP;
 }
 
-extern "C" void codegen_emit_arraylength(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    ////log("emitting arraylength\n");
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_arraylength(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
+    log("emitting arraylength\n");
 	codegendata*  cd   = jd->cd;
     int32_t s1 = emit_load_s1(jd, iptr, REG_ITMP1);
     int32_t d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
@@ -62,80 +59,166 @@ extern "C" void codegen_emit_arraylength(node bnode) {
     emit_store_dst(jd, iptr, d);
 }
 
-extern "C" void codegen_emit_inline_end(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    ////log("emitting inline_end\n");
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_inline_end(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
+    log("emitting inline_end\n");
 	codegendata*  cd   = jd->cd;
     linenumbertable_list_entry_add_inline_end(cd, iptr);
     linenumbertable_list_entry_add(cd, iptr->line);
 }
 
-extern "C" void codegen_emit_instruction(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    ////log("emitting simple instruction: %d\n", bnode->iptr->opc);
-    codegen_emit_instruction(bnode->jd, bnode->iptr);
+extern "C" void codegen_emit_simple_instruction(struct jitdata *jd, struct instruction *iptr) {
+    log("%s in codegen_emit_simple_instruction\n", burm_opname[iptr->opc]);
+    codegen_emit_instruction(jd, iptr);
 }
 
-extern "C" void codegen_nop(node bnode) {
-    ////log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    ////log("emitting nop\n");
+extern "C" void codegen_emit_combined_instruction(struct jitdata *jd, struct instruction *iptr) {
+    /*instruction *input1 = PREV_LEFT(bnode);
+    log("%s(%s)\n", burm_opname[iptr->opc], burm_opname[input1->opc]);
+    int32_t s1, d;
+    struct jitdata *jd = bnode->jd;
+    codegendata*  cd   = jd->cd;
+    switch (iptr->opc) {
+        case ICMD_IADD:
+            assert(input1->opc == ICMD_ICONST);
+            s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+
+			M_INTMOVE(s1, d);
+			M_IADD_IMM(input1->sx.val.i, d);
+			emit_store_dst(jd, iptr, d);
+            break;
+        case ICMD_LADD:
+            assert(input1->opc == ICMD_LCONST);
+        	s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+			d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+			M_INTMOVE(s1, d);
+			if (IS_IMM32(input1->sx.val.l))
+				M_LADD_IMM(input1->sx.val.l, d);
+			else {
+				M_MOV_IMM(input1->sx.val.l, REG_ITMP2);
+				M_LADD(REG_ITMP2, d);
+			}
+			emit_store_dst(jd, iptr, d);
+            break;
+    }
+    #if AUTOMATON_KIND_FSM
+    bnode->prev = NULL;
+    #endif*/
 }
 
-extern "C" void codegen_emit_breakpoint(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_iadd(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
+    int32_t s1, s2, d;
+    codegendata*  cd   = jd->cd;
+    s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+    s2 = emit_load_s2(jd, iptr, REG_ITMP2);
+    d = codegen_reg_of_dst(jd, iptr, REG_ITMP2);
+    if (s2 == d)
+        M_IADD(s1, d);
+    else {
+        M_INTMOVE(s1, d);
+        M_IADD(s2, d);
+    }
+    emit_store_dst(jd, iptr, d);
+}
+
+extern "C" void codegen_emit_iaddconst(struct jitdata *jd, struct instruction *iptr, struct instruction *constant) {
+    log("codegen_emit_iaddconst: %s(%s)\n", burm_opname[iptr->opc], burm_opname[constant->opc]);
+    assert(iptr->opc == ICMD_IADD);
+    assert(constant->opc == ICMD_ICONST);
+    int32_t s1, d;
+    codegendata*  cd   = jd->cd;
+    s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+    d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+
+    M_INTMOVE(s1, d);
+    M_IADD_IMM(constant->sx.val.i, d);
+    emit_store_dst(jd, iptr, d);
+}
+
+extern "C" void codegen_emit_iaddconst_right(struct jitdata *jd, struct instruction *iptr, struct instruction *constant) {
+    log("codegen_emit_iaddconst_right: %s(%s)\n", burm_opname[iptr->opc], burm_opname[constant->opc]);
+    assert(iptr->opc == ICMD_IADD);
+    assert(constant->opc == ICMD_ICONST);
+    int32_t s1, d;
+    codegendata*  cd   = jd->cd;
+    s1 = emit_load_s1(jd, iptr, REG_ITMP1);
+    d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+
+    M_INTMOVE(s1, d);
+    M_IADD_IMM(constant->sx.val.i, d);
+    emit_store_dst(jd, iptr, d);
+}
+
+extern "C" void codegen_push_to_reg(struct jitdata *jd, struct instruction *iptr) {
+    codegendata*  cd   = jd->cd;
+    assert(iptr !=NULL);
+    log("push to reg: %d: %s\n", iptr->opc, burm_opname[iptr->opc]);
+    assert(iptr->opc == ICMD_LCONST || iptr->opc == ICMD_ICONST);
+    int32_t d;
+    switch ((int)iptr->opc) {
+        case ICMD_LCONST:
+            d = codegen_reg_of_dst(jd, iptr, REG_LTMP12);
+            LCONST(d, iptr->sx.val.l);
+            emit_store_dst(jd, iptr, d);
+            break;
+        case ICMD_ICONST:
+            d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
+            ICONST(d, iptr->sx.val.i);
+            emit_store_dst(jd, iptr, d);
+            break;
+    }
+}
+
+extern "C" void remember_instruction(struct jitdata *jd, struct instruction *iptr) {
+
+}
+
+extern "C" void codegen_emit_breakpoint(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
 	codegendata*  cd   = jd->cd;
     patcher_add_patch_ref(jd, PATCHER_breakpoint, iptr->sx.val.anyptr, 0);
 	PATCHER_NOPS;
 }
 
-extern "C" void codegen_emit_checknull(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_checknull(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
 	codegendata*  cd   = jd->cd;
     int32_t s1 = emit_load_s1(jd, iptr, REG_ITMP1);
     emit_nullpointer_check(cd, iptr, s1);
 }
 
-extern "C" void codegen_emit_iconst(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_iconst(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
 	codegendata*  cd   = jd->cd;
     int32_t d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
     ICONST(d, iptr->sx.val.i);
     emit_store_dst(jd, iptr, d);
 }
 
-extern "C" void codegen_emit_lconst(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_lconst(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
 	codegendata*  cd   = jd->cd;
     int32_t d = codegen_reg_of_dst(jd, iptr, REG_LTMP12);
     LCONST(d, iptr->sx.val.l);
     emit_store_dst(jd, iptr, d);
 }
 
-extern "C" void codegen_emit_undef(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+extern "C" void codegen_emit_undef(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
     assert(false);
 }
 
-extern "C" void codegen_emit_astore(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    if (!(bnode->iptr->flags.bits & INS_FLAG_RETADDR))
-		emit_copy(bnode->jd, bnode->iptr);
+extern "C" void codegen_emit_astore(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
+    if (!(iptr->flags.bits & INS_FLAG_RETADDR))
+		emit_copy(jd, iptr);
 }
 
-extern "C" void codegen_emit_branch(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_branch(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
+
 	codegendata*  cd   = jd->cd;
     int32_t s1, s2;
     switch (iptr->opc) {
@@ -284,27 +367,21 @@ extern "C" void codegen_emit_branch(node bnode) {
     }
 }
 
-extern "C" void codegen_emit_copy(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
-    emit_copy(bnode->jd, bnode->iptr);
+extern "C" void codegen_emit_copy(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
+    emit_copy(jd, iptr);
 }
 
-extern "C" void codegen_emit_getexception(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_getexception(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
 	codegendata*  cd   = jd->cd;
     int32_t d = codegen_reg_of_dst(jd, iptr, REG_ITMP1);
 	emit_imove(cd, REG_ITMP1, d);
 	emit_store_dst(jd, iptr, d);
 }
 
-extern "C" void codegen_emit_getstatic(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_getstatic(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
 	codegendata*  cd   = jd->cd;
     int32_t d, s1;
 #if !defined(__I386__)
@@ -388,10 +465,8 @@ extern "C" void codegen_emit_getstatic(node bnode) {
 #endif
 }
 
-extern "C" void codegen_emit_putstatic(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_putstatic(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
 	codegendata*  cd   = jd->cd;
     int32_t s1;
 #if !defined(__I386__)
@@ -477,10 +552,8 @@ extern "C" void codegen_emit_putstatic(node bnode) {
 #endif
 }
 
-extern "C" void codegen_emit_ifnull(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_ifnull(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
 	codegendata*  cd   = jd->cd;
     int32_t s1;
 
@@ -496,24 +569,20 @@ extern "C" void codegen_emit_ifnull(node bnode) {
 #endif
 }
 
-extern "C" void codegen_emit_inline_body(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_inline_body(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
 	codegendata*  cd   = jd->cd;
     linenumbertable_list_entry_add_inline_start(cd, iptr);
     linenumbertable_list_entry_add(cd, iptr->line);
 }
 
-extern "C" void codegen_emit_inline_start(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+extern "C" void codegen_emit_inline_start(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
     assert(false);
 }
 
-extern "C" void codegen_emit_invoke(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_invoke(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
 
 #if defined(ENABLE_REPLACEMENT)
     codegen_set_replacement_point(cd);
@@ -535,7 +604,7 @@ extern "C" void codegen_emit_invoke(node bnode) {
  * Fix up register locations in the case where control is transferred to an
  * exception handler block via normal control flow (no exception).
  */
-static void fixup_exc_handler_interface(jitdata *jd, basicblock *bptr)
+static void fixup_exc_handler_interface(struct jitdata *jd, basicblock *bptr)
 {
 	// Exception handlers have exactly 1 in-slot
 	assert(bptr->indepth == 1);
@@ -547,10 +616,8 @@ static void fixup_exc_handler_interface(jitdata *jd, basicblock *bptr)
 	emit_imove(jd->cd, d, REG_ITMP1_XPTR);
 }
 
-extern "C" void codegen_emit_jump(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_jump(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
 	codegendata*  cd   = jd->cd;
     if (iptr->opc == ICMD_JSR) {
         assert(iptr->sx.s23.s3.jsrtarget.block->type != basicblock::TYPE_EXH);
@@ -574,10 +641,8 @@ extern "C" void codegen_emit_jump(node bnode) {
     }
 }
 
-extern "C" void codegen_emit_lookup(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_lookup(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
 	codegendata*  cd   = jd->cd;
     int32_t s1 = emit_load_s1(jd, iptr, REG_ITMP1);
     int i = iptr->sx.s23.s2.lookupcount;
@@ -608,21 +673,19 @@ extern "C" void codegen_emit_lookup(node bnode) {
     ALIGNCODENOP;
 }
 
-extern "C" void codegen_emit_phi(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+extern "C" void codegen_emit_phi(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
     assert(false);
 }
 
-extern "C" void codegen_emit_unknown(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
+extern "C" void codegen_emit_unknown(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
     assert(false);
 }
 
-extern "C" void codegen_emit_return(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
+extern "C" void codegen_emit_return(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
 	int32_t             s1;
-    instruction *iptr = bnode->iptr;
 	codeinfo*     code = jd->code;
 	codegendata*  cd   = jd->cd;
 	registerdata* rd   = jd->rd;
@@ -715,10 +778,8 @@ extern "C" void codegen_emit_return(node bnode) {
         ALIGNCODENOP;
 }
 
-extern "C" void codegen_emit_builtin(node bnode) {
-    //log("%d: %s\n", bnode->offset, burm_opname[bnode->op]);
-    jitdata *jd = bnode->jd;
-    instruction *iptr = bnode->iptr;
+extern "C" void codegen_emit_builtin(struct jitdata *jd, struct instruction *iptr) {
+    log("%s\n", burm_opname[iptr->opc]);
 	codegendata*  cd   = jd->cd;
     builtintable_entry* bte = iptr->sx.s23.s3.bte;
     methoddesc *md  = bte->md;
@@ -766,7 +827,7 @@ extern "C" void codegen_emit_builtin(node bnode) {
     gen_method(jd, iptr, bte, md);
 }
 
-void gen_method(jitdata *jd, instruction* iptr, builtintable_entry* bte, methoddesc *md) {
+void gen_method(struct jitdata *jd, instruction* iptr, builtintable_entry* bte, methoddesc *md) {
 	varinfo*            var;
 	codegendata*  cd   = jd->cd;
 
@@ -968,10 +1029,12 @@ void gen_method(jitdata *jd, instruction* iptr, builtintable_entry* bte, methodd
     }
 }
 
-void codegen_emit_result(node bnode) {
+void codegen_emit_result(struct jitdata *jd, struct instruction *iptr) {
 
 }
 
-void codegen_emit_const_return(node bnode) {
+void codegen_emit_const_return(struct jitdata *jd, struct instruction *iptr) {
 
 }
+
+int get_opc(struct instruction *iptr) { return iptr->opc; }

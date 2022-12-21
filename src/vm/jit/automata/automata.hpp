@@ -2,7 +2,6 @@
 #define _AUTOMATON_AUTOMATA_HPP_ 1
 
 #include "vm/jit/linenumbertable.hpp"
-#include "vm/jit/codegen-common.hpp"
 #include "codegen.hpp"
 #include "vm/jit/jit.hpp"
 #include "vm/jit/ir/instruction.hpp"
@@ -10,27 +9,41 @@
 #include "vm/jit/show.hpp"
 #include "vm/descriptor.hpp"
 #include "vm/method.hpp"
+#include "automata-common.hpp"
 #include "automata-codegen.hpp"
 
-void log(const char *format, ...);
+void automaton_run(basicblock *bptr, jitdata *jd);
 
+#ifdef AUTOMATON_KIND_IBURG 
 
 extern char burm_arity[];
 extern char *burm_opname[];
 
-typedef struct burm_state *state;
+typedef struct burm_state {
+	int op;
+	void *left, *right;
+	short cost[2];
+	struct {
+		unsigned burm_reg:3;
+	} rule;
+} *STATEPTR_TYPE;
 
-static char pop_count_table[256] = {
-    0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 2, -1, -1, -1, -1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, -1, 1, 1, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1
-};
-
-static char push_count_table[256] = {
-    0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, -1, -1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, -1, -1, -1, -1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, -1
-};
-
-extern "C" state burm_label(node root);
+extern "C" STATEPTR_TYPE burm_label(node root);
 extern "C" void burm_reduce(node root, int goalnt);
 
-void automaton_run(basicblock *bptr, jitdata *jd);
+#endif
+
+#ifdef AUTOMATON_KIND_FSM
+
+extern char *burm_opname[];
+extern "C" int next(int a, int b);
+//extern "C" void execute_reset(int from, struct jitdata *jd, struct instruction **tos);
+//extern "C" void execute_pop(int from, int pop, struct jitdata *jd, struct instruction **tos);
+extern "C" void execute_pre_action(int state, int symbol, struct jitdata *jd, struct instruction *iptr, struct instruction **tos);
+extern "C" void execute_post_action(int state, int symbol, struct jitdata *jd, struct instruction *iptr, struct instruction **tos);
+extern "C" void execute_default_post_action(int symbol, struct jitdata *jd, struct instruction *iptr);
+extern "C" bool is_default_chained_symbol(int symbol);
+
+#endif
 
 #endif
