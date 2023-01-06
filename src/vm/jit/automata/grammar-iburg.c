@@ -875,7 +875,7 @@ short burm_cost[][4] = {
 	{ 10000 },	/* 38 = reg: LADD(const,reg) */
 	{ 10000 },	/* 39 = reg: IADD(const,reg) */
 	{ 10000 },	/* 40 = reg: LADD(reg,const) */
-	{ 10000 },	/* 41 = reg: IADD(reg,const) */
+	{ 100 },	/* 41 = reg: IADD(reg,const) */
 	{ 100 },	/* 42 = reg: DMUL(reg,reg) */
 	{ 100 },	/* 43 = reg: FMUL(reg,reg) */
 	{ 100 },	/* 44 = reg: IMUL(reg,reg) */
@@ -2927,7 +2927,7 @@ STATEPTR_TYPE burm_state(int op, STATEPTR_TYPE left, STATEPTR_TYPE right) {
 	case 96: /* IADD */
 		assert(l && r);
 		{	/* reg: IADD(reg,const) */
-			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 10000;
+			c = l->cost[burm_reg_NT] + r->cost[burm_const_NT] + 100;
 			if (c + 0 < p->cost[burm_reg_NT]) {
 				p->cost[burm_reg_NT] = c + 0;
 				p->rule.burm_reg = 31;
@@ -5519,12 +5519,6 @@ void burm_reduce(NODEPTR_TYPE bnode, int goalnt)
   switch (ruleNo) {
   case 5:
     codegen_push_to_reg(JITDATA(bnode), CURRENT_INST(bnode));
-    break;
-  case 7:
-    remember_instruction(JITDATA(bnode), CURRENT_INST(bnode));
-    break;
-  case 8:
-    remember_instruction(JITDATA(bnode), CURRENT_INST(bnode));
     break;
   case 9:
     codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));

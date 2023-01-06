@@ -104,8 +104,5 @@ void codegen_emit_throw(struct jitdata *jd, struct instruction *iptr);
 void codegen_emit_arraylength(struct jitdata *jd, struct instruction *iptr);
 void codegen_emit_combined_instruction(struct jitdata *jd, struct instruction *iptr);
 void codegen_push_to_reg(struct jitdata *jd, struct instruction *iptr);
-void remember_instruction(struct jitdata *jd, struct instruction *iptr);
-
-int get_opc(struct instruction *iptr);
 
 #endif

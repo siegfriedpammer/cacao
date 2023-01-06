@@ -39,19 +39,19 @@ static void print_node(node n)
     int arity = burm_arity[n->op];
     int push = n->iptr != NULL && n->op != 300 ? get_push_count(n->iptr) : 1;
     int pop = n->iptr != NULL && n->op != 300 ? get_pop_count(n->iptr) : 0;
-    log("%d: %s[%d--%d]", n->offset, burm_opname[n->op], pop, push);
-    if (arity > 0) { log("("); }
+    //log("%d: %s[%d--%d]", n->offset, burm_opname[n->op], pop, push);
+    if (arity > 0) { //log("("); }
     switch (burm_arity[n->op]) {
         case 2:
             print_node(n->kids[0]);
-            log(", ");
+            //log(", ");
             print_node(n->kids[1]);
             break;
         case 1:
             print_node(n->kids[0]);
             break;
     }
-    if (arity > 0) { log(")"); }*/
+    if (arity > 0) { //log(")"); }*/
 }
 
 void emit(node n) {
@@ -83,11 +83,11 @@ bool ignore(ICMD opc) {
 void iburg_run(basicblock *bptr, jitdata *jd)
 {
     l.lock();
-    log("-------------------\n");
-    log("%s.%s%s\n", Utf8String(jd->m->clazz->name).begin(), Utf8String(jd->m->name).begin(), Utf8String(jd->m->descriptor).begin());
-    log("instruction count: %d\n", bptr->icount);
-    log("maxstack: %d\n", jd->stackcount);
-    log("stack depth at start: %d\n", bptr->indepth);
+    //log("-------------------\n");
+    //log("%s.%s%s\n", Utf8String(jd->m->clazz->name).begin(), Utf8String(jd->m->name).begin(), Utf8String(jd->m->descriptor).begin());
+    //log("instruction count: %d\n", bptr->icount);
+    //log("maxstack: %d\n", jd->stackcount);
+    //log("stack depth at start: %d\n", bptr->indepth);
     // Walk through all instructions.
     uint16_t currentline = 0;
 
@@ -211,7 +211,7 @@ void iburg_run(basicblock *bptr, jitdata *jd)
         if ((*n)->op == 300) { continue; }
         emit(*n);
     }
-    log("-------------------\n");
+    //log("-------------------\n");
     l.unlock();
 }
 #endif
@@ -223,11 +223,11 @@ static int max(int a, int b) { return a > b ? a : b; }
 void fsm_run(basicblock *bptr, jitdata *jd)
 {
     l.lock();
-    log("-------------------\n");
-    log("%s.%s%s\n", Utf8String(jd->m->clazz->name).begin(), Utf8String(jd->m->name).begin(), Utf8String(jd->m->descriptor).begin());
-    log("instruction count: %d\n", bptr->icount);
-    log("maxstack: %d\n", jd->stackcount);
-    log("stack depth at start: %d\n", bptr->indepth);
+    //log("-------------------\n");
+    //log("%s.%s%s\n", Utf8String(jd->m->clazz->name).begin(), Utf8String(jd->m->name).begin(), Utf8String(jd->m->descriptor).begin());
+    //log("instruction count: %d\n", bptr->icount);
+    //log("maxstack: %d\n", jd->stackcount);
+    //log("stack depth at start: %d\n", bptr->indepth);
     // Walk through all instructions.
     uint16_t currentline = 0;
 
@@ -266,43 +266,37 @@ void fsm_run(basicblock *bptr, jitdata *jd)
         if (iptr->opc == ICMD_COPY || iptr->opc == ICMD_MOVE || iptr->opc == ICMD_JSR) {
             dump = true;
         }
-        //execute_default_post_action(iptr->opc, jd, iptr);
-        //continue;
-        //dump = true;
+        
         int pop = get_pop_count(iptr);
         int push = get_push_count(iptr);
-        log("fsm_emit: [%d] %s %d--%d\n", current_stackdepth, burm_opname[iptr->opc], pop, push);
+        //log("fsm_emit: [%d] %s %d--%d\n", current_stackdepth, burm_opname[iptr->opc], pop, push);
         int eval_stack = tos - &stack[0];
-        log("eval stack: %d\n", eval_stack);
+        //log("eval stack: %d\n", eval_stack);
         for (instruction **n = &stack[0]; n < tos && *n != NULL; n++) {
-            log("%d: %s\n", (n - &stack[0]), burm_opname[(*n)->opc]);
+            //log("%d: %s\n", (n - &stack[0]), burm_opname[(*n)->opc]);
         }
         if (dump || push == 0 || pop > 2 || burm_arity[iptr->opc] != pop || current_stackdepth >= FSM_MAX_STACK) {
             int materialize_count = eval_stack;
-            log("materialize_count: %d\n", materialize_count);
+            //log("materialize_count: %d\n", materialize_count);
             assert(materialize_count >= 0);
             for (instruction **item = (tos - materialize_count); item < tos; item++) {
                 int opc = (*item)->opc;
-                log("materialize %s now!\n", burm_opname[opc]);
-                if (is_default_chained_symbol(opc)) {
-                    execute_default_post_action(opc, jd, *item);
-                } else {
-                    log("should already be materialized...\n");
-                }
+                //log("materialize %s now!\n", burm_opname[opc]);
+                execute_post_action(-2, opc, jd, *item, item - 1);
             }
             tos = &stack[0];
-            log("emit %s\n", burm_opname[iptr->opc]);
+            //log("emit %s\n", burm_opname[iptr->opc]);
             current_stackdepth += (push - pop);
-            execute_default_post_action(iptr->opc, jd, iptr);
-            log("new stackdepth: %d\n", current_stackdepth);
+            execute_post_action(-1, iptr->opc, jd, iptr, tos - 1);
+            //log("new stackdepth: %d\n", current_stackdepth);
             dump = current_stackdepth > 0;
             current = 0;
         } else {
             assert(current_stackdepth == (tos - &stack[0]));
             assert(state_stackdepth[current] == (tos - &stack[0]));
-            log("feed %s into fsm\n", burm_opname[iptr->opc]);
+            //log("feed %s into fsm\n", burm_opname[iptr->opc]);
             int next_state = next(current, iptr->opc);
-            log("%d -> %d\n", current, next_state);
+            //log("%d -> %d\n", current, next_state);
             if (next_state >= 0) {
                 execute_post_action(current, iptr->opc, jd, iptr, tos - 1);
                 current = next_state;
@@ -325,30 +319,25 @@ void fsm_run(basicblock *bptr, jitdata *jd)
         }
 #endif
 
-        log("fsm_emit---\n");
+        //log("fsm_emit---\n");
         int c = (tos - &stack[0]);
         assert(c >= 0 && c <= FSM_MAX_STACK);
     } // for all instructions
     
     if ((tos - &stack[0]) > 0) {
-        log("eval stack: %d\n", (tos - &stack[0]));
+        //log("eval stack: %d\n", (tos - &stack[0]));
         for (instruction **n = &stack[0]; n < tos && *n != NULL; n++) {
-            log("%d: %s\n", (n - &stack[0]), burm_opname[(*n)->opc]);
+            //log("%d: %s\n", (n - &stack[0]), burm_opname[(*n)->opc]);
         }
-        log("materialize remaining instructions of basic block\n");
+        //log("materialize remaining instructions of basic block\n");
         //assert(false);
         for (instruction **item = &stack[0]; item < tos; item++) {
             int opc = (*item)->opc;
-            log("materialize %s now!\n", burm_opname[opc]);
-            if (is_default_chained_symbol(opc)) {
-                execute_default_post_action(opc, jd, *item);
-            } else {
-                log("should already be materialized...\n");
-            }
-            //*item = NULL;
+            //log("materialize %s now!\n", burm_opname[opc]);
+            execute_post_action(-2, opc, jd, *item, NULL);
         }
     }
-    log("-------------------\n");
+    //log("-------------------\n");
     l.unlock();
 }
 #endif

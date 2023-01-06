@@ -53,8 +53,8 @@ reg: const				# 1 # # codegen_push_to_reg(JITDATA(bnode), CURRENT_INST(bnode));
 reg: cmp				# 0 # #
 
 // const
-const: LCONST          # 0 # # remember_instruction(JITDATA(bnode), CURRENT_INST(bnode));
-const: ICONST          # 0 # # remember_instruction(JITDATA(bnode), CURRENT_INST(bnode));
+const: LCONST          # 0 # #
+const: ICONST          # 0 # #
 
 reg: ACONST          # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 reg: DCONST          # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
@@ -97,7 +97,7 @@ reg: IADD(reg, reg)  # 100 # # codegen_emit_iadd(JITDATA(bnode), CURRENT_INST(bn
 reg: LADD(const, reg)  # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 reg: IADD(const, reg)  # 10000 # # codegen_emit_iaddconst_right(JITDATA(bnode), CURRENT_INST(bnode), PREV_INST_LEFT(bnode));
 reg: LADD(reg, const)  # 10000 # # codegen_emit_combined_instruction(JITDATA(bnode), CURRENT_INST(bnode));
-reg: IADD(reg, const)  # 10000 # # codegen_emit_iaddconst(JITDATA(bnode), CURRENT_INST(bnode), PREV_INST_RIGHT(bnode));
+reg: IADD(reg, const)  # 100 # # codegen_emit_iaddconst(JITDATA(bnode), CURRENT_INST(bnode), PREV_INST_RIGHT(bnode));
 
 reg: DMUL(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));
 reg: FMUL(reg, reg)  # 100 # # codegen_emit_simple_instruction(JITDATA(bnode), CURRENT_INST(bnode));

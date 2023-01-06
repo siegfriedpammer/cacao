@@ -37,12 +37,8 @@ extern "C" void burm_reduce(node root, int goalnt);
 
 extern char *burm_opname[];
 extern "C" int next(int a, int b);
-//extern "C" void execute_reset(int from, struct jitdata *jd, struct instruction **tos);
-//extern "C" void execute_pop(int from, int pop, struct jitdata *jd, struct instruction **tos);
 extern "C" void execute_pre_action(int state, int symbol, struct jitdata *jd, struct instruction *iptr, struct instruction **tos);
 extern "C" void execute_post_action(int state, int symbol, struct jitdata *jd, struct instruction *iptr, struct instruction **tos);
-extern "C" void execute_default_post_action(int symbol, struct jitdata *jd, struct instruction *iptr);
-extern "C" bool is_default_chained_symbol(int symbol);
 
 #endif
 

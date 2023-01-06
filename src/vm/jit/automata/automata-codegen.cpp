@@ -171,10 +171,6 @@ extern "C" void codegen_push_to_reg(struct jitdata *jd, struct instruction *iptr
     }
 }
 
-extern "C" void remember_instruction(struct jitdata *jd, struct instruction *iptr) {
-
-}
-
 extern "C" void codegen_emit_breakpoint(struct jitdata *jd, struct instruction *iptr) {
     log("%s\n", burm_opname[iptr->opc]);
 	codegendata*  cd   = jd->cd;
@@ -1036,5 +1032,3 @@ void codegen_emit_result(struct jitdata *jd, struct instruction *iptr) {
 void codegen_emit_const_return(struct jitdata *jd, struct instruction *iptr) {
 
 }
-
-int get_opc(struct instruction *iptr) { return iptr->opc; }
